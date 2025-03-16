@@ -3,8 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
-	v1 "memorix/api/v1"
-	"memorix/internal/model"
+
+	v1 "github.com/magiclz233/memorix/api/v1"
+	"github.com/magiclz233/memorix/internal/model"
 	"gorm.io/gorm"
 )
 

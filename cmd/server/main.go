@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 
-	"memorix/cmd/server/wire"
-	"memorix/pkg/config"
-	"memorix/pkg/log"
+	"github.com/magiclz233/memorix/cmd/server/wire"
+	"github.com/magiclz233/memorix/pkg/config"
+	"github.com/magiclz233/memorix/pkg/log"
 	"go.uber.org/zap"
 )
 

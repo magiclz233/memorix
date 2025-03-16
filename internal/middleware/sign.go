@@ -1,14 +1,15 @@
 package middleware
 
 import (
-	"github.com/duke-git/lancet/v2/cryptor"
-	"github.com/gin-gonic/gin"
-	v1 "memorix/api/v1"
-	"memorix/pkg/log"
-	"github.com/spf13/viper"
 	"net/http"
 	"sort"
 	"strings"
+
+	"github.com/duke-git/lancet/v2/cryptor"
+	"github.com/gin-gonic/gin"
+	v1 "github.com/magiclz233/memorix/api/v1"
+	"github.com/magiclz233/memorix/pkg/log"
+	"github.com/spf13/viper"
 )
 
 func SignMiddleware(logger *log.Logger, conf *viper.Viper) gin.HandlerFunc {

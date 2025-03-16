@@ -2,7 +2,8 @@ package server
 
 import (
 	"context"
-	"memorix/pkg/log"
+
+	"github.com/magiclz233/memorix/pkg/log"
 )
 
 type Job struct {

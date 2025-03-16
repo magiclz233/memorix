@@ -2,10 +2,11 @@ package server
 
 import (
 	"context"
-	"github.com/go-co-op/gocron"
-	"memorix/pkg/log"
-	"go.uber.org/zap"
 	"time"
+
+	"github.com/go-co-op/gocron"
+	"github.com/magiclz233/memorix/pkg/log"
+	"go.uber.org/zap"
 )
 
 type Task struct {

@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	v1 "memorix/api/v1"
+	v1 "github.com/magiclz233/memorix/api/v1"
 	gomock "github.com/golang/mock/gomock"
 )
 

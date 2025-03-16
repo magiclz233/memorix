@@ -2,11 +2,12 @@ package service
 
 import (
 	"context"
-	v1 "memorix/api/v1"
-	"memorix/internal/model"
-	"memorix/internal/repository"
-	"golang.org/x/crypto/bcrypt"
 	"time"
+
+	v1 "github.com/magiclz233/memorix/api/v1"
+	"github.com/magiclz233/memorix/internal/model"
+	"github.com/magiclz233/memorix/internal/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService interface {

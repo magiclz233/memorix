@@ -4,10 +4,10 @@
 package wire
 
 import (
-	"memorix/internal/server"
-	"memorix/pkg/app"
-	"memorix/pkg/log"
 	"github.com/google/wire"
+	"github.com/magiclz233/memorix/internal/server"
+	"github.com/magiclz233/memorix/pkg/app"
+	"github.com/magiclz233/memorix/pkg/log"
 	"github.com/spf13/viper"
 )
 

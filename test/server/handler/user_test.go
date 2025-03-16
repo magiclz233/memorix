@@ -1,12 +1,13 @@
 package handler
 
 import (
-	v1 "memorix/api/v1"
-	"memorix/internal/handler"
-	"memorix/internal/middleware"
-	"memorix/test/mocks/service"
 	"net/http"
 	"testing"
+
+	v1 "github.com/magiclz233/memorix/api/v1"
+	"github.com/magiclz233/memorix/internal/handler"
+	"github.com/magiclz233/memorix/internal/middleware"
+	mock_service "github.com/magiclz233/memorix/test/mocks/service"
 
 	"github.com/golang/mock/gomock"
 )

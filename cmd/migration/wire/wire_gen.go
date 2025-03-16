@@ -7,10 +7,10 @@
 package wire
 
 import (
-	"memorix/internal/repository"
-	"memorix/internal/server"
-	"memorix/pkg/app"
-	"memorix/pkg/log"
+	"github.com/magiclz233/memorix/internal/repository"
+	"github.com/magiclz233/memorix/internal/server"
+	"github.com/magiclz233/memorix/pkg/app"
+	"github.com/magiclz233/memorix/pkg/log"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
 )

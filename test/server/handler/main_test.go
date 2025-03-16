@@ -4,19 +4,20 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/gavv/httpexpect/v2"
-	"github.com/gin-gonic/gin"
-	"memorix/internal/handler"
-	"memorix/internal/middleware"
-	"memorix/pkg/config"
-	jwt2 "memorix/pkg/jwt"
-	"memorix/pkg/log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/gavv/httpexpect/v2"
+	"github.com/gin-gonic/gin"
+	"github.com/magiclz233/memorix/internal/handler"
+	"github.com/magiclz233/memorix/internal/middleware"
+	"github.com/magiclz233/memorix/pkg/config"
+	jwt2 "github.com/magiclz233/memorix/pkg/jwt"
+	"github.com/magiclz233/memorix/pkg/log"
 )
 
 var (

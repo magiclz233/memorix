@@ -2,11 +2,12 @@ package app
 
 import (
 	"context"
-	"memorix/pkg/server"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/magiclz233/memorix/pkg/server"
 )
 
 type App struct {

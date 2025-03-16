@@ -2,8 +2,8 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"memorix/pkg/jwt"
-	"memorix/pkg/log"
+	"github.com/magiclz233/memorix/pkg/jwt"
+	"github.com/magiclz233/memorix/pkg/log"
 )
 
 type Handler struct {

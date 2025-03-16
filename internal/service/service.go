@@ -1,10 +1,10 @@
 package service
 
 import (
-	"memorix/internal/repository"
-	"memorix/pkg/jwt"
-	"memorix/pkg/log"
-	"memorix/pkg/sid"
+	"github.com/magiclz233/memorix/internal/repository"
+	"github.com/magiclz233/memorix/pkg/jwt"
+	"github.com/magiclz233/memorix/pkg/log"
+	"github.com/magiclz233/memorix/pkg/sid"
 )
 
 type Service struct {

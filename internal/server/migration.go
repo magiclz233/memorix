@@ -2,11 +2,12 @@ package server
 
 import (
 	"context"
-	"memorix/internal/model"
-	"memorix/pkg/log"
+	"os"
+
+	"github.com/magiclz233/memorix/internal/model"
+	"github.com/magiclz233/memorix/pkg/log"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"os"
 )
 
 type Migrate struct {

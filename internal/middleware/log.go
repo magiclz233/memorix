@@ -2,13 +2,14 @@ package middleware
 
 import (
 	"bytes"
+	"io"
+	"time"
+
 	"github.com/duke-git/lancet/v2/cryptor"
 	"github.com/duke-git/lancet/v2/random"
 	"github.com/gin-gonic/gin"
-	"memorix/pkg/log"
+	"github.com/magiclz233/memorix/pkg/log"
 	"go.uber.org/zap"
-	"io"
-	"time"
 )
 
 func RequestLogMiddleware(logger *log.Logger) gin.HandlerFunc {

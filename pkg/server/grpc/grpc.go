@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"memorix/pkg/log"
+	"github.com/magiclz233/memorix/pkg/log"
 	"google.golang.org/grpc"
 	"net"
 	"time"

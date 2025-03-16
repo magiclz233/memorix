@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"flag"
-	"memorix/cmd/migration/wire"
-	"memorix/pkg/config"
-	"memorix/pkg/log"
+
+	"github.com/magiclz233/memorix/cmd/migration/wire"
+	"github.com/magiclz233/memorix/pkg/config"
+	"github.com/magiclz233/memorix/pkg/log"
 )
 
 func main() {

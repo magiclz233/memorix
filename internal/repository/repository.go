@@ -3,15 +3,16 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/glebarez/sqlite"
-	"memorix/pkg/log"
-	"memorix/pkg/zapgorm2"
+	"github.com/magiclz233/memorix/pkg/log"
+	"github.com/magiclz233/memorix/pkg/zapgorm2"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"time"
 )
 
 const ctxTxKey = "TxKey"

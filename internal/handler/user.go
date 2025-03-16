@@ -1,11 +1,12 @@
 package handler
 
 import (
-	"github.com/gin-gonic/gin"
-	"memorix/api/v1"
-	"memorix/internal/service"
-	"go.uber.org/zap"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	v1 "github.com/magiclz233/memorix/api/v1"
+	"github.com/magiclz233/memorix/internal/service"
+	"go.uber.org/zap"
 )
 
 type UserHandler struct {

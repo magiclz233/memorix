@@ -2,13 +2,14 @@ package repository
 
 import (
 	"context"
-	"memorix/pkg/log"
 	"testing"
 	"time"
 
+	"github.com/magiclz233/memorix/pkg/log"
+
 	"github.com/DATA-DOG/go-sqlmock"
-	"memorix/internal/model"
-	"memorix/internal/repository"
+	"github.com/magiclz233/memorix/internal/model"
+	"github.com/magiclz233/memorix/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
