@@ -2,9 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>文件上传到NAS</title>
 </head>
 <body>
+    <div class="upload-container">
+        <h2>NAS文件上传</h2>
+        <form id="uploadForm">
+            <div>
+                <label for="nasHost">NAS服务器地址：</label>
+                <input type="text" id="nasHost" name="nasHost" required>
+            </div>
+            <div>
+                <label for="nasUsername">NAS用户名：</label>
+                <input type="text" id="nasUsername" name="nasUsername" required>
+            </div>
+            <div>
+                <label for="nasPassword">NAS密码：</label>
+                <input type="password" id="nasPassword" name="nasPassword" required>
+            </div>
+            <div>
+                <label for="nasPath">目标路径：</label>
+                <input type="text" id="nasPath" name="nasPath" required>
+            </div>
+            <div>
+                <label for="file">选择文件：</label>
+                <input type="file" id="file" name="file" required>
+            </div>
+            <button type="submit">上传</button>
+        </form>
+    </div>
 
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('file', document.getElementById('file').files[0]);
+            formData.append('nasHost', document.getElementById('nasHost').value);
+            formData.append('nasUsername', document.getElementById('nasUsername').value);
+            formData.append('nasPassword', document.getElementById('nasPassword').value);
+            formData.append('nasPath', document.getElementById('nasPath').value);
+
+            try {
+                const response = await fetch('/api/v1/upload/nas', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                alert(result.message);
+            } catch (error) {
+                alert('上传失败：' + error.message);
+            }
+        });
+    </script>
 </body>
 </html>
