@@ -7,6 +7,7 @@
 package wire
 
 import (
+	"github.com/google/wire"
 	"github.com/magiclz233/memorix/internal/handler"
 	"github.com/magiclz233/memorix/internal/repository"
 	"github.com/magiclz233/memorix/internal/server"
@@ -16,7 +17,6 @@ import (
 	"github.com/magiclz233/memorix/pkg/log"
 	"github.com/magiclz233/memorix/pkg/server/http"
 	"github.com/magiclz233/memorix/pkg/sid"
-	"github.com/google/wire"
 	"github.com/spf13/viper"
 )
 
@@ -33,7 +33,10 @@ func NewWire(viperViper *viper.Viper, logger *log.Logger) (*app.App, func(), err
 	userRepository := repository.NewUserRepository(repositoryRepository)
 	userService := service.NewUserService(serviceService, userRepository)
 	userHandler := handler.NewUserHandler(handlerHandler, userService)
-	httpServer := server.NewHTTPServer(logger, viperViper, jwtJWT, userHandler)
+	fileRepository := repository.NewFileRepository(repositoryRepository)
+	nasService := service.NewNasService(serviceService, fileRepository)
+	nasHandler := handler.NewNasHandler(handlerHandler, nasService)
+	httpServer := server.NewHTTPServer(logger, viperViper, jwtJWT, userHandler, nasHandler)
 	job := server.NewJob(logger)
 	appApp := newApp(httpServer, job)
 	return appApp, func() {
@@ -42,11 +45,11 @@ func NewWire(viperViper *viper.Viper, logger *log.Logger) (*app.App, func(), err
 
 // wire.go:
 
-var repositorySet = wire.NewSet(repository.NewDB, repository.NewRepository, repository.NewTransaction, repository.NewUserRepository)
+var repositorySet = wire.NewSet(repository.NewDB, repository.NewRepository, repository.NewTransaction, repository.NewUserRepository, repository.NewFileRepository)
 
-var serviceSet = wire.NewSet(service.NewService, service.NewUserService)
+var serviceSet = wire.NewSet(service.NewService, service.NewUserService, service.NewNasService)
 
-var handlerSet = wire.NewSet(handler.NewHandler, handler.NewUserHandler)
+var handlerSet = wire.NewSet(handler.NewHandler, handler.NewUserHandler, handler.NewNasHandler)
 
 var serverSet = wire.NewSet(server.NewHTTPServer, server.NewJob)
 

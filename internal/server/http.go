@@ -19,6 +19,7 @@ func NewHTTPServer(
 	conf *viper.Viper,
 	jwt *jwt.JWT,
 	userHandler *handler.UserHandler,
+	nasHandler *handler.NasHandler,
 ) *http.Server {
 	gin.SetMode(gin.DebugMode)
 	s := http.NewServer(
@@ -27,6 +28,8 @@ func NewHTTPServer(
 		http.WithServerHost(conf.GetString("http.host")),
 		http.WithServerPort(conf.GetInt("http.port")),
 	)
+	// 添加静态文件服务
+	s.Static("/web", "./web")
 
 	// swagger doc
 	docs.SwaggerInfo.BasePath = "/v1"
@@ -50,13 +53,14 @@ func NewHTTPServer(
 		})
 	})
 
-	v1 := s.Group("/v1")
+	v1 := s.Group("/api/v1")
 	{
 		// No route group has permission
 		noAuthRouter := v1.Group("/")
 		{
 			noAuthRouter.POST("/register", userHandler.Register)
 			noAuthRouter.POST("/login", userHandler.Login)
+			noAuthRouter.POST("/upload/nas", nasHandler.UploadToNas) // 添加上传路由
 		}
 		// Non-strict permission routing group
 		noStrictAuthRouter := v1.Group("/").Use(middleware.NoStrictAuth(jwt, logger))
