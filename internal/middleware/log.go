@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/duke-git/lancet/v2/cryptor"
@@ -27,7 +28,12 @@ func RequestLogMiddleware(logger *log.Logger) gin.HandlerFunc {
 		if ctx.Request.Body != nil {
 			bodyBytes, _ := ctx.GetRawData()
 			ctx.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // 关键点
-			logger.WithValue(ctx, zap.String("request_params", string(bodyBytes)))
+			// 只有在非multipart请求时才记录请求体
+            if !strings.Contains(ctx.GetHeader("Content-Type"), "multipart/form-data") {
+                logger.WithValue(ctx, zap.String("request_params", string(bodyBytes)))
+            } else {
+                logger.WithValue(ctx, zap.String("request_params", "[binary data]"))
+            }
 		}
 		logger.WithContext(ctx).Info("Request")
 		ctx.Next()
