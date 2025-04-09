@@ -75,19 +75,35 @@ func (s *nasService) UploadFile(ctx context.Context, file io.Reader, filename st
 }
 
 func (s *nasService) uploadToNas(client *sftp.Client, file io.Reader, filename, path string) error {
-	if err := client.MkdirAll(path); err != nil {
-		return fmt.Errorf("无法创建目录: %v", err)
-	}
+    // 统一使用 Linux 风格的路径分隔符
+    path = filepath.ToSlash(path)
+    
+    // 检查目录是否存在
+    info, err := client.Stat(path)
+    if err != nil {
+        if err := client.MkdirAll(path); err != nil {
+            return fmt.Errorf("无法创建目录(%s): %v", path, err)
+        }
+    } else if !info.IsDir() {
+        return fmt.Errorf("指定路径(%s)不是目录", path)
+    }
 
-	dstPath := filepath.Join(path, filename)
-	dstFile, err := client.Create(dstPath)
-	if err != nil {
-		return fmt.Errorf("无法创建文件: %v", err)
-	}
-	defer dstFile.Close()
+    // 使用 Linux 风格的路径拼接
+    dstPath := path + "/" + filename
+    
+    // 检查文件是否已存在
+    if _, err := client.Stat(dstPath); err == nil {
+        return fmt.Errorf("文件已存在: %s", dstPath)
+    }
 
-	if _, err = io.Copy(dstFile, file); err != nil {
-		return fmt.Errorf("无法上传文件: %v", err)
-	}
-	return nil
+    dstFile, err := client.Create(dstPath)
+    if err != nil {
+        return fmt.Errorf("无法创建文件(%s): %v", dstPath, err)
+    }
+    defer dstFile.Close()
+
+    if _, err = io.Copy(dstFile, file); err != nil {
+        return fmt.Errorf("无法上传文件(%s): %v", dstPath, err)
+    }
+    return nil
 }
