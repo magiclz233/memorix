@@ -10,4 +10,5 @@ var (
 
 	// more biz errors
 	ErrEmailAlreadyUse = newError(1001, "The email is already in use.")
+	ErrUserConfig = newError(1002, "The file source config is bad.")
 )
