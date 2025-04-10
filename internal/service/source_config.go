@@ -1,13 +1,14 @@
 package service
 
 import (
-    "context"
+	"context"
 	"github.com/magiclz233/memorix/internal/model"
 	"github.com/magiclz233/memorix/internal/repository"
 )
 
 type SourceConfigService interface {
 	GetSourceConfig(ctx context.Context, id int64) (*model.SourceConfig, error)
+	AddSourceConfig(config *model.SourceConfig) (bool, error)
 }
 func NewSourceConfigService(
     service *Service,
@@ -26,4 +27,10 @@ type sourceConfigService struct {
 
 func (s *sourceConfigService) GetSourceConfig(ctx context.Context, id int64) (*model.SourceConfig, error) {
 	return s.sourceConfigRepository.GetSourceConfig(ctx, id)
+}
+
+
+func (s *sourceConfigService) AddSourceConfig(sourceConfig *model.SourceConfig) (bool, error)  {
+	
+	return true, nil
 }
