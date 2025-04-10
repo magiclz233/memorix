@@ -24,18 +24,21 @@ var repositorySet = wire.NewSet(
 	repository.NewTransaction,
 	repository.NewUserRepository,
 	repository.NewFileRepository, // 保留文件仓储，但不需要数据库操作
+	repository.NewSourceConfigRepository,
 )
 
 var serviceSet = wire.NewSet(
 	service.NewService,
 	service.NewUserService,
 	service.NewNasService,
+	service.NewSourceConfigService,
 )
 
 var handlerSet = wire.NewSet(
 	handler.NewHandler,
 	handler.NewUserHandler,
 	handler.NewNasHandler,
+	handler.NewSourceConfigHandler,
 )
 
 var serverSet = wire.NewSet(

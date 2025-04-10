@@ -20,6 +20,7 @@ func NewHTTPServer(
 	jwt *jwt.JWT,
 	userHandler *handler.UserHandler,
 	nasHandler *handler.NasHandler,
+	sourceConfigHandler *handler.SourceConfigHandler,
 ) *http.Server {
 	gin.SetMode(gin.DebugMode)
 	s := http.NewServer(
