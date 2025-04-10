@@ -60,7 +60,7 @@ func (h *NasHandler) UploadToNas(c *gin.Context) {
 		return
 	}
 
-	err = h.nasService.UploadFile(c, file, fileHeader.Filename, nasConfig)
+	err = h.nasService.UploadFile(file, fileHeader.Filename, nasConfig)
 	if err != nil {
 		h.logger.WithContext(c).Error("上传文件到NAS失败", zap.Error(err))
 		v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, nil)

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -12,7 +11,7 @@ import (
 )
 
 type NasService interface {
-	UploadFile(ctx context.Context, file io.Reader, filename string, nasConfig NasConfig) error
+	UploadFile(file io.Reader, filename string, nasConfig NasConfig) error
 	GetNasClient(nasConfig NasConfig) (*sftp.Client, error) // 抽取NAS连接逻辑
 }
 
@@ -58,7 +57,7 @@ func (s *nasService) GetNasClient(nasConfig NasConfig) (*sftp.Client, error) {
 	return sftpClient, nil
 }
 
-func (s *nasService) UploadFile(ctx context.Context, file io.Reader, filename string, nasConfig NasConfig) error {
+func (s *nasService) UploadFile(file io.Reader, filename string, nasConfig NasConfig) error {
 	// 获取NAS客户端
 	sftpClient, err := s.GetNasClient(nasConfig)
 	if err != nil {
