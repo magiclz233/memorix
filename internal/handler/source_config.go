@@ -35,7 +35,7 @@ func (h *SourceConfigHandler) AddSourceConfig(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	flag, err := h.sourceConfigService.AddSourceConfig(&sourceConfig)
+	flag, err := h.sourceConfigService.AddSourceConfig(ctx, &sourceConfig)
 	if err != nil {
 		v1.HandleError(ctx, http.StatusUnauthorized, v1.ErrUserConfig, nil)
 		return
