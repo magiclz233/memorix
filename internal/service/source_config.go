@@ -36,16 +36,18 @@ func (s *sourceConfigService) AddSourceConfig(ctx context.Context, sourceConfig 
     if sourceConfig == nil {
         return false, fmt.Errorf("配置信息不能为空")
     }
-
     // 根据不同类型处理配置信息
     switch sourceConfig.Type {
     case "local":
         // 解析本地存储配置
- 
+        
 
     case "nas":
         // 解析并加密 NAS 配置
-
+        
+    case "qiniu":
+        // 解析并加密七牛云存储配置
+        
 
     default:
         return false, fmt.Errorf("不支持的存储类型: %s", sourceConfig.Type)

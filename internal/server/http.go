@@ -62,6 +62,8 @@ func NewHTTPServer(
 			noAuthRouter.POST("/register", userHandler.Register)
 			noAuthRouter.POST("/login", userHandler.Login)
 			noAuthRouter.POST("/upload/nas", nasHandler.UploadToNas) // 添加上传路由
+			noAuthRouter.POST("/source/config/add", sourceConfigHandler.AddSourceConfig) // 添加配置地址
+
 		}
 		// Non-strict permission routing group
 		noStrictAuthRouter := v1.Group("/").Use(middleware.NoStrictAuth(jwt, logger))
