@@ -5,14 +5,15 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/magiclz233/memorix/internal/model"
 	"github.com/magiclz233/memorix/internal/repository"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
 type NasService interface {
-	UploadFile(file io.Reader, filename string, nasConfig NasConfig) error
-	GetNasClient(nasConfig NasConfig) (*sftp.Client, error) // 抽取NAS连接逻辑
+	UploadFile(file io.Reader, filename string, sourceConfig *model.SourceConfig) error
+	GetNasClient(nasConfig *model.SourceConfig) (*sftp.Client, error) // 抽取NAS连接逻辑
 }
 
 type NasConfig struct {
@@ -34,7 +35,7 @@ func NewNasService(service *Service, fileRepository repository.FileRepository) N
 	}
 }
 
-func (s *nasService) GetNasClient(nasConfig NasConfig) (*sftp.Client, error) {
+func (s *nasService) GetNasClient(nasConfig *model.SourceConfig) (*sftp.Client, error) {
 	config := ssh.ClientConfig{
 		User: nasConfig.Name,
 		Auth: []ssh.AuthMethod{
@@ -57,16 +58,16 @@ func (s *nasService) GetNasClient(nasConfig NasConfig) (*sftp.Client, error) {
 	return sftpClient, nil
 }
 
-func (s *nasService) UploadFile(file io.Reader, filename string, nasConfig NasConfig) error {
+func (s *nasService) UploadFile(file io.Reader, filename string, sourceConfig *model.SourceConfig) error {
 	// 获取NAS客户端
-	sftpClient, err := s.GetNasClient(nasConfig)
+	sftpClient, err := s.GetNasClient(sourceConfig)
 	if err != nil {
 		return err
 	}
 	defer sftpClient.Close()
 
 	// 直接上传文件
-	if err := s.uploadToNas(sftpClient, file, filename, nasConfig.Path); err != nil {
+	if err := s.uploadToNas(sftpClient, file, filename, sourceConfig.BasePath); err != nil {
 		return err
 	}
 

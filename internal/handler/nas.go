@@ -12,19 +12,21 @@ import (
 type NasHandler struct {
 	*Handler
 	nasService service.NasService
+	sourceConfigService service.SourceConfigService
 }
 
 func NewNasHandler(
 	handler *Handler,
 	nasService service.NasService,
+	sourceConfigService service.SourceConfigService,
 ) *NasHandler {
 	return &NasHandler{
 		Handler:    handler,
 		nasService: nasService,
+		sourceConfigService: sourceConfigService,
 	}
 }
 
-// UploadToNas godoc
 // @Summary 上传文件到NAS
 // @Schemes
 // @Description 上传文件到指定的NAS服务器
@@ -32,10 +34,6 @@ func NewNasHandler(
 // @Accept multipart/form-data
 // @Produce json
 // @Param file formData file true "文件"
-// @Param nasHost formData string true "NAS服务器地址"
-// @Param nasUsername formData string true "NAS用户名"
-// @Param nasPassword formData string true "NAS密码"
-// @Param nasPath formData string true "NAS存储路径"
 // @Success 200 {object} v1.Response
 // @Router /upload/nas [post]
 func (h *NasHandler) UploadToNas(c *gin.Context) {
@@ -47,15 +45,16 @@ func (h *NasHandler) UploadToNas(c *gin.Context) {
 	}
 	defer file.Close()
 
-	nasConfig := service.NasConfig{
-		Host:     c.PostForm("nasHost"),
-		Name:     c.PostForm("nasUsername"),
-		Password: c.PostForm("nasPassword"),
-		Path:     c.PostForm("nasPath"),
+	// 获取NAS配置
+	nasConfig, err := h.sourceConfigService.GetSourceConfig(c, 1)
+	if err!= nil {
+		h.logger.WithContext(c).Error("获取NAS配置失败", zap.Error(err))
+		v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, nil)
+		return
 	}
 
 	// 验证必要的参数
-	if nasConfig.Host == "" || nasConfig.Name == "" || nasConfig.Password == "" || nasConfig.Path == "" {
+	if nasConfig.Host == "" || nasConfig.Name == "" || nasConfig.Password == "" || nasConfig.BasePath == "" {
 		v1.HandleError(c, http.StatusBadRequest, v1.ErrBadRequest, nil)
 		return
 	}
