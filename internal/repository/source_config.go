@@ -6,7 +6,7 @@ import (
 )
 
 type SourceConfigRepository interface {
-	GetSourceConfig(ctx context.Context, id int64) (*model.SourceConfig, error)
+	GetSourceConfig(ctx context.Context, id uint) (*model.SourceConfig, error)
 	GetByUserIdAndType(ctx context.Context, userId int, t string) (*model.SourceConfig, error)
 	Create(ctx context.Context, config *model.SourceConfig) error
 	Update(ctx context.Context, config *model.SourceConfig) error
@@ -25,9 +25,11 @@ type sourceConfigRepository struct {
 	*Repository
 }
 
-func (r *sourceConfigRepository) GetSourceConfig(ctx context.Context, id int64) (*model.SourceConfig, error) {
+func (r *sourceConfigRepository) GetSourceConfig(ctx context.Context, id uint) (*model.SourceConfig, error) {
 	var sourceConfig model.SourceConfig
-
+	if err := r.DB(ctx).First(&sourceConfig, id).Error; err != nil {
+		return nil, err
+	}
 	return &sourceConfig, nil
 }
 

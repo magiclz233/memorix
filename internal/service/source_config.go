@@ -9,8 +9,9 @@ import (
 )
 
 type SourceConfigService interface {
-	GetSourceConfig(ctx context.Context, id int64) (*model.SourceConfig, error)
+	GetSourceConfig(ctx context.Context, id uint) (*model.SourceConfig, error)
 	AddSourceConfig(ctx context.Context, config *model.SourceConfig) (bool, error)
+	GetByUserIdAndType(ctx context.Context, userId int, sourceType string) (*model.SourceConfig, error)
 }
 
 func NewSourceConfigService(
@@ -28,8 +29,12 @@ type sourceConfigService struct {
 	sourceConfigRepository repository.SourceConfigRepository
 }
 
-func (s *sourceConfigService) GetSourceConfig(ctx context.Context, id int64) (*model.SourceConfig, error) {
+func (s *sourceConfigService) GetSourceConfig(ctx context.Context, id uint) (*model.SourceConfig, error) {
 	return s.sourceConfigRepository.GetSourceConfig(ctx, id)
+}
+
+func (s *sourceConfigService) GetByUserIdAndType(ctx context.Context, userId int, sourceType string) (*model.SourceConfig, error) {
+	return s.sourceConfigRepository.GetByUserIdAndType(ctx, userId, sourceType)
 }
 
 func (s *sourceConfigService) AddSourceConfig(ctx context.Context, sourceConfig *model.SourceConfig) (bool, error) {

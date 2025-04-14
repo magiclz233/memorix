@@ -46,7 +46,7 @@ func (h *NasHandler) UploadToNas(c *gin.Context) {
 	defer file.Close()
 
 	// 获取NAS配置
-	nasConfig, err := h.sourceConfigService.GetSourceConfig(c, 1)
+	nasConfig, err := h.sourceConfigService.GetByUserIdAndType(c, 1, "nas")
 	if err!= nil {
 		h.logger.WithContext(c).Error("获取NAS配置失败", zap.Error(err))
 		v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, nil)
