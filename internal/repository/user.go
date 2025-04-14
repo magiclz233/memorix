@@ -12,7 +12,7 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user *model.User) error
 	Update(ctx context.Context, user *model.User) error
-	GetByID(ctx context.Context, id string) (*model.User, error)
+	GetByID(ctx context.Context, id uint) (*model.User, error)
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 }
 
@@ -42,7 +42,7 @@ func (r *userRepository) Update(ctx context.Context, user *model.User) error {
 	return nil
 }
 
-func (r *userRepository) GetByID(ctx context.Context, userId string) (*model.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, userId uint) (*model.User, error) {
 	var user model.User
 	if err := r.DB(ctx).Where("user_id = ?", userId).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

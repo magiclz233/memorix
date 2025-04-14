@@ -13,8 +13,8 @@ import (
 type UserService interface {
 	Register(ctx context.Context, req *v1.RegisterRequest) error
 	Login(ctx context.Context, req *v1.LoginRequest) (string, error)
-	GetProfile(ctx context.Context, userId string) (*v1.GetProfileResponseData, error)
-	UpdateProfile(ctx context.Context, userId string, req *v1.UpdateProfileRequest) error
+	GetProfile(ctx context.Context, userId uint) (*v1.GetProfileResponseData, error)
+	UpdateProfile(ctx context.Context, userId uint, req *v1.UpdateProfileRequest) error
 }
 
 func NewUserService(
@@ -46,13 +46,13 @@ func (s *userService) Register(ctx context.Context, req *v1.RegisterRequest) err
 	if err != nil {
 		return err
 	}
-	// Generate user ID
-	userId, err := s.sid.GenString()
+	// Generate user Name
+	userName, err := s.sid.GenString()
 	if err != nil {
 		return err
 	}
 	user = &model.User{
-		UserId:   userId,
+		UserName:   userName,
 		Email:    req.Email,
 		Password: string(hashedPassword),
 	}
@@ -78,7 +78,7 @@ func (s *userService) Login(ctx context.Context, req *v1.LoginRequest) (string, 
 	if err != nil {
 		return "", err
 	}
-	token, err := s.jwt.GenToken(user.UserId, time.Now().Add(time.Hour*24*90))
+	token, err := s.jwt.GenToken(user.Id, time.Now().Add(time.Hour*24*90))
 	if err != nil {
 		return "", err
 	}
@@ -86,19 +86,19 @@ func (s *userService) Login(ctx context.Context, req *v1.LoginRequest) (string, 
 	return token, nil
 }
 
-func (s *userService) GetProfile(ctx context.Context, userId string) (*v1.GetProfileResponseData, error) {
+func (s *userService) GetProfile(ctx context.Context, userId uint) (*v1.GetProfileResponseData, error) {
 	user, err := s.userRepo.GetByID(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
 
 	return &v1.GetProfileResponseData{
-		UserId:   user.UserId,
+		UserName:   user.UserName,
 		Nickname: user.Nickname,
 	}, nil
 }
 
-func (s *userService) UpdateProfile(ctx context.Context, userId string, req *v1.UpdateProfileRequest) error {
+func (s *userService) UpdateProfile(ctx context.Context, userId uint, req *v1.UpdateProfileRequest) error {
 	user, err := s.userRepo.GetByID(ctx, userId)
 	if err != nil {
 		return err
