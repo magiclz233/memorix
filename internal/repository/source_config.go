@@ -7,11 +7,12 @@ import (
 
 type SourceConfigRepository interface {
 	GetSourceConfig(ctx context.Context, id uint) (*model.SourceConfig, error)
-	GetByUserIdAndType(ctx context.Context, userId int, t string) (*model.SourceConfig, error)
+	GetByUserIdAndType(ctx context.Context, userId uint, t string) (*model.SourceConfig, error)
 	Create(ctx context.Context, config *model.SourceConfig) error
 	Update(ctx context.Context, config *model.SourceConfig) error
 	Delete(ctx context.Context, id uint) error
 }
+
 
 func NewSourceConfigRepository(
 	repository *Repository,
@@ -54,11 +55,11 @@ func (r *sourceConfigRepository) Delete(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (r *sourceConfigRepository) GetByUserIdAndType(ctx context.Context, userId int, t string) (*model.SourceConfig, error) {
+func (r *sourceConfigRepository) GetByUserIdAndType(ctx context.Context, userId uint, t string) (*model.SourceConfig, error) {
 	var config model.SourceConfig
-    err := r.DB(ctx).Where("user_id = ? AND type = ?", userId, t).First(&config).Error
-    if err != nil {
-        return nil, err
-    }
-    return &config, nil
+	err := r.DB(ctx).Where("user_id = ? AND type = ?", userId, t).First(&config).Error
+	if err != nil {
+		return nil, err
+	}
+	return &config, nil
 }

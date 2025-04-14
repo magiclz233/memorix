@@ -11,21 +11,25 @@ import (
 type SourceConfigService interface {
 	GetSourceConfig(ctx context.Context, id uint) (*model.SourceConfig, error)
 	AddSourceConfig(ctx context.Context, config *model.SourceConfig) (bool, error)
-	GetByUserIdAndType(ctx context.Context, userId int, sourceType string) (*model.SourceConfig, error)
+	GetByUserIdAndType(ctx context.Context, userId uint, sourceType string) (*model.SourceConfig, error)
+	GetUserDefaultSourceConfig(ctx context.Context, userId uint) (*model.SourceConfig, error)
 }
 
 func NewSourceConfigService(
 	service *Service,
+	userService UserService,
 	sourceConfigRepository repository.SourceConfigRepository,
 ) SourceConfigService {
 	return &sourceConfigService{
 		Service:                service,
+		userService:            userService,
 		sourceConfigRepository: sourceConfigRepository,
 	}
 }
 
 type sourceConfigService struct {
 	*Service
+	userService            UserService
 	sourceConfigRepository repository.SourceConfigRepository
 }
 
@@ -33,8 +37,29 @@ func (s *sourceConfigService) GetSourceConfig(ctx context.Context, id uint) (*mo
 	return s.sourceConfigRepository.GetSourceConfig(ctx, id)
 }
 
-func (s *sourceConfigService) GetByUserIdAndType(ctx context.Context, userId int, sourceType string) (*model.SourceConfig, error) {
+func (s *sourceConfigService) GetByUserIdAndType(ctx context.Context, userId uint, sourceType string) (*model.SourceConfig, error) {
 	return s.sourceConfigRepository.GetByUserIdAndType(ctx, userId, sourceType)
+}
+
+func (s *sourceConfigService) GetUserDefaultSourceConfig(ctx context.Context, userId uint) (*model.SourceConfig, error) {
+	if userId == 0 {
+		return nil, fmt.Errorf("用户信息不能为空")
+	}
+
+	user, err := s.userService.GetProfile(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+	
+	if user.DefaultStorageId > 0 {
+		return s.GetSourceConfig(ctx, user.DefaultStorageId)
+	}
+
+	if user.DefaultStorage != "" {
+		return s.GetByUserIdAndType(ctx, userId, user.DefaultStorage)
+	}
+
+	return nil, fmt.Errorf("未找到默认存储配置")
 }
 
 func (s *sourceConfigService) AddSourceConfig(ctx context.Context, sourceConfig *model.SourceConfig) (bool, error) {
