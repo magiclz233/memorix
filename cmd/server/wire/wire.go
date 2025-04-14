@@ -30,13 +30,17 @@ var repositorySet = wire.NewSet(
 var serviceSet = wire.NewSet(
 	service.NewService,
 	service.NewUserService,
-	service.NewNasService,
 	service.NewSourceConfigService,
+	service.NewFileService,
+	service.NewLocalService,
+	service.NewNasService,
+	service.NewQiniuService,
 )
 
 var handlerSet = wire.NewSet(
 	handler.NewHandler,
 	handler.NewUserHandler,
+	handler.NewFileHandler,
 	handler.NewNasHandler,
 	handler.NewSourceConfigHandler,
 )

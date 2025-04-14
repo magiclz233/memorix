@@ -33,12 +33,12 @@ func NewWire(viperViper *viper.Viper, logger *log.Logger) (*app.App, func(), err
 	userRepository := repository.NewUserRepository(repositoryRepository)
 	userService := service.NewUserService(serviceService, userRepository)
 	userHandler := handler.NewUserHandler(handlerHandler, userService)
-	sourceConfigRepository := repository.NewSourceConfigRepository(repositoryRepository)
-	sourceConfigService := service.NewSourceConfigService(serviceService, sourceConfigRepository)
-	sourceConfigHandler := handler.NewSourceConfigHandler(handlerHandler, sourceConfigService)
 	fileRepository := repository.NewFileRepository(repositoryRepository)
 	nasService := service.NewNasService(serviceService, fileRepository)
-	nasHandler := handler.NewNasHandler(handlerHandler, nasService, sourceConfigService)  // 修改这行，添加 sourceConfigService
+	sourceConfigRepository := repository.NewSourceConfigRepository(repositoryRepository)
+	sourceConfigService := service.NewSourceConfigService(serviceService, userService, sourceConfigRepository)
+	nasHandler := handler.NewNasHandler(handlerHandler, nasService, sourceConfigService)
+	sourceConfigHandler := handler.NewSourceConfigHandler(handlerHandler, sourceConfigService)
 	httpServer := server.NewHTTPServer(logger, viperViper, jwtJWT, userHandler, nasHandler, sourceConfigHandler)
 	job := server.NewJob(logger)
 	appApp := newApp(httpServer, job)
@@ -50,9 +50,9 @@ func NewWire(viperViper *viper.Viper, logger *log.Logger) (*app.App, func(), err
 
 var repositorySet = wire.NewSet(repository.NewDB, repository.NewRepository, repository.NewTransaction, repository.NewUserRepository, repository.NewFileRepository, repository.NewSourceConfigRepository)
 
-var serviceSet = wire.NewSet(service.NewService, service.NewUserService, service.NewNasService, service.NewSourceConfigService)
+var serviceSet = wire.NewSet(service.NewService, service.NewUserService, service.NewSourceConfigService, service.NewFileService, service.NewLocalService, service.NewNasService, service.NewQiniuService)
 
-var handlerSet = wire.NewSet(handler.NewHandler, handler.NewUserHandler, handler.NewNasHandler, handler.NewSourceConfigHandler)
+var handlerSet = wire.NewSet(handler.NewHandler, handler.NewUserHandler, handler.NewFileHandler, handler.NewNasHandler, handler.NewSourceConfigHandler)
 
 var serverSet = wire.NewSet(server.NewHTTPServer, server.NewJob)
 
