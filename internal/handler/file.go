@@ -11,9 +11,11 @@ import (
 
 type FileHandler struct {
 	*Handler
-	fileService        service.FileService
+	fileService         service.FileService
 	sourceConfigService service.SourceConfigService
-	nasService         service.NasService
+	nasService          service.NasService
+	localService        service.LocalService
+	qiniuService        service.QiniuService
 	// 后续可以添加其他存储服务，如七牛云服务等
 }
 
@@ -22,12 +24,16 @@ func NewFileHandler(
 	fileService service.FileService,
 	sourceConfigService service.SourceConfigService,
 	nasService service.NasService,
+	localService service.LocalService,
+	qiniuService service.QiniuService,
 ) *FileHandler {
 	return &FileHandler{
-		Handler:            handler,
-		fileService:        fileService,
+		Handler:             handler,
+		fileService:         fileService,
 		sourceConfigService: sourceConfigService,
-		nasService:         nasService,
+		nasService:          nasService,
+		localService:        localService,
+		qiniuService:        qiniuService,
 	}
 }
 
@@ -58,7 +64,7 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 	defer file.Close()
 
 	// 获取用户默认存储配置
-	sourceConfig, err := h.sourceConfigService.GetDefaultByUserId(c, userId)
+	sourceConfig, err := h.sourceConfigService.GetUserDefaultSourceConfig(c, userId)
 	if err != nil {
 		h.logger.WithContext(c).Error("获取用户默认存储配置失败", zap.Error(err))
 		v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, nil)
@@ -77,13 +83,13 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 	switch sourceConfig.Type {
 	case "local":
 		// 本地存储
-		uploadErr = h.fileService.UploadToLocal(file, fileHeader.Filename, sourceConfig)
+		uploadErr = h.localService.UploadLocal(file, fileHeader.Filename, sourceConfig)
 	case "nas":
 		// NAS存储
 		uploadErr = h.nasService.UploadFile(file, fileHeader.Filename, sourceConfig)
 	case "qiniu":
 		// 七牛云存储
-		uploadErr = h.fileService.UploadToQiniu(file, fileHeader.Filename, sourceConfig)
+		uploadErr = h.qiniuService.UploadQiniu(file, fileHeader.Filename, sourceConfig)
 	default:
 		h.logger.WithContext(c).Error("不支持的存储类型", zap.String("type", sourceConfig.Type))
 		v1.HandleError(c, http.StatusBadRequest, v1.ErrBadRequest, "不支持的存储类型")
@@ -100,16 +106,18 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 }
 
 // 获取当前用户ID的辅助方法
-func (h *FileHandler) getCurrentUserId(c *gin.Context) int64 {
-	// 从上下文中获取用户ID，具体实现可能需要根据您的认证中间件调整
-	userId, exists := c.Get("userId")
-	if !exists {
-		return 0
-	}
-	
-	// 类型断言
-	if id, ok := userId.(int64); ok {
-		return id
-	}
-	return 0
+func (h *FileHandler) getCurrentUserId(ctx *gin.Context) uint {
+    // 优先从claims中获取userId
+    if userId := GetUserIdFromCtx(ctx); userId > 0 {
+        return userId
+    }
+
+    // 从context中获取userId
+    if val, exists := ctx.Get("userId"); exists {
+        if userId, ok := val.(uint); ok {
+            return userId
+        }
+    }
+
+    return 0
 }
