@@ -36,7 +36,7 @@ func NewNasHandler(
 // @Param file formData file true "文件"
 // @Success 200 {object} v1.Response
 // @Router /upload/nas [post]
-func (h *NasHandler) UploadToNas(c *gin.Context) {
+func (h *NasHandler) UploadToNas(c *gin.Context) {	
 	file, fileHeader, err := c.Request.FormFile("file")
 	if err != nil {
 		h.logger.WithContext(c).Error("获取上传文件失败", zap.Error(err))
