@@ -24,6 +24,7 @@ type SourceConfig struct {
     ScanPeriod  int    `json:"scan_period" gorm:"default:3600"`              // 扫描周期（秒），用于定时扫描同步
     LastScanAt  time.Time  `json:"last_scan_at"`                                 // 上次扫描时间
     Description string `json:"description" gorm:"type:varchar(500)"`          // 描述信息
+	DefaultPath string `json:"default_path" gorm:"type:varchar(500)"`          // 默认文件夹路径
 }
 
 func (m *SourceConfig) TableName() string {
