@@ -21,6 +21,7 @@ func NewHTTPServer(
 	userHandler *handler.UserHandler,
 	nasHandler *handler.NasHandler,
 	sourceConfigHandler *handler.SourceConfigHandler,
+	fileHandler *handler.FileHandler,
 ) *http.Server {
 	gin.SetMode(gin.DebugMode)
 	s := http.NewServer(
@@ -75,6 +76,8 @@ func NewHTTPServer(
 		strictAuthRouter := v1.Group("/").Use(middleware.StrictAuth(jwt, logger))
 		{
 			strictAuthRouter.PUT("/user", userHandler.UpdateProfile)
+			strictAuthRouter.GET("/file/:id", fileHandler.GetFile)
+			strictAuthRouter.POST("/scan-photos", fileHandler.ScanPhotos)
 		}
 	}
 

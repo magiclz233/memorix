@@ -44,7 +44,7 @@ func NewFileHandler(
 // @Accept multipart/form-data
 // @Produce json
 // @Param file formData file true "文件"
-// @Success 200 {object} v1.Response
+// @Success 200 {object} v1.FileResponse
 // @Router /upload [post]
 func (h *FileHandler) UploadFile(c *gin.Context) {
 	// 获取当前用户ID
@@ -102,6 +102,81 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
+	// Assuming the upload service returns a file ID or file information
+	// You might need to adjust this based on your actual implementation.
+	// For this example, I'll assume it returns a file ID.
+	//  Replace this with your actual file information retrieval logic
+	// fileID, ok := result.(int64)
+	// if !ok {
+	// 	h.logger.WithContext(c).Error("上传文件后未返回有效的文件信息")
+	// 	v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "上传文件失败")
+	// 	return
+	// }
+
+	// Retrieve file information using the file ID
+	// fileInfo, err := h.fileService.GetFile(c, fileID)
+	// if err != nil {
+	// 	h.logger.WithContext(c).Error("获取文件信息失败", zap.Error(err), zap.Int64("file_id", fileID))
+	// 	v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "获取文件信息失败")
+	// 	return
+	// }
+	v1.HandleSuccess(c, nil) // TODO: update with actual file info
+}
+
+// @Summary 扫描照片
+// @Schemes
+// @Description 扫描指定 Source Config 下的图片，提取并保存照片信息
+// @Tags 文件模块
+// @Produce json
+// @Param source_config_id query int true "Source Config ID"
+// @Success 200 {object} v1.Response
+// @Router /scan-photos [post]
+func (h *FileHandler) ScanPhotos(c *gin.Context) {
+	sourceConfigID := c.Query("source_config_id")
+	if sourceConfigID == "" {
+		h.logger.WithContext(c).Error("Source Config ID 不能为空")
+		v1.HandleError(c, http.StatusBadRequest, v1.ErrBadRequest, "Source Config ID 不能为空")
+		return
+	}
+
+	err := h.fileService.ScanAndSavePhotos(c, sourceConfigID)
+	if err != nil {
+		h.logger.WithContext(c).Error("扫描照片失败", zap.Error(err), zap.String("source_config_id", sourceConfigID))
+		v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "扫描照片失败")
+		return
+	}
+
+	v1.HandleSuccess(c, nil)
+}
+
+// @Summary 获取文件信息
+// @Schemes
+// @Description 根据文件 ID 获取文件信息
+// @Tags 文件模块
+// @Produce json
+// @Param id path int true "File ID"
+// @Success 200 {object} v1.FileResponse
+// @Router /files/{id} [get]
+func (h *FileHandler) GetFile(c *gin.Context) {
+	// fileIDStr := c.Param("id")
+	// fileID, err := strconv.ParseInt(fileIDStr, 10, 64)
+	// if err != nil {
+	// 	h.logger.WithContext(c).Error("无效的文件 ID", zap.Error(err), zap.String("file_id", fileIDStr))
+	// 	v1.HandleError(c, http.StatusBadRequest, v1.ErrBadRequest, "无效的文件 ID")
+	// 	return
+	// }
+
+	// file, err := h.fileService.GetFile(c, fileID)
+	// if err != nil {
+	// 	h.logger.WithContext(c).Error("获取文件信息失败", zap.Error(err), zap.Int64("file_id", fileID))
+	// 	v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "获取文件信息失败")
+	// 	return
+	// }
+
+	// response := v1.FileResponse{ TODO: update response data
+	// 	ID:       file.ID,
+	// 	Filename: file.Filename,
+	// }
 	v1.HandleSuccess(c, nil)
 }
 
