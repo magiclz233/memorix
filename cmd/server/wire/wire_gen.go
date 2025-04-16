@@ -39,7 +39,7 @@ func NewWire(viperViper *viper.Viper, logger *log.Logger) (*app.App, func(), err
 	sourceConfigService := service.NewSourceConfigService(serviceService, userService, sourceConfigRepository)
 	nasHandler := handler.NewNasHandler(handlerHandler, nasService, sourceConfigService)
 	sourceConfigHandler := handler.NewSourceConfigHandler(handlerHandler, sourceConfigService)
-	httpServer := server.NewHTTPServer(logger, viperViper, jwtJWT, userHandler, nasHandler, sourceConfigHandler)
+	httpServer := server.NewHTTPServer(logger, viperViper, jwtJWT, userHandler, nasHandler, sourceConfigHandler, )
 	job := server.NewJob(logger)
 	appApp := newApp(httpServer, job)
 	return appApp, func() {
