@@ -2,7 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
+
 	"github.com/magiclz233/memorix/internal/model"
+	"gorm.io/gorm"
 )
 
 type SourceConfigRepository interface {
@@ -12,7 +15,6 @@ type SourceConfigRepository interface {
 	Update(ctx context.Context, config *model.SourceConfig) error
 	Delete(ctx context.Context, id uint) error
 }
-
 
 func NewSourceConfigRepository(
 	repository *Repository,
@@ -29,6 +31,9 @@ type sourceConfigRepository struct {
 func (r *sourceConfigRepository) GetSourceConfig(ctx context.Context, id uint) (*model.SourceConfig, error) {
 	var sourceConfig model.SourceConfig
 	if err := r.DB(ctx).First(&sourceConfig, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound // Use the common ErrNotFound
+		}
 		return nil, err
 	}
 	return &sourceConfig, nil
@@ -59,6 +64,9 @@ func (r *sourceConfigRepository) GetByUserIdAndType(ctx context.Context, userId 
 	var config model.SourceConfig
 	err := r.DB(ctx).Where("user_id = ? AND type = ?", userId, t).First(&config).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound // Use the common ErrNotFound
+		}
 		return nil, err
 	}
 	return &config, nil

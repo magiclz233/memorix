@@ -8,7 +8,7 @@ import (
 
 type SourceConfig struct {
     gorm.Model
-	UserId      int `json:"user_id" gorm:"not null"`
+	UserId      uint `json:"user_id" gorm:"not null"`
     Name        string `json:"name" gorm:"type:varchar(100);not null"`         // 配置名称
     Type        string `json:"type" gorm:"type:varchar(50);not null"`          // 来源类型：local/nas/qiniu/aliyun/onedrive 等
     Host        string `json:"host" gorm:"type:varchar(255)"`                  // 服务器地址，用于nas/云存储
