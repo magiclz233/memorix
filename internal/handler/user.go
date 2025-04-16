@@ -39,8 +39,15 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 	}
 
 	if err := h.userService.Register(ctx, req); err != nil {
+		// Log the specific error from the service layer
 		h.logger.WithContext(ctx).Error("userService.Register error", zap.Error(err))
-		v1.HandleError(ctx, http.StatusInternalServerError, err, nil)
+		// Check for specific known errors from the service layer
+		if err == v1.ErrEmailAlreadyUse {
+			v1.HandleError(ctx, http.StatusBadRequest, err, nil)
+		} else {
+			// Return a generic internal server error for other cases
+			v1.HandleError(ctx, http.StatusInternalServerError, v1.ErrInternalServerError, "注册失败")
+		}
 		return
 	}
 
@@ -66,7 +73,16 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 
 	token, err := h.userService.Login(ctx, &req)
 	if err != nil {
-		v1.HandleError(ctx, http.StatusUnauthorized, v1.ErrUnauthorized, nil)
+		// Log the specific error from the service layer
+		h.logger.WithContext(ctx).Warn("userService.Login error", zap.Error(err)) // Use Warn for auth failures
+		// Service layer should return specific v1 errors like ErrUnauthorized
+		if err == v1.ErrUnauthorized {
+			v1.HandleError(ctx, http.StatusUnauthorized, v1.ErrUnauthorized, nil)
+		} else {
+			// Log unexpected errors as Error
+			h.logger.WithContext(ctx).Error("Unexpected login error", zap.Error(err))
+			v1.HandleError(ctx, http.StatusInternalServerError, v1.ErrInternalServerError, "登录失败")
+		}
 		return
 	}
 	v1.HandleSuccess(ctx, v1.LoginResponseData{
@@ -93,7 +109,14 @@ func (h *UserHandler) GetProfile(ctx *gin.Context) {
 
 	user, err := h.userService.GetProfile(ctx, userId)
 	if err != nil {
-		v1.HandleError(ctx, http.StatusBadRequest, v1.ErrBadRequest, nil)
+		// Log the specific error from the service layer
+		h.logger.WithContext(ctx).Error("userService.GetProfile error", zap.Error(err), zap.Uint("userId", userId))
+		// Service layer should return specific v1 errors like ErrUnauthorized or ErrNotFound (mapped to Unauthorized)
+		if err == v1.ErrUnauthorized {
+			v1.HandleError(ctx, http.StatusUnauthorized, v1.ErrUnauthorized, nil)
+		} else {
+			v1.HandleError(ctx, http.StatusInternalServerError, v1.ErrInternalServerError, "获取用户信息失败")
+		}
 		return
 	}
 
@@ -121,7 +144,14 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 	}
 
 	if err := h.userService.UpdateProfile(ctx, userId, &req); err != nil {
-		v1.HandleError(ctx, http.StatusInternalServerError, v1.ErrInternalServerError, nil)
+		// Log the specific error from the service layer
+		h.logger.WithContext(ctx).Error("userService.UpdateProfile error", zap.Error(err), zap.Uint("userId", userId))
+		// Service layer should return specific v1 errors like ErrUnauthorized
+		if err == v1.ErrUnauthorized {
+			v1.HandleError(ctx, http.StatusUnauthorized, v1.ErrUnauthorized, nil)
+		} else {
+			v1.HandleError(ctx, http.StatusInternalServerError, v1.ErrInternalServerError, "更新用户信息失败")
+		}
 		return
 	}
 
