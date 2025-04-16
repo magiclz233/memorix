@@ -65,7 +65,7 @@ func (mr *MockUserRepositoryMockRecorder) GetByEmail(ctx, email interface{}) *go
 }
 
 // GetByID mocks base method.
-func (m *MockUserRepository) GetByID(ctx context.Context, id string) (*model.User, error) {
+func (m *MockUserRepository) GetByID(ctx context.Context, id uint) (*model.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", ctx, id)
 	ret0, _ := ret[0].(*model.User)
