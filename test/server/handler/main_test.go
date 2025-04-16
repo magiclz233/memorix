@@ -22,6 +22,7 @@ import (
 
 var (
 	userId = uint(1)
+	username = "test"
 )
 var logger *log.Logger
 var hdl *handler.Handler

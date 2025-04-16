@@ -157,17 +157,17 @@ func TestUserService_GetProfile(t *testing.T) {
 	userService := service.NewUserService(srv, mockUserRepo)
 
 	ctx := context.Background()
-	userId := "123"
-
-	mockUserRepo.EXPECT().GetByID(ctx, userId).Return(&model.User{
-		UserId: userId,
+	username := "123"
+	userId  := uint(1)
+	mockUserRepo.EXPECT().GetByID(ctx, username).Return(&model.User{
+		UserName: username,
 		Email:  "test@example.com",
 	}, nil)
 
 	user, err := userService.GetProfile(ctx, userId)
 
 	assert.NoError(t, err)
-	assert.Equal(t, userId, user.UserId)
+	assert.Equal(t, username, user.UserName)
 }
 
 func TestUserService_UpdateProfile(t *testing.T) {
@@ -180,14 +180,15 @@ func TestUserService_UpdateProfile(t *testing.T) {
 	userService := service.NewUserService(srv, mockUserRepo)
 
 	ctx := context.Background()
-	userId := "123"
+	username := "123"
+	userId  := uint(1)
 	req := &v1.UpdateProfileRequest{
 		Nickname: "testuser",
 		Email:    "test@example.com",
 	}
 
-	mockUserRepo.EXPECT().GetByID(ctx, userId).Return(&model.User{
-		UserId: userId,
+	mockUserRepo.EXPECT().GetByID(ctx, username).Return(&model.User{
+		UserName: username,
 		Email:  "old@example.com",
 	}, nil)
 	mockUserRepo.EXPECT().Update(ctx, gomock.Any()).Return(nil)
@@ -207,7 +208,7 @@ func TestUserService_UpdateProfile_UserNotFound(t *testing.T) {
 	userService := service.NewUserService(srv, mockUserRepo)
 
 	ctx := context.Background()
-	userId := "123"
+	userId := uint(1)
 	req := &v1.UpdateProfileRequest{
 		Nickname: "testuser",
 		Email:    "test@example.com",

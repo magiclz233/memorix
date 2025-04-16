@@ -74,7 +74,7 @@ func TestUserHandler_GetProfile(t *testing.T) {
 	nickname := "xxxxx"
 	mockUserService := mock_service.NewMockUserService(ctrl)
 	mockUserService.EXPECT().GetProfile(gomock.Any(), userId).Return(&v1.GetProfileResponseData{
-		UserId:   userId,
+		UserName: username,
 		Nickname: nickname,
 	}, nil)
 
