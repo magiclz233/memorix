@@ -137,7 +137,7 @@ func (h *FileHandler) ScanPhotos(c *gin.Context) {
 	}
 
 	// 检查source_config_id是否为有效的整数
-	configID, err := strconv.ParseInt(sourceConfigID, 10, 64)
+	configID, err := strconv.ParseUint(sourceConfigID, 10, 64)
 	if err != nil {
 		h.logger.WithContext(c).Error("无效的Source Config ID", zap.Error(err), zap.String("source_config_id", sourceConfigID))
 		v1.HandleError(c, http.StatusBadRequest, v1.ErrBadRequest, "无效的Source Config ID")
@@ -145,25 +145,25 @@ func (h *FileHandler) ScanPhotos(c *gin.Context) {
 	}
 
 	// 调用服务层扫描照片
-	err = h.fileService.ScanAndSavePhotos(c, configID)
+	err = h.fileService.ScanAndSavePhotos(c, uint(configID))
 	if err != nil {
 		// 根据错误类型返回相应的状态码和错误信息
 		if strings.Contains(err.Error(), "error retrieving source config") {
-			h.logger.WithContext(c).Error("获取Source Config失败", zap.Error(err), zap.Int64("configID", configID))
+			h.logger.WithContext(c).Error("获取Source Config失败", zap.Error(err), zap.Uint64("configID", configID))
 			v1.HandleError(c, http.StatusNotFound, v1.ErrNotFound, "未找到指定的Source Config")
 			return
 		} else if strings.Contains(err.Error(), "default path not set") {
-			h.logger.WithContext(c).Error("Source Config默认路径未设置", zap.Error(err), zap.Int64("configID", configID))
+			h.logger.WithContext(c).Error("Source Config默认路径未设置", zap.Error(err), zap.Uint64("configID", configID))
 			v1.HandleError(c, http.StatusBadRequest, v1.ErrUserConfig, "Source Config默认路径未设置")
 			return
 		} else if strings.Contains(err.Error(), "permission denied") {
-			h.logger.WithContext(c).Error("无权限访问目录", zap.Error(err), zap.Int64("configID", configID))
+			h.logger.WithContext(c).Error("无权限访问目录", zap.Error(err), zap.Uint64("configID", configID))
 			v1.HandleError(c, http.StatusForbidden, v1.ErrUnauthorized, "无权限访问目录")
 			return
 		}
 
 		// 其他未知错误
-		h.logger.WithContext(c).Error("扫描照片失败", zap.Error(err), zap.Int64("configID", configID))
+		h.logger.WithContext(c).Error("扫描照片失败", zap.Error(err), zap.Uint64("configID", configID))
 		v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "扫描照片失败")
 		return
 	}

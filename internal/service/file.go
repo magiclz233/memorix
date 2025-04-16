@@ -12,36 +12,40 @@ import (
 
 	"github.com/magiclz233/memorix/internal/model"
 	"github.com/magiclz233/memorix/internal/repository"
-	"github.com/rwcarlsen/goexif/exif"   // Import exif
-	"github.com/rwcarlsen/goexif/mknote" // Import mknote for exif
+	"github.com/rwcarlsen/goexif/exif"
+	"github.com/rwcarlsen/goexif/mknote"
+	"go.uber.org/zap"
 )
 
 type FileService interface {
 	GetFile(ctx context.Context, id int64) (*model.File, error)
-	ScanAndSavePhotos(ctx context.Context, sourceConfigID int64) error
+	ScanAndSavePhotos(ctx context.Context, sourceConfigID uint) error
 }
 
 func NewFileService(
 	service *Service,
 	fileRepository repository.FileRepository,
+	sourceConfigRepository repository.SourceConfigRepository,
 ) FileService {
 	return &fileService{
 		Service:        service,
 		fileRepository: fileRepository,
+		sourceConfigRepository: sourceConfigRepository,
 	}
 }
 
 type fileService struct {
 	*Service
 	fileRepository repository.FileRepository
+	sourceConfigRepository repository.SourceConfigRepository
 }
 
 func (s *fileService) GetFile(ctx context.Context, id int64) (*model.File, error) {
 	return s.fileRepository.GetFile(ctx, id)
 }
 
-func (s *fileService) ScanAndSavePhotos(ctx context.Context, sourceConfigID int64) error {
-	sourceConfig, err := s.SourceConfigService.GetSourceConfig(ctx, sourceConfigID)
+func (s *fileService) ScanAndSavePhotos(ctx context.Context, sourceConfigID uint) error {
+	sourceConfig, err := s.sourceConfigRepository.GetSourceConfig(ctx, sourceConfigID)
 	if err != nil {
 		return fmt.Errorf("error retrieving source config: %w", err)
 	}
@@ -57,7 +61,10 @@ func (s *fileService) ScanAndSavePhotos(ctx context.Context, sourceConfigID int6
 
 	for _, file := range files {
 		if err := s.fileRepository.SaveFile(ctx, file); err != nil {
-			s.logger.Error(fmt.Sprintf("Error saving file metadata for %s: %v", file.Filename, err))
+			s.logger.Error("Error saving file metadata",
+				zap.String("filename", file.Filename),
+				zap.Error(err),
+			)
 		}
 	}
 
@@ -71,7 +78,10 @@ func (s *fileService) ScanPhotos(ctx context.Context, dirPath string) ([]*model.
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			// Log and potentially skip this entry if path is inaccessible
-			s.logger.WithContext("Error accessing path %s: %v", path, err)
+			s.logger.Debug("Error accessing path",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 			return filepath.SkipDir // Skip this directory or file if error occurs during walk setup
 		}
 
@@ -87,9 +97,11 @@ func (s *fileService) ScanPhotos(ctx context.Context, dirPath string) ([]*model.
 		file, extractErr := s.extractPhotoMetadata(path)
 		if extractErr != nil {
 			// Log the error and add to scanErrors, but continue scanning other files
-			errorMsg := fmt.Sprintf("Error extracting metadata from %s: %v", path, extractErr)
-			s.Logger.Warn(errorMsg)
-			scanErrors = append(scanErrors, errorMsg)
+			s.logger.Warn("Error extracting metadata",
+				zap.String("path", path),
+				zap.Error(extractErr),
+			)
+			scanErrors = append(scanErrors, fmt.Sprintf("Error extracting metadata from %s: %v", path, extractErr))
 			return nil // Continue to next file despite error
 		}
 
@@ -105,7 +117,10 @@ func (s *fileService) ScanPhotos(ctx context.Context, dirPath string) ([]*model.
 	// Optionally, return collected non-fatal errors if needed
 	if len(scanErrors) > 0 {
 		// You might want to return a custom error type containing these details
-		s.Logger.Warnf("Completed scan of %s with %d non-fatal errors", dirPath, len(scanErrors))
+		s.logger.Warn("Completed scan with non-fatal errors",
+			zap.String("dirPath", dirPath),
+			zap.Int("errorCount", len(scanErrors)),
+		)
 	}
 
 	return files, nil
@@ -114,7 +129,6 @@ func (s *fileService) ScanPhotos(ctx context.Context, dirPath string) ([]*model.
 func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		// Return error immediately if file info cannot be obtained
 		return nil, fmt.Errorf("error getting file info for %s: %w", path, err)
 	}
 
@@ -122,96 +136,166 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		Filename:  fileInfo.Name(),
 		Path:      path,
 		Size:      fileInfo.Size(),
-		CreatedAt: fileInfo.ModTime(), // Use file modification time as a fallback/default
+		CreatedAt: fileInfo.ModTime(),
 		UpdatedAt: time.Now(),
 		Metadata:  &model.PhotoMetadata{},
 	}
 
-	// Initialize exif library (needed for some camera models)
-	exif.RegisterParsers(mknote.All...) // Add this line
+	exif.RegisterParsers(mknote.All...)
 
 	exifData, err := s.readEXIFData(path)
 	if err != nil {
-		s.Logger.Warnf("Error reading EXIF data from %s: %v", path, err)
-		// Continue without EXIF data, but log the warning
-	} else {
-		// Process EXIF data only if successfully read
+		s.logger.Debug("Error reading EXIF data",
+			zap.String("path", path),
+			zap.Error(err),
+		)
+	} else if exifData != nil {
+		// 捕获时间
 		if timeTag, err := exifData.DateTime(); err == nil {
 			file.Metadata.CaptureTime = timeTag
-			file.CreatedAt = timeTag // Prefer capture time for CreatedAt if available
+			file.CreatedAt = timeTag
 		} else {
-			s.Logger.Debugf("Could not read DateTime tag from %s: %v", path, err)
+			s.logger.Debug("Could not read DateTime tag",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 		}
 
+		// 经纬度
 		if lat, long, err := exifData.LatLong(); err == nil {
 			file.Metadata.Location = fmt.Sprintf("%f,%f", lat, long)
 		} else {
-			s.Logger.Debugf("Could not read LatLong tag from %s: %v", path, err)
+			s.logger.Debug("Could not read LatLong tag",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 		}
 
+		// 设备型号
 		if modelTag, err := exifData.Get(exif.Model); err == nil {
-			file.Metadata.Device, _ = modelTag.StringVal()
+			if device, err := modelTag.StringVal(); err == nil {
+				file.Metadata.Device = device
+			}
 		} else {
-			s.Logger.Debugf("Could not read Model tag from %s: %v", path, err)
+			s.logger.Debug("Could not read Model tag",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 		}
 
+		// 焦距
 		if focalTag, err := exifData.Get(exif.FocalLength); err == nil {
-			if num, den, ok := focalTag.Rat2(0); ok && den != 0 {
+			if num, den, err := focalTag.Rat2(0); err == nil && den != 0 {
 				file.Metadata.FocalLength = float64(num) / float64(den)
+			} else {
+				s.logger.Debug("Could not convert FocalLength tag to float",
+					zap.String("path", path),
+					zap.Error(err),
+				)
 			}
 		} else {
-			s.Logger.Debugf("Could not read FocalLength tag from %s: %v", path, err)
+			s.logger.Debug("Could not read FocalLength tag",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 		}
 
+		// 光圈
 		if apertureTag, err := exifData.Get(exif.FNumber); err == nil {
-			if num, den, ok := apertureTag.Rat2(0); ok && den != 0 {
+			if num, den, err := apertureTag.Rat2(0); err == nil && den != 0 {
 				file.Metadata.Aperture = float64(num) / float64(den)
+			} else {
+				s.logger.Debug("Could not convert FNumber tag to float",
+					zap.String("path", path),
+					zap.Error(err),
+				)
 			}
 		} else {
-			s.Logger.Debugf("Could not read FNumber tag from %s: %v", path, err)
+			s.logger.Debug("Could not read FNumber tag",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 		}
 
+		// ISO
 		if isoTag, err := exifData.Get(exif.ISOSpeedRatings); err == nil {
-			if iso, ok := isoTag.Int(0); ok {
+			if iso, err := isoTag.Int(0); err == nil {
 				file.Metadata.ISO = float64(iso)
+			} else {
+				s.logger.Debug("Could not convert ISOSpeedRatings tag to int",
+					zap.String("path", path),
+					zap.Error(err),
+				)
 			}
 		} else {
-			s.Logger.Debugf("Could not read ISOSpeedRatings tag from %s: %v", path, err)
+			s.logger.Debug("Could not read ISOSpeedRatings tag",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 		}
 
+		// 白平衡
 		if wbTag, err := exifData.Get(exif.WhiteBalance); err == nil {
-			if wb, ok := wbTag.Int(0); ok {
+			if wb, err := wbTag.Int(0); err == nil {
 				file.Metadata.WhiteBalance = strconv.Itoa(wb)
+			} else {
+				s.logger.Debug("Could not convert WhiteBalance tag to int",
+					zap.String("path", path),
+					zap.Error(err),
+				)
 			}
 		} else {
-			s.Logger.Debugf("Could not read WhiteBalance tag from %s: %v", path, err)
+			s.logger.Debug("Could not read WhiteBalance tag",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 		}
 
+		// 曝光补偿
 		if expBiasTag, err := exifData.Get(exif.ExposureBiasValue); err == nil {
-			if num, den, ok := expBiasTag.Rat2(0); ok && den != 0 {
+			if num, den, err := expBiasTag.Rat2(0); err == nil && den != 0 {
 				file.Metadata.Exposure = float64(num) / float64(den)
+			} else {
+				s.logger.Debug("Could not convert ExposureBiasValue tag to float",
+					zap.String("path", path),
+					zap.Error(err),
+				)
 			}
 		} else {
-			s.Logger.Debugf("Could not read ExposureBiasValue tag from %s: %v", path, err)
+			s.logger.Debug("Could not read ExposureBiasValue tag",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 		}
 
+		// 闪光灯
 		if flashTag, err := exifData.Get(exif.Flash); err == nil {
-			if flash, ok := flashTag.Int(0); ok {
+			if flash, err := flashTag.Int(0); err == nil {
 				file.Metadata.Flash = flash != 0
+			} else {
+				s.logger.Debug("Could not convert Flash tag to int",
+					zap.String("path", path),
+					zap.Error(err),
+				)
 			}
 		} else {
-			s.Logger.Debugf("Could not read Flash tag from %s: %v", path, err)
+			s.logger.Debug("Could not read Flash tag",
+				zap.String("path", path),
+				zap.Error(err),
+			)
 		}
 	}
 
-	// Get image dimensions (resolution)
+	// 获取图片分辨率
 	imgConfig, err := s.getImageConfig(path)
 	if err == nil {
 		file.Metadata.ResolutionWidth = imgConfig.Width
 		file.Metadata.ResolutionHeight = imgConfig.Height
 	} else {
-		// Log warning but don't fail metadata extraction just for dimensions
-		s.Logger.Warnf("Error getting image dimensions for %s: %v", path, err)
+		s.logger.Warn("Error getting image dimensions",
+			zap.String("path", path),
+			zap.Error(err),
+		)
 	}
 
 	return file, nil
@@ -228,7 +312,9 @@ func (s *fileService) readEXIFData(path string) (*exif.Exif, error) {
 	if err != nil {
 		// Check for specific non-critical errors like 'no exif data'
 		if strings.Contains(err.Error(), "no EXIF data") || strings.Contains(err.Error(), "EOF") {
-			s.Logger.Debugf("No EXIF data found in %s", path)
+			s.logger.Debug("No EXIF data found",
+				zap.String("path", path),
+			)
 			return nil, nil // Not a fatal error, just no data
 		}
 		return nil, fmt.Errorf("error decoding EXIF data from %s: %w", path, err)
