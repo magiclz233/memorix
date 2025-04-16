@@ -2,6 +2,8 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	v1 "github.com/magiclz233/memorix/api/v1"
@@ -66,8 +68,14 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 	// 获取用户默认存储配置
 	sourceConfig, err := h.sourceConfigService.GetUserDefaultSourceConfig(c, userId)
 	if err != nil {
-		h.logger.WithContext(c).Error("获取用户默认存储配置失败", zap.Error(err))
-		v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, nil)
+		// Check if the error indicates no default config is set
+		if strings.Contains(err.Error(), "未找到") || strings.Contains(err.Error(), "未设置") { // A bit fragile, relies on error message
+			h.logger.WithContext(c).Warn("用户未配置默认存储", zap.Uint("userId", userId), zap.Error(err))
+			v1.HandleError(c, http.StatusBadRequest, v1.ErrBadRequest, "请先配置默认存储类型")
+		} else {
+			h.logger.WithContext(c).Error("获取用户默认存储配置失败", zap.Error(err), zap.Uint("userId", userId))
+			v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "获取存储配置失败")
+		}
 		return
 	}
 
@@ -102,24 +110,6 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
-	// Assuming the upload service returns a file ID or file information
-	// You might need to adjust this based on your actual implementation.
-	// For this example, I'll assume it returns a file ID.
-	//  Replace this with your actual file information retrieval logic
-	// fileID, ok := result.(int64)
-	// if !ok {
-	// 	h.logger.WithContext(c).Error("上传文件后未返回有效的文件信息")
-	// 	v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "上传文件失败")
-	// 	return
-	// }
-
-	// Retrieve file information using the file ID
-	// fileInfo, err := h.fileService.GetFile(c, fileID)
-	// if err != nil {
-	// 	h.logger.WithContext(c).Error("获取文件信息失败", zap.Error(err), zap.Int64("file_id", fileID))
-	// 	v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "获取文件信息失败")
-	// 	return
-	// }
 	v1.HandleSuccess(c, nil) // TODO: update with actual file info
 }
 
@@ -139,9 +129,41 @@ func (h *FileHandler) ScanPhotos(c *gin.Context) {
 		return
 	}
 
-	err := h.fileService.ScanAndSavePhotos(c, sourceConfigID)
+	// 获取当前用户ID
+	userID := h.getCurrentUserId(c)
+	if userID == 0 {
+		v1.HandleError(c, http.StatusUnauthorized, v1.ErrUnauthorized, nil)
+		return
+	}
+
+	// 检查source_config_id是否为有效的整数
+	configID, err := strconv.ParseInt(sourceConfigID, 10, 64)
 	if err != nil {
-		h.logger.WithContext(c).Error("扫描照片失败", zap.Error(err), zap.String("source_config_id", sourceConfigID))
+		h.logger.WithContext(c).Error("无效的Source Config ID", zap.Error(err), zap.String("source_config_id", sourceConfigID))
+		v1.HandleError(c, http.StatusBadRequest, v1.ErrBadRequest, "无效的Source Config ID")
+		return
+	}
+
+	// 调用服务层扫描照片
+	err = h.fileService.ScanAndSavePhotos(c, configID)
+	if err != nil {
+		// 根据错误类型返回相应的状态码和错误信息
+		if strings.Contains(err.Error(), "error retrieving source config") {
+			h.logger.WithContext(c).Error("获取Source Config失败", zap.Error(err), zap.Int64("configID", configID))
+			v1.HandleError(c, http.StatusNotFound, v1.ErrNotFound, "未找到指定的Source Config")
+			return
+		} else if strings.Contains(err.Error(), "default path not set") {
+			h.logger.WithContext(c).Error("Source Config默认路径未设置", zap.Error(err), zap.Int64("configID", configID))
+			v1.HandleError(c, http.StatusBadRequest, v1.ErrUserConfig, "Source Config默认路径未设置")
+			return
+		} else if strings.Contains(err.Error(), "permission denied") {
+			h.logger.WithContext(c).Error("无权限访问目录", zap.Error(err), zap.Int64("configID", configID))
+			v1.HandleError(c, http.StatusForbidden, v1.ErrUnauthorized, "无权限访问目录")
+			return
+		}
+
+		// 其他未知错误
+		h.logger.WithContext(c).Error("扫描照片失败", zap.Error(err), zap.Int64("configID", configID))
 		v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "扫描照片失败")
 		return
 	}
@@ -182,17 +204,17 @@ func (h *FileHandler) GetFile(c *gin.Context) {
 
 // 获取当前用户ID的辅助方法
 func (h *FileHandler) getCurrentUserId(ctx *gin.Context) uint {
-    // 优先从claims中获取userId
-    if userId := GetUserIdFromCtx(ctx); userId > 0 {
-        return userId
-    }
+	// 优先从claims中获取userId
+	if userId := GetUserIdFromCtx(ctx); userId > 0 {
+		return userId
+	}
 
-    // 从context中获取userId
-    if val, exists := ctx.Get("userId"); exists {
-        if userId, ok := val.(uint); ok {
-            return userId
-        }
-    }
+	// 从context中获取userId
+	if val, exists := ctx.Get("userId"); exists {
+		if userId, ok := val.(uint); ok {
+			return userId
+		}
+	}
 
-    return 0
+	return 0
 }

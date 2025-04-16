@@ -18,8 +18,7 @@ func (r *fileRepository) GetFile(ctx context.Context, id int64) (*model.File, er
 	return &model.File{}, nil
 }
 func (r *fileRepository) SaveFile(ctx context.Context, file *model.File) error {
-	db := r.GetDB(ctx)
-	result := db.Create(file)
+	result := r.DB(ctx).Create(file)
 	return result.Error
 }
 
