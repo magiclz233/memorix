@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	userId = "xxx"
+	userId = uint(1)
 )
 var logger *log.Logger
 var hdl *handler.Handler
