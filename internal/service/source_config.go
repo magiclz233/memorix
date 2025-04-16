@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	v1 "github.com/magiclz233/memorix/api/v1"
 	"github.com/magiclz233/memorix/internal/model"
 	"github.com/magiclz233/memorix/internal/repository"
 )
@@ -48,18 +50,36 @@ func (s *sourceConfigService) GetUserDefaultSourceConfig(ctx context.Context, us
 
 	user, err := s.userService.GetProfile(ctx, userId)
 	if err != nil {
-		return nil, err
+		// userService.GetProfile now returns v1.ErrUnauthorized if user not found
+		if errors.Is(err, v1.ErrUnauthorized) {
+			return nil, fmt.Errorf("用户不存在: %w", err)
+		}
+		return nil, fmt.Errorf("获取用户信息失败: %w", err)
 	}
-	
+
 	if user.DefaultStorageId > 0 {
-		return s.GetSourceConfig(ctx, user.DefaultStorageId)
+		config, err := s.GetSourceConfig(ctx, user.DefaultStorageId)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return nil, fmt.Errorf("未找到ID为 %d 的默认存储配置: %w", user.DefaultStorageId, err)
+			}
+			return nil, fmt.Errorf("通过ID获取默认存储配置失败: %w", err)
+		}
+		return config, nil
 	}
 
 	if user.DefaultStorage != "" {
-		return s.GetByUserIdAndType(ctx, userId, user.DefaultStorage)
+		config, err := s.GetByUserIdAndType(ctx, userId, user.DefaultStorage)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return nil, fmt.Errorf("未找到类型为 '%s' 的默认存储配置: %w", user.DefaultStorage, err)
+			}
+			return nil, fmt.Errorf("通过类型获取默认存储配置失败: %w", err)
+		}
+		return config, nil
 	}
 
-	return nil, fmt.Errorf("未找到默认存储配置")
+	return nil, fmt.Errorf("用户未设置默认存储配置")
 }
 
 func (s *sourceConfigService) AddSourceConfig(ctx context.Context, sourceConfig *model.SourceConfig) (bool, error) {
