@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	v1 "github.com/magiclz233/memorix/api/v1"
 	"github.com/magiclz233/memorix/internal/model"
 	"gorm.io/gorm"
 )
@@ -44,9 +43,9 @@ func (r *userRepository) Update(ctx context.Context, user *model.User) error {
 
 func (r *userRepository) GetByID(ctx context.Context, userId uint) (*model.User, error) {
 	var user model.User
-	if err := r.DB(ctx).Where("user_id = ?", userId).First(&user).Error; err != nil {
+	if err := r.DB(ctx).Where("id = ?", userId).First(&user).Error; err != nil { // Assuming primary key is 'id'
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, v1.ErrNotFound
+			return nil, ErrNotFound // Use the common ErrNotFound
 		}
 		return nil, err
 	}
@@ -57,7 +56,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.U
 	var user model.User
 	if err := r.DB(ctx).Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, ErrNotFound // Use the common ErrNotFound
 		}
 		return nil, err
 	}
