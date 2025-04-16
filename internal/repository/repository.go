@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,6 +15,9 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+// ErrNotFound is returned when a record is not found in the database.
+var ErrNotFound = errors.New("record not found")
 
 const ctxTxKey = "TxKey"
 
