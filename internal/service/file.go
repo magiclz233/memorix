@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/magiclz233/memorix/internal/model"
 	"github.com/magiclz233/memorix/internal/repository"
 	"github.com/rwcarlsen/goexif/exif"
@@ -20,7 +21,9 @@ import (
 type FileService interface {
 	GetFile(ctx context.Context, id int64) (*model.File, error)
 	ScanAndSavePhotos(ctx context.Context, sourceConfigID uint) error
+	GetFileList(c *gin.Context, u uint, param3 uint, page int, pageSize int) (list []model.File, err error)
 }
+
 
 func NewFileService(
 	service *Service,
@@ -28,20 +31,25 @@ func NewFileService(
 	sourceConfigRepository repository.SourceConfigRepository,
 ) FileService {
 	return &fileService{
-		Service:        service,
-		fileRepository: fileRepository,
+		Service:                service,
+		fileRepository:         fileRepository,
 		sourceConfigRepository: sourceConfigRepository,
 	}
 }
 
 type fileService struct {
 	*Service
-	fileRepository repository.FileRepository
+	fileRepository         repository.FileRepository
 	sourceConfigRepository repository.SourceConfigRepository
 }
 
 func (s *fileService) GetFile(ctx context.Context, id int64) (*model.File, error) {
 	return s.fileRepository.GetFile(ctx, id)
+}
+
+
+func (f *fileService) GetFileList(c *gin.Context, u uint, param3 uint, page int, pageSize int) (list []model.File, err error) {
+	panic("unimplemented")
 }
 
 func (s *fileService) ScanAndSavePhotos(ctx context.Context, sourceConfigID uint) error {
