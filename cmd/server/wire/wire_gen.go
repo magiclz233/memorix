@@ -39,7 +39,11 @@ func NewWire(viperViper *viper.Viper, logger *log.Logger) (*app.App, func(), err
 	sourceConfigService := service.NewSourceConfigService(serviceService, userService, sourceConfigRepository)
 	nasHandler := handler.NewNasHandler(handlerHandler, nasService, sourceConfigService)
 	sourceConfigHandler := handler.NewSourceConfigHandler(handlerHandler, sourceConfigService)
-	httpServer := server.NewHTTPServer(logger, viperViper, jwtJWT, userHandler, nasHandler, sourceConfigHandler, )
+	fileService := service.NewFileService(serviceService, fileRepository, sourceConfigRepository)
+	localService := service.NewLocalService(serviceService)
+	qiniuService := service.NewQiniuService(serviceService)
+	fileHandler := handler.NewFileHandler(handlerHandler, fileService, sourceConfigService, nasService, localService, qiniuService)
+	httpServer := server.NewHTTPServer(logger, viperViper, jwtJWT, userHandler, nasHandler, sourceConfigHandler, fileHandler)
 	job := server.NewJob(logger)
 	appApp := newApp(httpServer, job)
 	return appApp, func() {
