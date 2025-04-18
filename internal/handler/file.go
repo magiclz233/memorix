@@ -218,3 +218,54 @@ func (h *FileHandler) getCurrentUserId(ctx *gin.Context) uint {
 
 	return 0
 }
+
+// @Summary 获取文件列表
+// @Schemes
+// @Description 根据用户ID和sourceConfigId获取文件列表
+// @Tags 文件模块
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Param source_config_id query int true "Source Config ID"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Success 200 {object} v1.FileListResponse
+// @Router /files [get]
+func (h *FileHandler) GetFileList(c *gin.Context) {
+	userIdStr := c.Query("user_id")
+	sourceConfigIDStr := c.Query("source_config_id")
+	pageStr := c.DefaultQuery("page", "1")
+	pageSizeStr := c.DefaultQuery("page_size", "10")
+
+	userId, err := strconv.ParseUint(userIdStr, 10, 64)
+	if err != nil || userId == 0 {
+		h.logger.WithContext(c).Error("无效的用户ID", zap.Error(err), zap.String("user_id", userIdStr))
+		v1.HandleError(c, http.StatusBadRequest, v1.ErrBadRequest, "无效的用户ID")
+		return
+	}
+
+	sourceConfigID, err := strconv.ParseUint(sourceConfigIDStr, 10, 64)
+	if err != nil || sourceConfigID == 0 {
+		h.logger.WithContext(c).Error("无效的Source Config ID", zap.Error(err), zap.String("source_config_id", sourceConfigIDStr))
+		v1.HandleError(c, http.StatusBadRequest, v1.ErrBadRequest, "无效的Source Config ID")
+		return
+	}
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil || pageSize < 1 {
+		pageSize = 10
+	}
+
+	files, err := h.fileService.GetFileList(c, uint(userId), uint(sourceConfigID), page, pageSize)
+	if err != nil {
+		h.logger.WithContext(c).Error("获取文件列表失败", zap.Error(err))
+		v1.HandleError(c, http.StatusInternalServerError, v1.ErrInternalServerError, "获取文件列表失败")
+		return
+	}
+
+	v1.HandleSuccess(c, files)
+}
