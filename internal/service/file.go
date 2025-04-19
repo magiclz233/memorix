@@ -146,7 +146,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		Size:      fileInfo.Size(),
 		CreatedAt: fileInfo.ModTime(),
 		UpdatedAt: time.Now(),
-		Metadata:  &model.PhotoMetadata{},
+		PhotoMetadata:  model.PhotoMetadata{},
 	}
 
 	exif.RegisterParsers(mknote.All...)
@@ -160,7 +160,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 	} else if exifData != nil {
 		// 捕获时间
 		if timeTag, err := exifData.DateTime(); err == nil {
-			file.Metadata.CaptureTime = timeTag
+			file.PhotoMetadata.CaptureTime = timeTag
 			file.CreatedAt = timeTag
 		} else {
 			s.logger.Debug("Could not read DateTime tag",
@@ -171,7 +171,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 
 		// 经纬度
 		if lat, long, err := exifData.LatLong(); err == nil {
-			file.Metadata.Location = fmt.Sprintf("%f,%f", lat, long)
+			file.PhotoMetadata.Location = fmt.Sprintf("%f,%f", lat, long)
 		} else {
 			s.logger.Debug("Could not read LatLong tag",
 				zap.String("path", path),
@@ -182,7 +182,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 设备型号
 		if modelTag, err := exifData.Get(exif.Model); err == nil {
 			if device, err := modelTag.StringVal(); err == nil {
-				file.Metadata.Device = device
+				file.PhotoMetadata.Device = device
 			}
 		} else {
 			s.logger.Debug("Could not read Model tag",
@@ -194,7 +194,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 焦距
 		if focalTag, err := exifData.Get(exif.FocalLength); err == nil {
 			if num, den, err := focalTag.Rat2(0); err == nil && den != 0 {
-				file.Metadata.FocalLength = float64(num) / float64(den)
+				file.PhotoMetadata.FocalLength = float64(num) / float64(den)
 			} else {
 				s.logger.Debug("Could not convert FocalLength tag to float",
 					zap.String("path", path),
@@ -211,7 +211,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 光圈
 		if apertureTag, err := exifData.Get(exif.FNumber); err == nil {
 			if num, den, err := apertureTag.Rat2(0); err == nil && den != 0 {
-				file.Metadata.Aperture = float64(num) / float64(den)
+				file.PhotoMetadata.Aperture = float64(num) / float64(den)
 			} else {
 				s.logger.Debug("Could not convert FNumber tag to float",
 					zap.String("path", path),
@@ -228,7 +228,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// ISO
 		if isoTag, err := exifData.Get(exif.ISOSpeedRatings); err == nil {
 			if iso, err := isoTag.Int(0); err == nil {
-				file.Metadata.ISO = float64(iso)
+				file.PhotoMetadata.ISO = float64(iso)
 			} else {
 				s.logger.Debug("Could not convert ISOSpeedRatings tag to int",
 					zap.String("path", path),
@@ -245,7 +245,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 白平衡
 		if wbTag, err := exifData.Get(exif.WhiteBalance); err == nil {
 			if wb, err := wbTag.Int(0); err == nil {
-				file.Metadata.WhiteBalance = strconv.Itoa(wb)
+				file.PhotoMetadata.WhiteBalance = strconv.Itoa(wb)
 			} else {
 				s.logger.Debug("Could not convert WhiteBalance tag to int",
 					zap.String("path", path),
@@ -262,7 +262,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 曝光补偿
 		if expBiasTag, err := exifData.Get(exif.ExposureBiasValue); err == nil {
 			if num, den, err := expBiasTag.Rat2(0); err == nil && den != 0 {
-				file.Metadata.Exposure = float64(num) / float64(den)
+				file.PhotoMetadata.Exposure = float64(num) / float64(den)
 			} else {
 				s.logger.Debug("Could not convert ExposureBiasValue tag to float",
 					zap.String("path", path),
@@ -279,7 +279,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 闪光灯
 		if flashTag, err := exifData.Get(exif.Flash); err == nil {
 			if flash, err := flashTag.Int(0); err == nil {
-				file.Metadata.Flash = flash != 0
+				file.PhotoMetadata.Flash = flash != 0
 			} else {
 				s.logger.Debug("Could not convert Flash tag to int",
 					zap.String("path", path),
@@ -297,8 +297,8 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 	// 获取图片分辨率
 	imgConfig, err := s.getImageConfig(path)
 	if err == nil {
-		file.Metadata.ResolutionWidth = imgConfig.Width
-		file.Metadata.ResolutionHeight = imgConfig.Height
+		file.PhotoMetadata.ResolutionWidth = imgConfig.Width
+		file.PhotoMetadata.ResolutionHeight = imgConfig.Height
 	} else {
 		s.logger.Warn("Error getting image dimensions",
 			zap.String("path", path),
