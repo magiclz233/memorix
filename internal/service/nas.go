@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -72,6 +73,10 @@ func (s *nasService) UploadFile(file io.Reader, filename string, sourceConfig *m
 	}
 
 	return nil
+}
+
+func (s *nasService) ScanPhotos(ctx context.Context, dirPath string) ([]*model.File, error) {
+	return nil, nil
 }
 
 func (s *nasService) uploadToNas(client *sftp.Client, file io.Reader, filename, path string) error {
