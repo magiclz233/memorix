@@ -8,6 +8,7 @@ type File struct {
 	Id        uint   `gorm:"primarykey;column:id;comment:主键ID"`
 	Filename  string    `gorm:"column:filename;comment:文件名" json:"filename"`
 	Path      string    `gorm:"column:path;comment:文件在NAS上的路径" json:"path"`
+	SourceType string    `gorm:"column:source_type;comment:文件来源类型" json:"source_type"`
 	Size      int64     `gorm:"column:size;comment:文件大小（字节）" json:"size"`
 	NasHost   string    `gorm:"column:nas_host;comment:NAS服务器地址" json:"nas_host"`
 	NasPath   string    `gorm:"column:nas_path;comment:NAS共享路径" json:"nas_path"`
