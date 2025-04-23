@@ -2,12 +2,14 @@ package model
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type File struct {
-	Id        uint   `gorm:"primarykey;column:id;comment:主键ID"`
-	Filename  string    `gorm:"column:filename;comment:文件名" json:"filename"`
-	Path      string    `gorm:"column:path;comment:文件在NAS上的路径" json:"path"`
+	gorm.Model
+	Title  string    `gorm:"column:title;comment:媒体文件的标题" json:"title"`
+	Path      string    `gorm:"column:path;comment:媒体文件的路径" json:"path"`
 	SourceType string    `gorm:"column:source_type;comment:文件来源类型" json:"source_type"`
 	Size      int64     `gorm:"column:size;comment:文件大小（字节）" json:"size"`
 	URL       string    `gorm:"column:url;comment:原图URL" json:"url"`
