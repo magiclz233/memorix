@@ -211,7 +211,8 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 光圈
 		if apertureTag, err := exifData.Get(exif.FNumber); err == nil {
 			if num, den, err := apertureTag.Rat2(0); err == nil && den != 0 {
-				file.PhotoMetadata.Aperture = float64(num) / float64(den)
+				aperture := float64(num) / float64(den)
+				file.PhotoMetadata.Aperture = &aperture
 			} else {
 				s.logger.Debug("Could not convert FNumber tag to float",
 					zap.String("path", path),
@@ -228,7 +229,8 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// ISO
 		if isoTag, err := exifData.Get(exif.ISOSpeedRatings); err == nil {
 			if iso, err := isoTag.Int(0); err == nil {
-				file.PhotoMetadata.ISO = float64(iso)
+				isoValue := int64(iso)
+				file.PhotoMetadata.Iso = &isoValue
 			} else {
 				s.logger.Debug("Could not convert ISOSpeedRatings tag to int",
 					zap.String("path", path),
