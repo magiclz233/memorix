@@ -181,7 +181,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 设备型号
 		if modelTag, err := exifData.Get(exif.Model); err == nil {
 			if device, err := modelTag.StringVal(); err == nil {
-				file.PhotoMetadata.Device = device
+				file.PhotoMetadata.Camera = &device
 			}
 		} else {
 			s.logger.Debug("Could not read Model tag",
@@ -193,7 +193,8 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 焦距
 		if focalTag, err := exifData.Get(exif.FocalLength); err == nil {
 			if num, den, err := focalTag.Rat2(0); err == nil && den != 0 {
-				file.PhotoMetadata.FocalLength = float64(num) / float64(den)
+				focalLength := float64(num) / float64(den)
+				file.PhotoMetadata.FocalLength = &focalLength
 			} else {
 				s.logger.Debug("Could not convert FocalLength tag to float",
 					zap.String("path", path),
