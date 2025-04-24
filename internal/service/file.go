@@ -133,20 +133,13 @@ func (s *fileService) ScanPhotos(ctx context.Context, dirPath string) ([]*model.
 }
 
 func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
-	// 验证文件是否存在且可访问
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return nil, fmt.Errorf("获取文件信息失败 %s: %w", path, err)
-	}
-
-	// 验证文件扩展名
-	ext := strings.ToLower(filepath.Ext(path))
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		return nil, fmt.Errorf("不支持的文件格式: %s", ext)
+		return nil, fmt.Errorf("error getting file info for %s: %w", path, err)
 	}
 
 	file := &model.File{
-		Filename:      fileInfo.Name(),
+		Title:         fileInfo.Name(),
 		Path:          path,
 		Size:          fileInfo.Size(),
 		CreatedAt:     fileInfo.ModTime(),
@@ -154,32 +147,18 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		PhotoMetadata: model.PhotoMetadata{},
 	}
 
-	// 获取图片分辨率
-	imgConfig, err := s.getImageConfig(path)
-	if err == nil {
-		file.PhotoMetadata.ResolutionWidth = imgConfig.Width
-		file.PhotoMetadata.ResolutionHeight = imgConfig.Height
-	} else {
-		s.logger.Warn("获取图片尺寸失败",
-			zap.String("path", path),
-			zap.Error(err),
-		)
-	}
-
-	// 注册EXIF解析器
 	exif.RegisterParsers(mknote.All...)
 
-	// 读取EXIF数据
 	exifData, err := s.readEXIFData(path)
 	if err != nil {
-		s.logger.Debug("读取EXIF数据失败",
+		s.logger.Debug("Error reading EXIF data",
 			zap.String("path", path),
 			zap.Error(err),
 		)
 	} else if exifData != nil {
 		// 捕获时间
 		if timeTag, err := exifData.DateTime(); err == nil {
-			file.PhotoMetadata.CaptureTime = timeTag
+			file.PhotoMetadata.DateShot = &timeTag
 			file.CreatedAt = timeTag
 		} else {
 			s.logger.Debug("Could not read DateTime tag",
@@ -190,7 +169,8 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 
 		// 经纬度
 		if lat, long, err := exifData.LatLong(); err == nil {
-			file.PhotoMetadata.Location = fmt.Sprintf("%f,%f", lat, long)
+			file.PhotoMetadata.GPSLatitude = &lat
+			file.PhotoMetadata.GPSLongitude = &long
 		} else {
 			s.logger.Debug("Could not read LatLong tag",
 				zap.String("path", path),
