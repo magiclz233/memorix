@@ -16,6 +16,7 @@ import (
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/mknote"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type FileService interface {
@@ -68,7 +69,7 @@ func (s *fileService) ScanAndSavePhotos(ctx context.Context, sourceConfigID uint
 	for _, file := range files {
 		if err := s.fileRepository.SaveFile(ctx, file); err != nil {
 			s.logger.Error("Error saving file metadata",
-				zap.String("filename", file.Filename),
+				zap.String("filename", file.Title),
 				zap.Error(err),
 			)
 		}
@@ -142,8 +143,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		Title:         fileInfo.Name(),
 		Path:          path,
 		Size:          fileInfo.Size(),
-		CreatedAt:     fileInfo.ModTime(),
-		UpdatedAt:     time.Now(),
+		Model:         gorm.Model{CreatedAt: fileInfo.ModTime(), UpdatedAt: time.Now()},
 		PhotoMetadata: model.PhotoMetadata{},
 	}
 
