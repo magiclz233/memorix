@@ -247,7 +247,8 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 白平衡
 		if wbTag, err := exifData.Get(exif.WhiteBalance); err == nil {
 			if wb, err := wbTag.Int(0); err == nil {
-				file.PhotoMetadata.WhiteBalance = strconv.Itoa(wb)
+				wbStr := strconv.Itoa(wb)
+				file.PhotoMetadata.WhiteBalance = &wbStr
 			} else {
 				s.logger.Debug("Could not convert WhiteBalance tag to int",
 					zap.String("path", path),
@@ -264,7 +265,8 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 曝光补偿
 		if expBiasTag, err := exifData.Get(exif.ExposureBiasValue); err == nil {
 			if num, den, err := expBiasTag.Rat2(0); err == nil && den != 0 {
-				file.PhotoMetadata.Exposure = float64(num) / float64(den)
+				exposure := float64(num) / float64(den)
+				file.PhotoMetadata.Exposure = &exposure
 			} else {
 				s.logger.Debug("Could not convert ExposureBiasValue tag to float",
 					zap.String("path", path),
@@ -281,7 +283,8 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		// 闪光灯
 		if flashTag, err := exifData.Get(exif.Flash); err == nil {
 			if flash, err := flashTag.Int(0); err == nil {
-				file.PhotoMetadata.Flash = flash != 0
+				flashValue := int64(flash)
+				file.PhotoMetadata.Flash = &flashValue
 			} else {
 				s.logger.Debug("Could not convert Flash tag to int",
 					zap.String("path", path),
@@ -299,8 +302,10 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 	// 获取图片分辨率
 	imgConfig, err := s.getImageConfig(path)
 	if err == nil {
-		file.PhotoMetadata.ResolutionWidth = imgConfig.Width
-		file.PhotoMetadata.ResolutionHeight = imgConfig.Height
+		width := imgConfig.Width
+		file.PhotoMetadata.ResolutionWidth = &width
+		height := imgConfig.Height
+		file.PhotoMetadata.ResolutionHeight = &height
 	} else {
 		s.logger.Warn("Error getting image dimensions",
 			zap.String("path", path),
