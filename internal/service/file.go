@@ -24,7 +24,6 @@ type FileService interface {
 	GetFileList(c *gin.Context, u uint, param3 uint, page int, pageSize int) (list []model.File, err error)
 }
 
-
 func NewFileService(
 	service *Service,
 	fileRepository repository.FileRepository,
@@ -46,7 +45,6 @@ type fileService struct {
 func (s *fileService) GetFile(ctx context.Context, id int64) (*model.File, error) {
 	return s.fileRepository.GetFile(ctx, id)
 }
-
 
 func (f *fileService) GetFileList(c *gin.Context, u uint, param3 uint, page int, pageSize int) (list []model.File, err error) {
 	panic("unimplemented")
@@ -135,25 +133,46 @@ func (s *fileService) ScanPhotos(ctx context.Context, dirPath string) ([]*model.
 }
 
 func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
+	// 验证文件是否存在且可访问
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return nil, fmt.Errorf("error getting file info for %s: %w", path, err)
+		return nil, fmt.Errorf("获取文件信息失败 %s: %w", path, err)
+	}
+
+	// 验证文件扩展名
+	ext := strings.ToLower(filepath.Ext(path))
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		return nil, fmt.Errorf("不支持的文件格式: %s", ext)
 	}
 
 	file := &model.File{
-		Filename:  fileInfo.Name(),
-		Path:      path,
-		Size:      fileInfo.Size(),
-		CreatedAt: fileInfo.ModTime(),
-		UpdatedAt: time.Now(),
-		PhotoMetadata:  model.PhotoMetadata{},
+		Filename:      fileInfo.Name(),
+		Path:          path,
+		Size:          fileInfo.Size(),
+		CreatedAt:     fileInfo.ModTime(),
+		UpdatedAt:     time.Now(),
+		PhotoMetadata: model.PhotoMetadata{},
 	}
 
+	// 获取图片分辨率
+	imgConfig, err := s.getImageConfig(path)
+	if err == nil {
+		file.PhotoMetadata.ResolutionWidth = imgConfig.Width
+		file.PhotoMetadata.ResolutionHeight = imgConfig.Height
+	} else {
+		s.logger.Warn("获取图片尺寸失败",
+			zap.String("path", path),
+			zap.Error(err),
+		)
+	}
+
+	// 注册EXIF解析器
 	exif.RegisterParsers(mknote.All...)
 
+	// 读取EXIF数据
 	exifData, err := s.readEXIFData(path)
 	if err != nil {
-		s.logger.Debug("Error reading EXIF data",
+		s.logger.Debug("读取EXIF数据失败",
 			zap.String("path", path),
 			zap.Error(err),
 		)
