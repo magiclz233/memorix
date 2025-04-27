@@ -28,6 +28,8 @@ require (
 	gorm.io/gorm v1.25.12
 )
 
+require gopkg.in/vansante/go-ffprobe.v2 v2.2.1 // indirect
+
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
