@@ -156,149 +156,91 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 			zap.Error(err),
 		)
 	} else if exifData != nil {
-		// 捕获时间
+		// 拍摄日期
 		if timeTag, err := exifData.DateTime(); err == nil {
 			file.PhotoMetadata.DateShot = &timeTag
 			file.CreatedAt = timeTag
-		} else {
-			s.logger.Debug("Could not read DateTime tag",
-				zap.String("path", path),
-				zap.Error(err),
-			)
 		}
-
 		// 经纬度
 		if lat, long, err := exifData.LatLong(); err == nil {
 			file.PhotoMetadata.GPSLatitude = &lat
 			file.PhotoMetadata.GPSLongitude = &long
-		} else {
-			s.logger.Debug("Could not read LatLong tag",
-				zap.String("path", path),
-				zap.Error(err),
-			)
 		}
-
-		// 设备型号
+		// 相机型号
 		if modelTag, err := exifData.Get(exif.Model); err == nil {
 			if device, err := modelTag.StringVal(); err == nil {
 				file.PhotoMetadata.Camera = &device
 			}
-		} else {
-			s.logger.Debug("Could not read Model tag",
-				zap.String("path", path),
-				zap.Error(err),
-			)
 		}
-
-		// 焦距
-		if focalTag, err := exifData.Get(exif.FocalLength); err == nil {
-			if num, den, err := focalTag.Rat2(0); err == nil && den != 0 {
-				focalLength := float64(num) / float64(den)
-				file.PhotoMetadata.FocalLength = &focalLength
-			} else {
-				s.logger.Debug("Could not convert FocalLength tag to float",
-					zap.String("path", path),
-					zap.Error(err),
-				)
+		// 制造商
+		if makerTag, err := exifData.Get(exif.Make); err == nil {
+			if maker, err := makerTag.StringVal(); err == nil {
+				file.PhotoMetadata.Maker = &maker
 			}
-		} else {
-			s.logger.Debug("Could not read FocalLength tag",
-				zap.String("path", path),
-				zap.Error(err),
-			)
 		}
-
-		// 光圈
+		// 镜头型号
+		if lensTag, err := exifData.Get(exif.LensModel); err == nil {
+			if lens, err := lensTag.StringVal(); err == nil {
+				file.PhotoMetadata.Lens = &lens
+			}
+		}
+		// 曝光时间
+		if exposureTag, err := exifData.Get(exif.ExposureTime); err == nil {
+			if num, den, err := exposureTag.Rat2(0); err == nil && den != 0 {
+				exposure := float64(num) / float64(den)
+				file.PhotoMetadata.Exposure = &exposure
+			}
+		}
+		// 光圈值
 		if apertureTag, err := exifData.Get(exif.FNumber); err == nil {
 			if num, den, err := apertureTag.Rat2(0); err == nil && den != 0 {
 				aperture := float64(num) / float64(den)
 				file.PhotoMetadata.Aperture = &aperture
-			} else {
-				s.logger.Debug("Could not convert FNumber tag to float",
-					zap.String("path", path),
-					zap.Error(err),
-				)
 			}
-		} else {
-			s.logger.Debug("Could not read FNumber tag",
-				zap.String("path", path),
-				zap.Error(err),
-			)
 		}
-
 		// ISO
 		if isoTag, err := exifData.Get(exif.ISOSpeedRatings); err == nil {
 			if iso, err := isoTag.Int(0); err == nil {
 				isoValue := int64(iso)
 				file.PhotoMetadata.Iso = &isoValue
-			} else {
-				s.logger.Debug("Could not convert ISOSpeedRatings tag to int",
-					zap.String("path", path),
-					zap.Error(err),
-				)
 			}
-		} else {
-			s.logger.Debug("Could not read ISOSpeedRatings tag",
-				zap.String("path", path),
-				zap.Error(err),
-			)
 		}
-
-		// 白平衡
-		if wbTag, err := exifData.Get(exif.WhiteBalance); err == nil {
-			if wb, err := wbTag.Int(0); err == nil {
-				wbStr := strconv.Itoa(wb)
-				file.PhotoMetadata.WhiteBalance = &wbStr
-			} else {
-				s.logger.Debug("Could not convert WhiteBalance tag to int",
-					zap.String("path", path),
-					zap.Error(err),
-				)
+		// 焦距
+		if focalTag, err := exifData.Get(exif.FocalLength); err == nil {
+			if num, den, err := focalTag.Rat2(0); err == nil && den != 0 {
+				focalLength := float64(num) / float64(den)
+				file.PhotoMetadata.FocalLength = &focalLength
 			}
-		} else {
-			s.logger.Debug("Could not read WhiteBalance tag",
-				zap.String("path", path),
-				zap.Error(err),
-			)
 		}
-
-		// 曝光补偿
-		if expBiasTag, err := exifData.Get(exif.ExposureBiasValue); err == nil {
-			if num, den, err := expBiasTag.Rat2(0); err == nil && den != 0 {
-				exposure := float64(num) / float64(den)
-				file.PhotoMetadata.Exposure = &exposure
-			} else {
-				s.logger.Debug("Could not convert ExposureBiasValue tag to float",
-					zap.String("path", path),
-					zap.Error(err),
-				)
-			}
-		} else {
-			s.logger.Debug("Could not read ExposureBiasValue tag",
-				zap.String("path", path),
-				zap.Error(err),
-			)
-		}
-
 		// 闪光灯
 		if flashTag, err := exifData.Get(exif.Flash); err == nil {
 			if flash, err := flashTag.Int(0); err == nil {
 				flashValue := int64(flash)
 				file.PhotoMetadata.Flash = &flashValue
-			} else {
-				s.logger.Debug("Could not convert Flash tag to int",
-					zap.String("path", path),
-					zap.Error(err),
-				)
 			}
-		} else {
-			s.logger.Debug("Could not read Flash tag",
-				zap.String("path", path),
-				zap.Error(err),
-			)
+		}
+		// 方向
+		if orientationTag, err := exifData.Get(exif.Orientation); err == nil {
+			if orientation, err := orientationTag.Int(0); err == nil {
+				orientationValue := int64(orientation)
+				file.PhotoMetadata.Orientation = &orientationValue
+			}
+		}
+		// 曝光程序
+		if expProgramTag, err := exifData.Get(exif.ExposureProgram); err == nil {
+			if expProgram, err := expProgramTag.Int(0); err == nil {
+				expProgramValue := int64(expProgram)
+				file.PhotoMetadata.ExposureProgram = &expProgramValue
+			}
+		}
+		// 白平衡
+		if wbTag, err := exifData.Get(exif.WhiteBalance); err == nil {
+			if wb, err := wbTag.Int(0); err == nil {
+				wbStr := strconv.Itoa(wb)
+				file.PhotoMetadata.WhiteBalance = &wbStr
+			}
 		}
 	}
-
 	// 获取图片分辨率
 	imgConfig, err := s.getImageConfig(path)
 	if err == nil {
@@ -306,13 +248,7 @@ func (s *fileService) extractPhotoMetadata(path string) (*model.File, error) {
 		file.PhotoMetadata.ResolutionWidth = &width
 		height := imgConfig.Height
 		file.PhotoMetadata.ResolutionHeight = &height
-	} else {
-		s.logger.Warn("Error getting image dimensions",
-			zap.String("path", path),
-			zap.Error(err),
-		)
 	}
-
 	return file, nil
 }
 
