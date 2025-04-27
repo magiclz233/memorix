@@ -13,6 +13,7 @@ type File struct {
 	URL       string    `gorm:"column:url;comment:原图URL" json:"url"`
 	ThumbURL  string    `gorm:"column:thumb_url;comment:缩略图URL" json:"thumb_url"`
 	PhotoMetadata `gorm:"embedded;comment:图片元数据" json:"metadata"`
+	VideoMetadata `gorm:"embedded;comment:视频元数据" json:"video_metadata"`
 }
 
 func (m *File) TableName() string {
