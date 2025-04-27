@@ -96,23 +96,34 @@ func (s *fileService) ScanPhotos(ctx context.Context, dirPath string) ([]*model.
 			return nil // Skip directories
 		}
 
+		// 判断文件类型
 		ext := strings.ToLower(filepath.Ext(path))
-		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-			return nil // Skip non-image files
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+			file, extractErr := s.extractPhotoMetadata(path)
+			if extractErr != nil {
+				s.logger.Warn("Error extracting metadata",
+					zap.String("path", path),
+					zap.Error(extractErr),
+				)
+				scanErrors = append(scanErrors, fmt.Sprintf("Error extracting metadata from %s: %v", path, extractErr))
+				return nil
+			}
+			files = append(files, file)
+			return nil
 		}
-
-		file, extractErr := s.extractPhotoMetadata(path)
-		if extractErr != nil {
-			// Log the error and add to scanErrors, but continue scanning other files
-			s.logger.Warn("Error extracting metadata",
-				zap.String("path", path),
-				zap.Error(extractErr),
-			)
-			scanErrors = append(scanErrors, fmt.Sprintf("Error extracting metadata from %s: %v", path, extractErr))
-			return nil // Continue to next file despite error
+		if ext == ".mp4" || ext == ".mov" || ext == ".avi" || ext == ".mkv" {
+			file, extractErr := s.extractVideoMetadata(path)
+			if extractErr != nil {
+				s.logger.Warn("Error extracting video metadata",
+					zap.String("path", path),
+					zap.Error(extractErr),
+				)
+				scanErrors = append(scanErrors, fmt.Sprintf("Error extracting video metadata from %s: %v", path, extractErr))
+				return nil
+			}
+			files = append(files, file)
+			return nil
 		}
-
-		files = append(files, file)
 		return nil
 	})
 
@@ -286,4 +297,69 @@ func (s *fileService) getImageConfig(path string) (image.Config, error) {
 		return image.Config{}, fmt.Errorf("failed to decode image config for %s: %w", path, err)
 	}
 	return imgConfig, nil
+}
+
+// 提取视频元数据
+func (s *fileService) extractVideoMetadata(path string) (*model.File, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("error getting file info for %s: %w", path, err)
+	}
+	// 使用ffprobe获取视频信息
+	probeData, err := ffprobe.GetProbeData(path, 5*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("ffprobe error for %s: %w", path, err)
+	}
+	var width, height int
+	var duration float64
+	var codec, bitrate, colorProfile, audio *string
+	var framerate *float64
+	for _, stream := range probeData.Streams {
+		if stream.CodecType == "video" {
+			width = stream.Width
+			height = stream.Height
+			duration, _ = stream.Duration()
+			if stream.CodecName != "" {
+				codec = &stream.CodecName
+			}
+			if stream.BitRate != "" {
+				bitrate = &stream.BitRate
+			}
+			if stream.ColorSpace != "" {
+				colorProfile = &stream.ColorSpace
+			}
+			if stream.AvgFrameRate != "" {
+				parts := strings.Split(stream.AvgFrameRate, "/")
+				if len(parts) == 2 {
+					num, _ := strconv.ParseFloat(parts[0], 64)
+					den, _ := strconv.ParseFloat(parts[1], 64)
+					if den != 0 {
+						f := num / den
+						framerate = &f
+					}
+				}
+			}
+		}
+		if stream.CodecType == "audio" && stream.CodecName != "" {
+			audio = &stream.CodecName
+		}
+	}
+	videoMeta := model.VideoMetadata{
+		ResolutionWidth:  width,
+		ResolutionHeight: height,
+		Duration:         duration,
+		Codec:            codec,
+		Framerate:        framerate,
+		Bitrate:          bitrate,
+		ColorProfile:     colorProfile,
+		Audio:            audio,
+	}
+	file := &model.File{
+		Title:     fileInfo.Name(),
+		Path:      path,
+		Size:      fileInfo.Size(),
+		Model:     gorm.Model{CreatedAt: fileInfo.ModTime(), UpdatedAt: time.Now()},
+		VideoMetadata: videoMeta,
+	}
+	return file, nil
 }
