@@ -320,7 +320,8 @@ func (s *fileService) extractVideoMetadata(path string) (*model.File, error) {
 		if stream.CodecType == "video" {
 			width = stream.Width
 			height = stream.Height
-			duration, _ = stream.Duration()
+			// 将字符串格式的duration转换为float64
+			duration, _ = strconv.ParseFloat(stream.Duration, 64)
 			if stream.CodecName != "" {
 				codec = &stream.CodecName
 			}
