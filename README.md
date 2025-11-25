@@ -1,2 +1,10 @@
 # memorix
-Memorix project, a software for managing photo albums, photos, and videos, is currently under development
+Memorix 项目，一个用于管理相册、照片与视频的应用，当前仍在开发中。
+
+## 功能概述
+- 基于 Gin 的 HTTP API，提供注册/登录、JWT 鉴权与用户信息查询/更新，并内置 Swagger 文档。
+- 支持多种存储源配置（本地、NAS、七牛云等），可按用户设置默认存储并新增存储配置。
+- 提供 NAS 上传接口，使用 SFTP 将文件直接写入远端并进行路径校验。
+- 按存储配置的目录递归扫描照片与视频，读取 EXIF、分辨率、相机信息及 ffprobe 提供的视频元数据后写入数据库。
+- 暴露文件详情接口并预留文件列表能力，为后续相册索引与回忆功能打底。
+- 通过 `make init`/`make bootstrap`/`make build`/`make swag`/`make test` 等命令完成依赖安装、编译、文档生成与覆盖率测试。
