@@ -10,9 +10,19 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required" example:"123456"`
 }
 type LoginResponseData struct {
-	AccessToken string `json:"accessToken"`
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
 }
 type LoginResponse struct {
+	Response
+	Data LoginResponseData
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refreshToken" binding:"required"`
+}
+
+type RefreshTokenResponse struct {
 	Response
 	Data LoginResponseData
 }
@@ -22,15 +32,15 @@ type UpdateProfileRequest struct {
 	Email    string `json:"email" binding:"required,email" example:"1234@gmail.com"`
 }
 type GetProfileResponseData struct {
-	UserName   string `json:"userName"`
-	Nickname string `json:"nickname" example:"alan"`
-	Email    string `json:"email"`	
-	Gender    int   `json:"gender"`  
-	Avatar    string `json:"avatar"`
-	DefaultStorageId uint `json:"defaultStorageId"`
-	DefaultStorage string `json:"defaultStorage"`
-	Lang	string `json:"lang"`
-	TimeZone string `json:"timeZone"`
+	UserName         string `json:"userName"`
+	Nickname         string `json:"nickname" example:"alan"`
+	Email            string `json:"email"`
+	Gender           int    `json:"gender"`
+	Avatar           string `json:"avatar"`
+	DefaultStorageId uint   `json:"defaultStorageId"`
+	DefaultStorage   string `json:"defaultStorage"`
+	Lang             string `json:"lang"`
+	TimeZone         string `json:"timeZone"`
 }
 type GetProfileResponse struct {
 	Response

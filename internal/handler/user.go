@@ -29,7 +29,7 @@ func NewUserHandler(handler *Handler, userService service.UserService) *UserHand
 // @Accept json
 // @Produce json
 // @Param request body v1.RegisterRequest true "params"
-// @Success 200 {object} v1.Response
+// @Success 200 {object} v1.LoginResponse
 // @Router /register [post]
 func (h *UserHandler) Register(ctx *gin.Context) {
 	req := new(v1.RegisterRequest)
@@ -38,20 +38,18 @@ func (h *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 
-	if err := h.userService.Register(ctx, req); err != nil {
-		// Log the specific error from the service layer
+	tokens, err := h.userService.Register(ctx, req)
+	if err != nil {
 		h.logger.WithContext(ctx).Error("userService.Register error", zap.Error(err))
-		// Check for specific known errors from the service layer
 		if err == v1.ErrEmailAlreadyUse {
 			v1.HandleError(ctx, http.StatusBadRequest, err, nil)
-		} else {
-			// Return a generic internal server error for other cases
-			v1.HandleError(ctx, http.StatusInternalServerError, v1.ErrInternalServerError, "注册失败")
+			return
 		}
+		v1.HandleError(ctx, http.StatusInternalServerError, v1.ErrInternalServerError, "注册失败")
 		return
 	}
 
-	v1.HandleSuccess(ctx, nil)
+	v1.HandleSuccess(ctx, tokens)
 }
 
 // Login godoc
@@ -85,9 +83,7 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 		}
 		return
 	}
-	v1.HandleSuccess(ctx, v1.LoginResponseData{
-		AccessToken: token,
-	})
+	v1.HandleSuccess(ctx, token)
 }
 
 // GetProfile godoc
@@ -156,4 +152,35 @@ func (h *UserHandler) UpdateProfile(ctx *gin.Context) {
 	}
 
 	v1.HandleSuccess(ctx, nil)
+}
+
+// RefreshToken godoc
+// @Summary 刷新Token
+// @Schemes
+// @Description 通过refreshToken获取新的accessToken
+// @Tags 用户模块
+// @Accept json
+// @Produce json
+// @Param request body v1.RefreshTokenRequest true "params"
+// @Success 200 {object} v1.RefreshTokenResponse
+// @Router /token/refresh [post]
+func (h *UserHandler) RefreshToken(ctx *gin.Context) {
+	var req v1.RefreshTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		v1.HandleError(ctx, http.StatusBadRequest, v1.ErrBadRequest, nil)
+		return
+	}
+
+	resp, err := h.userService.RefreshToken(ctx, &req)
+	if err != nil {
+		h.logger.WithContext(ctx).Warn("userService.RefreshToken error", zap.Error(err))
+		if err == v1.ErrUnauthorized {
+			v1.HandleError(ctx, http.StatusUnauthorized, v1.ErrUnauthorized, nil)
+			return
+		}
+		v1.HandleError(ctx, http.StatusInternalServerError, v1.ErrInternalServerError, "token刷新失败")
+		return
+	}
+
+	v1.HandleSuccess(ctx, resp)
 }

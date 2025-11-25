@@ -24,7 +24,7 @@ func StrictAuth(j *jwt.JWT, logger *log.Logger) gin.HandlerFunc {
 		}
 
 		claims, err := j.ParseToken(tokenString)
-		if err != nil {
+		if err != nil || claims.TokenType != jwt.TokenTypeAccess {
 			logger.WithContext(ctx).Error("token error", zap.Any("data", map[string]interface{}{
 				"url":    ctx.Request.URL,
 				"params": ctx.Params,
@@ -55,7 +55,7 @@ func NoStrictAuth(j *jwt.JWT, logger *log.Logger) gin.HandlerFunc {
 		}
 
 		claims, err := j.ParseToken(tokenString)
-		if err != nil {
+		if err != nil || claims.TokenType != jwt.TokenTypeAccess {
 			ctx.Next()
 			return
 		}
