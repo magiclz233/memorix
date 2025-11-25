@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vansante/go-ffprobe"
 	"github.com/gin-gonic/gin"
 	"github.com/magiclz233/memorix/internal/model"
 	"github.com/magiclz233/memorix/internal/repository"
@@ -306,6 +307,7 @@ func (s *fileService) extractVideoMetadata(path string) (*model.File, error) {
 		return nil, fmt.Errorf("error getting file info for %s: %w", path, err)
 	}
 	// 使用ffprobe获取视频信息
+
 	probeData, err := ffprobe.GetProbeData(path, 5*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("ffprobe error for %s: %w", path, err)
@@ -318,7 +320,8 @@ func (s *fileService) extractVideoMetadata(path string) (*model.File, error) {
 		if stream.CodecType == "video" {
 			width = stream.Width
 			height = stream.Height
-			duration, _ = stream.Duration()
+			// 将字符串格式的duration转换为float64
+			duration, _ = strconv.ParseFloat(stream.Duration, 64)
 			if stream.CodecName != "" {
 				codec = &stream.CodecName
 			}
