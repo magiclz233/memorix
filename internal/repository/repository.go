@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/glebarez/sqlite"
@@ -88,6 +90,7 @@ func NewDB(conf *viper.Viper, l *log.Logger) *gorm.DB {
 			PreferSimpleProtocol: true, // disables implicit prepared statement usage
 		}), &gorm.Config{})
 	case "sqlite":
+		dsn = resolveSQLiteDSN(dsn, conf)
 		db, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	default:
 		panic("unknown db driver")
@@ -123,4 +126,24 @@ func NewRedis(conf *viper.Viper) *redis.Client {
 	}
 
 	return rdb
+}
+
+// resolveSQLiteDSN 将相对路径的 SQLite DSN 转为仓库根目录的绝对路径，避免在子目录运行时找不到数据库文件
+func resolveSQLiteDSN(dsn string, conf *viper.Viper) string {
+	parts := strings.SplitN(dsn, "?", 2)
+	dbPath := parts[0]
+	if dbPath == "" || filepath.IsAbs(dbPath) {
+		return dsn
+	}
+	confPath := conf.ConfigFileUsed()
+	if confPath == "" {
+		return dsn
+	}
+	// config 文件位于 repo/config，数据库文件位于 repo/storage
+	repoRoot := filepath.Dir(filepath.Dir(confPath))
+	absPath := filepath.Join(repoRoot, dbPath)
+	if len(parts) == 2 {
+		return absPath + "?" + parts[1]
+	}
+	return absPath
 }
