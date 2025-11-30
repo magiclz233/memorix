@@ -69,7 +69,7 @@ func TestUserService_Register(t *testing.T) {
 	mockUserRepo.EXPECT().GetByEmail(ctx, req.Email).Return(nil, nil)
 	mockTm.EXPECT().Transaction(ctx, gomock.Any()).Return(nil)
 
-	err := userService.Register(ctx, req)
+	_, err := userService.Register(ctx, req)
 
 	assert.NoError(t, err)
 }
@@ -91,7 +91,7 @@ func TestUserService_Register_UsernameExists(t *testing.T) {
 
 	mockUserRepo.EXPECT().GetByEmail(ctx, req.Email).Return(&model.User{}, nil)
 
-	err := userService.Register(ctx, req)
+	_, err := userService.Register(ctx, req)
 
 	assert.Error(t, err)
 }

@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	v1 "github.com/magiclz233/memorix/api/v1"
 	gomock "github.com/golang/mock/gomock"
+	v1 "github.com/magiclz233/memorix/api/v1"
 )
 
 // MockUserService is a mock of UserService interface.
@@ -51,10 +51,10 @@ func (mr *MockUserServiceMockRecorder) GetProfile(ctx, userId interface{}) *gomo
 }
 
 // Login mocks base method.
-func (m *MockUserService) Login(ctx context.Context, req *v1.LoginRequest) (string, error) {
+func (m *MockUserService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginResponseData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Login", ctx, req)
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].(*v1.LoginResponseData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -65,12 +65,28 @@ func (mr *MockUserServiceMockRecorder) Login(ctx, req interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockUserService)(nil).Login), ctx, req)
 }
 
+// RefreshToken mocks base method.
+func (m *MockUserService) RefreshToken(ctx context.Context, req *v1.RefreshTokenRequest) (*v1.LoginResponseData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshToken", ctx, req)
+	ret0, _ := ret[0].(*v1.LoginResponseData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshToken indicates an expected call of RefreshToken.
+func (mr *MockUserServiceMockRecorder) RefreshToken(ctx, req interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockUserService)(nil).RefreshToken), ctx, req)
+}
+
 // Register mocks base method.
-func (m *MockUserService) Register(ctx context.Context, req *v1.RegisterRequest) error {
+func (m *MockUserService) Register(ctx context.Context, req *v1.RegisterRequest) (*v1.LoginResponseData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Register", ctx, req)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*v1.LoginResponseData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Register indicates an expected call of Register.

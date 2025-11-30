@@ -9,6 +9,7 @@ import (
 	"github.com/magiclz233/memorix/internal/middleware"
 	mock_service "github.com/magiclz233/memorix/test/mocks/service"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 )
 
@@ -22,9 +23,13 @@ func TestUserHandler_Register(t *testing.T) {
 	}
 
 	mockUserService := mock_service.NewMockUserService(ctrl)
-	mockUserService.EXPECT().Register(gomock.Any(), &params).Return(nil)
+	mockUserService.EXPECT().Register(gomock.Any(), &params).Return(&v1.LoginResponseData{
+		AccessToken:  "access",
+		RefreshToken: "refresh",
+	}, nil)
 
 	userHandler := handler.NewUserHandler(hdl, mockUserService)
+	router := newTestRouter()
 	router.POST("/register", userHandler.Register)
 
 	e := newHttpExcept(t, router)
@@ -50,9 +55,13 @@ func TestUserHandler_Login(t *testing.T) {
 
 	tk := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySWQiOiJ4eHgiLCJleHAiOjE3MzgyMjA1MTQsIm5iZiI6MTczMDQ0NDUxNCwiaWF0IjoxNzMwNDQ0NTE0fQ.3D4YupmPBCkv16ESnYyWSV5Mxcdu0twzEUqx0K-UiWo"
 	mockUserService := mock_service.NewMockUserService(ctrl)
-	mockUserService.EXPECT().Login(gomock.Any(), &params).Return(tk, nil)
+	mockUserService.EXPECT().Login(gomock.Any(), &params).Return(&v1.LoginResponseData{
+		AccessToken:  tk,
+		RefreshToken: "refresh",
+	}, nil)
 
 	userHandler := handler.NewUserHandler(hdl, mockUserService)
+	router := newTestRouter()
 	router.POST("/login", userHandler.Login)
 
 	obj := newHttpExcept(t, router).POST("/login").
@@ -79,6 +88,7 @@ func TestUserHandler_GetProfile(t *testing.T) {
 	}, nil)
 
 	userHandler := handler.NewUserHandler(hdl, mockUserService)
+	router := newTestRouter()
 	router.Use(middleware.NoStrictAuth(jwt, logger))
 	router.GET("/user", userHandler.GetProfile)
 
@@ -108,6 +118,7 @@ func TestUserHandler_UpdateProfile(t *testing.T) {
 	mockUserService.EXPECT().UpdateProfile(gomock.Any(), userId, &params).Return(nil)
 
 	userHandler := handler.NewUserHandler(hdl, mockUserService)
+	router := newTestRouter()
 	router.Use(middleware.StrictAuth(jwt, logger))
 	router.PUT("/user", userHandler.UpdateProfile)
 
@@ -121,4 +132,16 @@ func TestUserHandler_UpdateProfile(t *testing.T) {
 		Object()
 	obj.Value("code").IsEqual(0)
 	obj.Value("message").IsEqual("ok")
+}
+
+// newTestRouter 为每个用例提供独立的路由，避免重复注册路由导致 panic
+func newTestRouter() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(
+		middleware.CORSMiddleware(),
+		middleware.ResponseLogMiddleware(logger),
+		middleware.RequestLogMiddleware(logger),
+	)
+	return r
 }
