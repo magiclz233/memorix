@@ -1,25 +1,40 @@
-version: '3'
+version: '3.8'
 
 services:
-  user-db:
-    image: mysql:8.0.31-debian
-    hostname: user-db
-    container_name: user-db
+  memorix-server:
+    build: 
+      context: ../../
+      dockerfile: deploy/build/Dockerfile
+    container_name: memorix-server
+    restart: always
     ports:
-      - 3380:3306
+      - "8080:8080" # 后端 API 端口
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/storage/logs
+      # [关键] 将 NAS 的照片目录挂载到容器的 /data 目录
+      # 左边是 NAS 实际路径，右边是容器内路径（建议固定为 /data）
+      - /volume1/photos:/data 
     environment:
-      - MYSQL_ROOT_PASSWORD=123456
-      - MYSQL_ROOT_HOST=%
-      - MYSQL_DATABASE=user
-    # volumes:
-    #   - ./data/mysql/user:/var/lib/mysql
-    #   - ./conf/mysql/conf.d:/etc/mysql/conf.d
-  cache-redis:
-    image: redis:6-alpine
-    hostname: cache-redis
-    # volumes:
-    #   - ./data/redis/cache/:/data
-    #   - ./conf/redis/cache/redis.conf:/etc/redis/redis.conf
+      - TZ=Asia/Shanghai
+    depends_on:
+      - mysql
+      - redis
+
+  memorix-web:
+    # 假设前端也打包在这个镜像或单独的 Nginx 镜像中
+    image: memorix-web:latest 
+    container_name: memorix-web
     ports:
-      - 6350:6379
-    command: ["redis-server","/etc/redis/redis.conf"]
+      - "80:80" # 前端访问端口
+    depends_on:
+      - memorix-server
+
+  mysql:
+    image: mysql:8.0
+    container_name: memorix-mysql
+    # ... (省略数据库配置)
+
+  redis:
+    image: redis:alpine
+    container_name: memorix-redis
