@@ -1,4 +1,3 @@
-// This client component uses navigation hooks to highlight the active link.
 'use client';
 
 import {
@@ -24,6 +23,7 @@ const links = [
 
 export default function NavLinks() {
   const pathname = usePathname();
+
   return (
     <>
       {links.map((link) => {
