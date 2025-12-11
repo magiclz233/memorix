@@ -2,7 +2,8 @@ import Image from 'next/image';
 import { UpdateInvoice, DeleteInvoice } from '@/app/ui/invoices/buttons';
 import InvoiceStatus from '@/app/ui/invoices/status';
 import { formatDateToLocal, formatCurrency } from '@/app/lib/utils';
-import { fetchFilteredInvoices } from '@/app/lib/data';
+import { fetchInvoicesWithBusinessLogic } from '@/app/lib/data';
+import clsx from 'clsx';
 
 export default async function InvoicesTable({
   query,
@@ -11,7 +12,7 @@ export default async function InvoicesTable({
   query: string;
   currentPage: number;
 }) {
-  const invoices = await fetchFilteredInvoices(query, currentPage);
+  const invoices = await fetchInvoicesWithBusinessLogic(query, currentPage);
 
   return (
     <div className="mt-6 flow-root">
@@ -72,6 +73,9 @@ export default async function InvoicesTable({
                 <th scope="col" className="px-3 py-5 font-medium">
                   Status
                 </th>
+                <th scope="col" className="px-3 py-5 font-medium">
+                  PriorityLabel
+                </th>
                 <th scope="col" className="relative py-3 pl-6 pr-3">
                   <span className="sr-only">Edit</span>
                 </th>
@@ -106,6 +110,18 @@ export default async function InvoicesTable({
                   </td>
                   <td className="whitespace-nowrap px-3 py-3">
                     <InvoiceStatus status={invoice.status} />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3">
+                    <span className={clsx(
+                      'rounded-full px-2 py-1 text-xs font-bold',
+                      {
+                        'bg-red-100 text-red-600': invoice.priority === 'High',
+                        'bg-yellow-100 text-yellow-600': invoice.priority === 'Medium',
+                        'bg-green-100 text-green-600': invoice.priority === 'Low',
+                      }
+                    )}>
+                      {invoice.priorityLabel}
+                    </span>
                   </td>
                   <td className="whitespace-nowrap py-3 pl-6 pr-3">
                     <div className="flex justify-end gap-3">

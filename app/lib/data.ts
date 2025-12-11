@@ -3,6 +3,7 @@ import {
   CustomerField,
   CustomersTableType,
   InvoiceForm,
+  InvoiceWithPriority,
   InvoicesTable,
   LatestInvoiceRaw,
   Revenue,
@@ -215,5 +216,43 @@ export async function fetchFilteredCustomers(query: string) {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch customer table.');
+  }
+}
+
+function calculatePriority(amount: number, status: string): 'High' | 'Medium' | 'Low' {
+  if (status === 'paid') return 'Low';
+  // 注意：数据库里的 amount 通常是以分为单位的整数，这里假设 amount 是分为单位
+  if (amount > 50000) return 'High'; // 大于 $500.00
+  return 'Medium';
+}
+
+export async function fetchInvoicesWithBusinessLogic(
+  query: string,
+  currentPage: number
+): Promise<InvoiceWithPriority[]> {
+  try{
+  // 1. 获取原始数据 (Raw Data)
+      const invoices = await fetchFilteredInvoices(query, currentPage);
+
+    // 2. 中间业务处理 (Intermediate Business Processing)
+    // 这里是放置复杂逻辑的最佳地点
+    const processedInvoices = invoices.map((invoice) => {
+      const priority = calculatePriority(invoice.amount, invoice.status);
+      
+      let priorityLabel = '低';
+      if (priority === 'High') priorityLabel = '高 - 需紧急处理';
+      if (priority === 'Medium') priorityLabel = '中 - 正常跟进';
+
+      return {
+        ...invoice,
+        priority,      // 注入计算出的业务字段
+        priorityLabel, // 注入用于显示的文案
+      };
+    });
+
+    return processedInvoices;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch invoices with priority.');
   }
 }
