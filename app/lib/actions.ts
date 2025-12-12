@@ -33,6 +33,7 @@ export type State = {
     status?: string[];
   };
   message?: string | null;
+  success?: boolean;
 };
 
 export async function createInvoice(prevState: State, formData: FormData) {
@@ -48,6 +49,7 @@ export async function createInvoice(prevState: State, formData: FormData) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: 'Missing Fields. Failed to Create Invoice.',
+      success: false
     };
   }
 
@@ -66,19 +68,21 @@ export async function createInvoice(prevState: State, formData: FormData) {
     // If a database error occurs, return a more specific error.
     return {
       message: 'Database Error: Failed to Create Invoice.',
+      success: false,
     };
   }
 
   // Revalidate the cache for the invoices page and redirect the user.
   revalidatePath('/dashboard/invoices');
-  redirect('/dashboard/invoices');
+  // 返回成功状态给客户端，由客户端决定跳转（在拦截路由中更稳定）
+  return { success: true, message: null, errors: {} };
 }
 
 export async function updateInvoice(
   id: string,
   prevState: State,
   formData: FormData,
-) {
+): Promise<State> {
   const validatedFields = UpdateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -89,6 +93,7 @@ export async function updateInvoice(
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: 'Missing Fields. Failed to Update Invoice.',
+      success: false,
     };
   }
 
@@ -102,11 +107,12 @@ export async function updateInvoice(
       WHERE id = ${id}
     `;
   } catch (error) {
-    return { message: 'Database Error: Failed to Update Invoice.' };
+    return { message: 'Database Error: Failed to Update Invoice.', success: false };
   }
 
   revalidatePath('/dashboard/invoices');
-  redirect('/dashboard/invoices');
+  // 返回成功状态给客户端，由客户端决定跳转（在拦截路由中更稳定）
+  return { success: true, message: null, errors: {} };
 }
 
 export async function deleteInvoice(id: string) {

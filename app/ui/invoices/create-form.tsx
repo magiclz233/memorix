@@ -1,7 +1,6 @@
 'use client';
 
 import { CustomerField } from '@/app/lib/definitions';
-import Link from 'next/link';
 import {
   CheckIcon,
   ClockIcon,
@@ -10,11 +9,35 @@ import {
 } from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
 import { createInvoice, State } from '@/app/lib/actions';
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Form({ customers }: { customers: CustomerField[] }) {
-  const initialState: State = { message: null, errors: {} };
-  const [state, formAction] = useActionState(createInvoice, initialState);
+  const initialState: State = { message: null, errors: {}, success: false };
+  const [state, formAction] = useActionState<State, FormData>(createInvoice, initialState); 
+  const router = useRouter();
+  // useEffect(() => {
+  //   if (!state.success) return;
+  //   const hasErrors =
+  //     !!state.errors &&
+  //     Object.values(state.errors).some((errs) => errs && errs.length > 0);
+  //   if (!hasErrors) {
+  //     // 先返回上一页关闭拦截路由；若历史不存在则兜底 replace
+  //     router.back();
+  //     const timer = setTimeout(() => {
+  //       router.replace('/dashboard/invoices');
+  //       router.refresh();
+  //     }, 50);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [state, router]);
+  useEffect(() => {
+    if (state.success) {
+      router.refresh(); // 刷新数据
+      router.back();    // 回退路由（关闭弹窗）
+      // 或者用 router.replace('/dashboard/invoices') 也可以，但在弹窗模式下 back 更自然
+    }
+  }, [state, router]);
 
   return (
     <form action={formAction}>
@@ -140,12 +163,13 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
         </div>
       </div>
       <div className="mt-6 flex justify-end gap-4">
-        <Link
-          href="/dashboard/invoices"
+        <button
+          type="button"
+          onClick={() => router.back()}
           className="flex h-10 items-center rounded-lg bg-gray-100 px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
         >
           Cancel
-        </Link>
+        </button>
         <Button type="submit">Create Invoice</Button>
       </div>
     </form>
