@@ -86,3 +86,8 @@ export type InvoiceForm = {
   amount: number;
   status: 'pending' | 'paid';
 };
+
+export type InvoiceWithPriority = InvoicesTable & {
+  priority: 'High' | 'Medium' | 'Low';
+  priorityLabel: string; // 用于前端显示的中文标签
+};
