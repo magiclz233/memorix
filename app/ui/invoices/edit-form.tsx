@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
 import { updateInvoice, State } from '@/app/lib/actions';
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function EditInvoiceForm({
@@ -20,30 +20,32 @@ export default function EditInvoiceForm({
   customers: CustomerField[];
 }) {
   const router = useRouter();
-  const initialState: State = { message: null, errors: {} };
+  const initialState: State = { message: null, errors: {}, success: false };
   const updateInvoiceWithId = updateInvoice.bind(null, invoice.id);
-  const [state, formAction] = useActionState(updateInvoiceWithId, initialState);
-  const submittedRef = useRef(false);
+  const [state, formAction] = useActionState<State, FormData>(
+    updateInvoiceWithId,
+    initialState,
+  );
 
   // 提交成功后，返回列表并刷新，让拦截路由的弹窗关闭
   useEffect(() => {
-    if (!submittedRef.current) return;
+    if (!state.success) return;
     const hasErrors =
       !!state.errors &&
       Object.values(state.errors).some((errs) => errs && errs.length > 0);
-    if (!hasErrors && !state.message) {
-      router.replace('/dashboard/invoices');
-      router.refresh();
+    if (!hasErrors) {
+      // 先返回上一页关闭拦截路由；若历史不存在则兜底 replace
+      router.back();
+      const timer = setTimeout(() => {
+        router.replace('/dashboard/invoices');
+        router.refresh();
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [state, router]);
 
   return (
-    <form
-      action={formAction}
-      onSubmit={() => {
-        submittedRef.current = true;
-      }}
-    >
+    <form action={formAction}>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
         {/* Customer Name */}
         <div className="mb-4">
