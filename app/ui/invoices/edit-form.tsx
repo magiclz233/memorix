@@ -7,10 +7,10 @@ import {
   CurrencyDollarIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
-import Link from 'next/link';
 import { Button } from '@/app/ui/button';
 import { updateInvoice, State } from '@/app/lib/actions';
-import { useActionState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function EditInvoiceForm({
   invoice,
@@ -19,12 +19,31 @@ export default function EditInvoiceForm({
   invoice: InvoiceForm;
   customers: CustomerField[];
 }) {
+  const router = useRouter();
   const initialState: State = { message: null, errors: {} };
   const updateInvoiceWithId = updateInvoice.bind(null, invoice.id);
   const [state, formAction] = useActionState(updateInvoiceWithId, initialState);
+  const submittedRef = useRef(false);
+
+  // 提交成功后，返回列表并刷新，让拦截路由的弹窗关闭
+  useEffect(() => {
+    if (!submittedRef.current) return;
+    const hasErrors =
+      !!state.errors &&
+      Object.values(state.errors).some((errs) => errs && errs.length > 0);
+    if (!hasErrors && !state.message) {
+      router.replace('/dashboard/invoices');
+      router.refresh();
+    }
+  }, [state, router]);
 
   return (
-    <form action={formAction}>
+    <form
+      action={formAction}
+      onSubmit={() => {
+        submittedRef.current = true;
+      }}
+    >
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
         {/* Customer Name */}
         <div className="mb-4">
@@ -150,12 +169,13 @@ export default function EditInvoiceForm({
         </div>
       </div>
       <div className="mt-6 flex justify-end gap-4">
-        <Link
-          href="/dashboard/invoices"
+        <button
+          type="button"
+          onClick={() => router.back()}
           className="flex h-10 items-center rounded-lg bg-gray-100 px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
         >
           Cancel
-        </Link>
+        </button>
         <Button type="submit">Edit Invoice</Button>
       </div>
     </form>
