@@ -21,6 +21,8 @@ export default async function Page() {
         </Suspense>
       </div>
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-4 lg:grid-cols-8">
+        {/* RevenueChart 数据加载慢，所以用 Suspense 包裹 */}
+        {/* 在数据准备好之前，用户会先看到 fallback 中的骨架屏 */}
         <Suspense fallback={<RevenueChartSkeleton />}>
           <RevenueChart />
         </Suspense>

@@ -7,6 +7,7 @@ import { useDebouncedCallback } from 'use-debounce';
 export default function Search({ placeholder }: { placeholder: string }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  // replace 方法是一个客户端路由方法，用于替换当前路由，调用后会立即导航到新路由
   const { replace } = useRouter();
 
 
