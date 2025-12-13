@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth';
+import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
 import { authConfig } from './auth.config';
 import { z } from 'zod';
@@ -21,6 +22,7 @@ async function getUser(email: string): Promise<User | undefined> {
 export const { auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
+    GitHub,
     Credentials({
       async authorize(credentials) {
         const parsedCredentials = z
