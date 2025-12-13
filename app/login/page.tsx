@@ -1,5 +1,6 @@
 import AcmeLogo from '@/app/ui/acme-logo';
 import LoginForm from '@/app/ui/login-form';
+import SocialLogin from '@/app/ui/social-login';
 import { Suspense } from 'react';
  
 export default function LoginPage() {
@@ -14,6 +15,15 @@ export default function LoginPage() {
         <Suspense>
           <LoginForm />
         </Suspense>
+        {/* 分割线 */}
+        <div className="flex items-center my-4">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="flex-shrink-0 mx-4 text-gray-600 text-sm">OR</span>
+          <div className="flex-grow border-t border-gray-300"></div>
+        </div>
+
+        {/* 新增的第三方登录 */}
+        <SocialLogin />
       </div>
     </main>
   );
