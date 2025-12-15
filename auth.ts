@@ -3,16 +3,19 @@ import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
 import { authConfig } from './auth.config';
 import { z } from 'zod';
-import type { User } from '@/app/lib/definitions';
 import bcrypt from 'bcryptjs';
-import postgres from 'postgres';
- 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
- 
-async function getUser(email: string): Promise<User | undefined> {
+import { db } from '@/app/lib/drizzle';
+import { users } from '@/app/lib/schema';
+import { eq } from 'drizzle-orm';
+
+type DbUser = typeof users.$inferSelect;
+
+async function getUser(email: string): Promise<DbUser | undefined> {
   try {
-    const user = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
-    return user[0];
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+    return user ?? undefined;
   } catch (error) {
     console.error('Failed to fetch user:', error);
     throw new Error('Failed to fetch user.');
@@ -55,16 +58,20 @@ export const { auth, signIn, signOut } = NextAuth({
 
         try {
           // GitHub 登录后同步到本地用户表，并写入默认加密密码
-          const existingUser = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
+          const existingUser = await db.query.users.findFirst({
+            where: eq(users.email, email),
+          });
 
-          if (existingUser.length === 0) {
+          if (!existingUser) {
             const userName = name ?? 'GitHub 用户';
-            // const imageUrl = image ?? null;
+            const imageUrl = image ?? null;
             const hashedPassword = await bcrypt.hash('123456', 10);
-            await sql`
-              INSERT INTO users (name, email, password)
-              VALUES (${userName}, ${email}, ${hashedPassword})
-            `;
+            await db.insert(users).values({
+              name: userName,
+              email,
+              password: hashedPassword,
+              imageUrl,
+            });
             console.log(`New user ${email} created via ${account.provider}`);
           }
           return true;
