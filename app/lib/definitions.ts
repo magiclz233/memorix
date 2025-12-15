@@ -7,12 +7,14 @@ export type User = {
   name: string;
   email: string;
   password: string;
+  imageUrl: string;
 };
 
 export type Customer = {
   id: string;
   name: string;
   email: string;
+  role: 'user' | 'admin';
   image_url: string;
 };
 
