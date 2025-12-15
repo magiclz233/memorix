@@ -1,4 +1,4 @@
-import { InvoiceWithPriority } from "./definitions";
+import type { InvoiceForm, InvoiceWithPriority } from "./definitions";
 import { formatCurrency } from "./utils";
 import { db } from "./drizzle";
 import { invoices, customers, revenue } from "./schema";
@@ -174,7 +174,9 @@ export async function fetchInvoicesPages(query: string) {
   }
 }
 
-export async function fetchInvoiceById(id: string) {
+export async function fetchInvoiceById(
+  id: string,
+): Promise<InvoiceForm | undefined> {
   try {
     const data = await db
       .select({
@@ -186,13 +188,20 @@ export async function fetchInvoiceById(id: string) {
       .from(invoices)
       .where(eq(invoices.id, id));
 
-    const invoice = data.map((invoice) => ({
+    const invoice = data[0];
+    if (!invoice) return undefined;
+
+    const status = invoice.status;
+    if (status !== "pending" && status !== "paid") {
+      throw new Error(`Invalid invoice status: ${status}`);
+    }
+
+    return {
       ...invoice,
       // Convert amount from cents to dollars
       amount: invoice.amount / 100,
-    }));
-
-    return invoice[0];
+      status,
+    };
   } catch (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch invoice.");
