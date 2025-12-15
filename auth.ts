@@ -43,4 +43,38 @@ export const { auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'github') {
+        const { email, name, image } = user;
+
+        if (!email) {
+          console.error('GitHub 返回 email 为空，无法同步用户');
+          return false;
+        }
+
+        try {
+          // GitHub 登录后同步到本地用户表，并写入默认加密密码
+          const existingUser = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
+
+          if (existingUser.length === 0) {
+            const userName = name ?? 'GitHub 用户';
+            const imageUrl = image ?? null;
+            const hashedPassword = await bcrypt.hash('123456', 10);
+            await sql`
+              INSERT INTO users (name, email, password, image_url)
+              VALUES (${userName}, ${email}, ${hashedPassword}, ${imageUrl})
+            `;
+            console.log(`New user ${email} created via ${account.provider}`);
+          }
+          return true;
+        } catch (error) {
+          console.error('Error syncing user to DB:', error);
+          return false;
+        }
+      }
+
+      return true;
+    },
+  },
 });
