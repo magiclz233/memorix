@@ -59,11 +59,11 @@ export const { auth, signIn, signOut } = NextAuth({
 
           if (existingUser.length === 0) {
             const userName = name ?? 'GitHub 用户';
-            const imageUrl = image ?? null;
+            // const imageUrl = image ?? null;
             const hashedPassword = await bcrypt.hash('123456', 10);
             await sql`
-              INSERT INTO users (name, email, password, image_url)
-              VALUES (${userName}, ${email}, ${hashedPassword}, ${imageUrl})
+              INSERT INTO users (name, email, password)
+              VALUES (${userName}, ${email}, ${hashedPassword})
             `;
             console.log(`New user ${email} created via ${account.provider}`);
           }
