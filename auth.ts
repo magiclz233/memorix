@@ -10,6 +10,13 @@ import { eq } from 'drizzle-orm';
 
 type DbUser = typeof users.$inferSelect;
 
+type GitHubEmailItem = {
+  email: string;
+  primary: boolean;
+  verified: boolean;
+  visibility?: 'public' | 'private' | null;
+};
+
 async function getUser(email: string): Promise<DbUser | undefined> {
   try {
     const user = await db.query.users.findFirst({
@@ -21,11 +28,41 @@ async function getUser(email: string): Promise<DbUser | undefined> {
     throw new Error('Failed to fetch user.');
   }
 }
+
+async function getGitHubVerifiedEmail(
+  accessToken?: string | null,
+): Promise<string | null> {
+  if (!accessToken) return null;
+
+  try {
+    const response = await fetch('https://api.github.com/user/emails', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'next-auth',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) return null;
+    const emails = (await response.json()) as GitHubEmailItem[];
+    const best =
+      emails.find((item) => item.primary && item.verified) ??
+      emails.find((item) => item.verified) ??
+      emails[0];
+    return best?.email ?? null;
+  } catch (error) {
+    console.error('获取 GitHub email 失败：', error);
+    return null;
+  }
+}
  
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
-    GitHub,
+    GitHub({
+      authorization: { params: { scope: 'read:user user:email' } },
+    }),
     Credentials({
       async authorize(credentials) {
         const parsedCredentials = z
@@ -47,13 +84,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     async signIn({ user, account }) {
       if (account?.provider === 'github') {
-        const { email, name, image } = user;
+        const email =
+          user.email ?? (await getGitHubVerifiedEmail(account.access_token));
+        const { name, image } = user;
 
         if (!email) {
-          console.error('GitHub 返回 email 为空，无法同步用户');
-          return false;
+          console.error('GitHub 未返回 email，且无法从 API 获取；本次不做用户同步');
+          return true;
         }
 
         try {
@@ -76,8 +116,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
           return true;
         } catch (error) {
-          console.error('Error syncing user to DB:', error);
-          return false;
+          console.error('GitHub 用户同步到数据库失败：', error);
+          return true;
         }
       }
 
