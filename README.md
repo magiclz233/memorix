@@ -48,7 +48,13 @@ Start the dev server:
 pnpm dev
 ```
 
-Then seed the database (creates `users/customers/invoices/revenue` and inserts placeholder data):
+Run migrations first (creates/updates tables via Drizzle migrations):
+
+```bash
+pnpm drizzle-kit migrate
+```
+
+Then seed the database (inserts placeholder data):
 
 ```bash
 curl http://localhost:3000/seed
@@ -91,6 +97,10 @@ After seeding, you can sign in with the default credentials:
 - `pnpm build`: production build
 - `pnpm start`: production start
 - `pnpm lint`: ESLint
+
+## Database (Drizzle ORM)
+
+- Drizzle ORM schema & migration guide: [`docs/drizzle.md`](docs/drizzle.md)
 
 ## Notes
 

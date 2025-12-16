@@ -54,7 +54,13 @@ openssl rand -base64 32
 pnpm dev
 ```
 
-访问 `/seed` 创建表并写入示例数据（`users/customers/invoices/revenue`）：
+先运行迁移（通过 Drizzle 迁移创建/更新表结构）：
+
+```bash
+pnpm drizzle-kit migrate
+```
+
+再访问 `/seed` 写入示例数据（`users/customers/invoices/revenue`）：
 
 ```bash
 curl http://localhost:3000/seed
@@ -97,6 +103,10 @@ Invoke-WebRequest http://localhost:3000/seed
 - `pnpm build`：生产构建
 - `pnpm start`：生产启动
 - `pnpm lint`：ESLint
+
+## 数据库（Drizzle ORM）
+
+- Drizzle ORM 结构与迁移流程：[`docs/drizzle.md`](docs/drizzle.md)
 
 ## 注意事项
 
