@@ -1,5 +1,4 @@
 import bcrypt from 'bcryptjs';
-import { sql } from 'drizzle-orm';
 import { db } from '../lib/drizzle';
 import {
   customers as customersTable,
@@ -15,18 +14,6 @@ import {
 } from '../lib/placeholder-data';
 
 async function seedUsers() {
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS users (
-      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      role VARCHAR(50) DEFAULT 'user',
-      image_url VARCHAR(255)
-    );
-  `);
-
   await Promise.all(
     users.map(async (user) => {
       const hashedPassword = await bcrypt.hash(user.password, 10);
@@ -46,16 +33,6 @@ async function seedUsers() {
 }
 
 async function seedCustomers() {
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS customers (
-      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      email VARCHAR(255) NOT NULL,
-      image_url VARCHAR(255) NOT NULL
-    );
-  `);
-
   await Promise.all(
     customers.map((customer) =>
       db
@@ -72,18 +49,6 @@ async function seedCustomers() {
 }
 
 async function seedInvoices() {
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
-
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS invoices (
-      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-      customer_id UUID NOT NULL REFERENCES customers(id),
-      amount INT NOT NULL,
-      status VARCHAR(255) NOT NULL,
-      date DATE NOT NULL
-    );
-  `);
-
   await Promise.all(
     invoices.map((invoice) =>
       db
@@ -100,13 +65,6 @@ async function seedInvoices() {
 }
 
 async function seedRevenue() {
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS revenue (
-      month VARCHAR(4) NOT NULL UNIQUE,
-      revenue INT NOT NULL
-    );
-  `);
-
   await Promise.all(
     revenue.map((rev) =>
       db
