@@ -1,11 +1,20 @@
 'use client';
 
+import Link from 'next/link';
 import { Gallery6 } from '@/components/gallery6';
 import { LayoutGrid } from 'components/ui/layout-grid';
 
 export default function Page() {
   return (
-    <div className="h-screen w-full">
+    <div className="relative h-screen w-full">
+      <div className="absolute right-6 top-6 z-[60]">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-gray-200 backdrop-blur hover:bg-white"
+        >
+            Dashboard
+        </Link>
+      </div>
       <LayoutGrid cards={cards} />
       <Gallery6 />
     </div>
