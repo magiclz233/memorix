@@ -8,7 +8,7 @@ export default function SocialLogin() {
             <form
                 action={async () => {
                     "use server"; // 这是一个内联 Server Action
-                    await signIn("github", { redirectTo: "/dashboard" });
+                    await signIn('github', { redirectTo: '/gallery' });
                 }}
             >
                 <Button className="w-full bg-gray-800 hover:bg-gray-700 flex justify-center items-center gap-2">
