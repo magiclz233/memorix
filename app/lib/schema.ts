@@ -1,4 +1,4 @@
-import { pgTable, uuid, date, serial, text, bigint, varchar, timestamp, integer, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, date, serial, text, bigint, varchar, timestamp, integer, jsonb, doublePrecision } from 'drizzle-orm/pg-core';
 
 import { relations } from 'drizzle-orm';
 
@@ -55,23 +55,41 @@ export const userStorages = pgTable('user_storages', {
 });
 
 export const files = pgTable('files', {
-  id: serial('id').primaryKey(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  deletedAt: timestamp('deleted_at'),
+  id: serial('id').primaryKey(),  // 主键，自增
+  createdAt: timestamp('created_at').defaultNow().notNull(),  // 创建时间，默认当前
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),  // 更新时间，默认当前
+  deletedAt: timestamp('deleted_at'),  // 软删除时间，可空
   
-  title: varchar('title', { length: 255 }),
-  path: text('path'),
-  sourceType: varchar('source_type', { length: 50 }),
-  size: bigint('size', { mode: 'number' }),
-  url: text('url'),
-  thumbUrl: text('thumb_url'),
+  title: varchar('title', { length: 255 }),  // 标题
+  path: text('path'),  // 路径
+  sourceType: varchar('source_type', { length: 50 }),  // 来源类型 (s3, qiniu, local, nas)
+  size: bigint('size', { mode: 'number' }),  // 大小（字节）
+  url: text('url'),  // 原文件 URL
+  thumbUrl: text('thumb_url'),  // 缩略图 URL
   
-  // 新增媒体类型字段
-  mediaType: varchar('media_type', { length: 50 }).notNull().default('image'),  // 默认图片，可选 'audio'、'video' 等
-  
-  // 使用 jsonb 存储类型特定元数据，灵活扩展
-  metadata: jsonb('metadata'),  // e.g., 对于图片: { "camera": "Canon", "lens": "50mm" }; 对于音频: { "duration": 120, "bitrate": 128 }
+  mediaType: varchar('media_type', { length: 50 }).notNull(),  // 媒体类型：'image'、'audio'、'video' 等
+});
+
+// 图片元数据子表
+export const photoMetadata = pgTable('photo_metadata', {
+  fileId: integer('file_id').primaryKey().references(() => files.id, { onDelete: 'cascade' }),  // 外键到 files.id，级联删除
+  description: text('description'),  // 描述，可空
+  camera: varchar('camera', { length: 255 }),  // 相机型号
+  maker: varchar('maker', { length: 255 }),  // 制造商
+  lens: varchar('lens', { length: 255 }),  // 镜头型号
+  dateShot: timestamp('date_shot'),  // 拍摄日期
+  exposure: doublePrecision('exposure'),  // 曝光时间
+  aperture: doublePrecision('aperture'),  // 光圈值
+  iso: bigint('iso', { mode: 'number' }),  // ISO 值
+  focalLength: doublePrecision('focal_length'),  // 焦距
+  flash: integer('flash'),  // 闪光灯状态
+  orientation: integer('orientation'),  // 方向
+  exposureProgram: integer('exposure_program'),  // 曝光程序
+  gpsLatitude: doublePrecision('gps_latitude'),  // GPS 纬度
+  gpsLongitude: doublePrecision('gps_longitude'),  // GPS 经度
+  resolutionWidth: integer('resolution_width'),  // 宽度
+  resolutionHeight: integer('resolution_height'),  // 高度
+  whiteBalance: varchar('white_balance', { length: 255 }),  // 白平衡
 });
 
 // 关系定义
