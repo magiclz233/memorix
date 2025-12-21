@@ -15,6 +15,13 @@
       "when": 1765879957765,
       "tag": "0001_fix-users-role-image-url",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766323252865,
+      "tag": "0002_peaceful_jocasta",
+      "breakpoints": true
     }
   ]
 }
