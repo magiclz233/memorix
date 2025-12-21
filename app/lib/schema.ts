@@ -1,4 +1,4 @@
-import { pgTable, uuid, date, serial, text, bigint, varchar, timestamp, integer, jsonb, doublePrecision } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, date, serial, text, bigint, varchar, timestamp, integer, jsonb, doublePrecision, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { relations } from 'drizzle-orm';
 
@@ -40,8 +40,8 @@ export const revenue = pgTable('revenue', {
 export const userStorages = pgTable('user_storages', {
   // 主键 ID，自增
   id: serial('id').primaryKey(),
-  // 关联用户 ID（假设 users 表存在）
-  userId: integer('user_id').notNull(), // 可添加 references: () => users.id
+  // 关联用户 ID
+  userId: uuid('user_id').notNull().references(() => users.id),
   // 数据源类型（s3, qiniu, local, nas）
   type: varchar('type', { length: 50 }).notNull(),
   // 配置信息，使用 JSONB 存储（如 { "bucket": "my-bucket", "access_key": "xxx" }）
@@ -59,16 +59,22 @@ export const files = pgTable('files', {
   createdAt: timestamp('created_at').defaultNow().notNull(),  // 创建时间，默认当前
   updatedAt: timestamp('updated_at').defaultNow().notNull(),  // 更新时间，默认当前
   deletedAt: timestamp('deleted_at'),  // 软删除时间，可空
-  
+
   title: varchar('title', { length: 255 }),  // 标题
-  path: text('path'),  // 路径
+  path: text('path').notNull(),  // 路径（相对 rootPath）
   sourceType: varchar('source_type', { length: 50 }),  // 来源类型 (s3, qiniu, local, nas)
   size: bigint('size', { mode: 'number' }),  // 大小（字节）
+  mimeType: varchar('mime_type', { length: 100 }),  // MIME 类型
+  mtime: timestamp('mtime'),  // 文件修改时间
   url: text('url'),  // 原文件 URL
   thumbUrl: text('thumb_url'),  // 缩略图 URL
-  
+
+  userStorageId: integer('user_storage_id').notNull().references(() => userStorages.id, { onDelete: 'cascade' }),  // 关联存储配置
   mediaType: varchar('media_type', { length: 50 }).notNull(),  // 媒体类型：'image'、'audio'、'video' 等
-});
+  isPublished: boolean('is_published').notNull().default(false),  // 是否在图库展示
+}, (table) => ({
+  storagePathUnique: uniqueIndex('files_storage_path_unique').on(table.userStorageId, table.path),
+}));
 
 // 图片元数据子表
 export const photoMetadata = pgTable('photo_metadata', {
