@@ -124,7 +124,8 @@ function normalizeText(value: unknown) {
 
 export async function readPhotoMetadata(filePath: string) {
   try {
-    const metadata = await exifr.parse(filePath, {
+    const fileBuffer = await fs.readFile(filePath);
+    const metadata = await exifr.parse(fileBuffer, {
       tiff: true,
       exif: true,
       gps: true,
