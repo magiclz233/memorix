@@ -1,114 +1,93 @@
-'use client';
-
 import Link from 'next/link';
-import { Gallery6 } from '@/components/gallery6';
-import { LayoutGrid } from 'components/ui/layout-grid';
+import { auth } from '@/auth';
+import { fetchPublishedPhotos, fetchUserByEmail } from '@/app/lib/data';
 
-export default function Page() {
+export default async function Page() {
+  const session = await auth();
+  const email = session?.user?.email ?? null;
+
+  if (!email) {
+    return (
+      <main className='min-h-screen bg-gray-950 px-6 py-12 text-white'>
+        <div className='mx-auto max-w-4xl space-y-4'>
+          <h1 className='text-3xl font-semibold'>图库</h1>
+          <p className='text-sm text-gray-300'>请先登录后查看图库内容。</p>
+          <Link
+            href='/login'
+            className='inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-gray-900'
+          >
+            前往登录
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const user = await fetchUserByEmail(email);
+  if (!user) {
+    return (
+      <main className='min-h-screen bg-gray-950 px-6 py-12 text-white'>
+        <div className='mx-auto max-w-4xl space-y-4'>
+          <h1 className='text-3xl font-semibold'>图库</h1>
+          <p className='text-sm text-gray-300'>未找到用户信息。</p>
+        </div>
+      </main>
+    );
+  }
+
+  const photos = await fetchPublishedPhotos(user.id);
+
   return (
-    <div className="relative h-screen w-full">
-      <div className="absolute right-6 top-6 z-[60]">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-gray-200 backdrop-blur hover:bg-white"
-        >
-            Dashboard
-        </Link>
+    <main className='min-h-screen bg-gray-950 px-6 py-12 text-white'>
+      <div className='mx-auto flex max-w-6xl flex-col gap-8'>
+        <div className='flex flex-wrap items-center justify-between gap-4'>
+          <div>
+            <h1 className='text-3xl font-semibold'>图库</h1>
+            <p className='text-sm text-gray-300'>仅展示已发布的图片。</p>
+          </div>
+          <Link
+            href='/dashboard/photos'
+            className='inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-gray-900'
+          >
+            返回配置
+          </Link>
+        </div>
+
+        {photos.length === 0 ? (
+          <div className='rounded-2xl border border-white/10 bg-white/5 p-12 text-center text-sm text-gray-300'>
+            暂无已发布的图片，请先在配置页扫描并发布。
+          </div>
+        ) : (
+          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+            {photos.map((photo) => {
+              const title = photo.title ?? photo.path;
+              return (
+                <article
+                  key={photo.id}
+                  className='group overflow-hidden rounded-2xl border border-white/10 bg-white/5'
+                >
+                  <div className='aspect-square w-full overflow-hidden bg-black/40'>
+                    <img
+                      src={`/api/local-files/${photo.id}`}
+                      alt={title}
+                      loading='lazy'
+                      className='h-full w-full object-cover transition duration-300 group-hover:scale-105'
+                    />
+                  </div>
+                  <div className='space-y-1 p-4'>
+                    <h2 className='truncate text-sm font-medium text-white'>{title}</h2>
+                    <p className='text-xs text-gray-400'>
+                      {photo.resolutionWidth && photo.resolutionHeight
+                        ? `${photo.resolutionWidth}×${photo.resolutionHeight}`
+                        : '暂无分辨率'}
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
-      <LayoutGrid cards={cards} />
-      <Gallery6 />
-    </div>
+    </main>
   );
 }
-
-function SkeletonOne() {
-  return (
-    <div>
-      <p className="text-xl font-bold text-white md:text-4xl">
-        House in the woods
-      </p>
-      <p className="text-base font-normal text-white"></p>
-      <p className="my-4 max-w-lg text-base font-normal text-neutral-200">
-        A serene and tranquil retreat, this house in the woods offers a peaceful
-        escape from the hustle and bustle of city life.
-      </p>
-    </div>
-  );
-}
-
-function SkeletonTwo() {
-  return (
-    <div>
-      <p className="text-xl font-bold text-white md:text-4xl">
-        House above the clouds
-      </p>
-      <p className="text-base font-normal text-white"></p>
-      <p className="my-4 max-w-lg text-base font-normal text-neutral-200">
-        Perched high above the world, this house offers breathtaking views and a
-        unique living experience. It&apos;s a place where the sky meets home,
-        and tranquility is a way of life.
-      </p>
-    </div>
-  );
-}
-
-function SkeletonThree() {
-  return (
-    <div>
-      <p className="text-xl font-bold text-white md:text-4xl">
-        Greens all over
-      </p>
-      <p className="text-base font-normal text-white"></p>
-      <p className="my-4 max-w-lg text-base font-normal text-neutral-200">
-        A house surrounded by greenery and nature&apos;s beauty. It&apos;s the
-        perfect place to relax, unwind, and enjoy life.
-      </p>
-    </div>
-  );
-}
-
-function SkeletonFour() {
-  return (
-    <div>
-      <p className="text-xl font-bold text-white md:text-4xl">
-        Rivers are serene
-      </p>
-      <p className="text-base font-normal text-white"></p>
-      <p className="my-4 max-w-lg text-base font-normal text-neutral-200">
-        A house by the river is a place of peace and tranquility. It&apos;s the
-        perfect place to relax, unwind, and enjoy life.
-      </p>
-    </div>
-  );
-}
-
-const cards = [
-  {
-    id: 1,
-    content: <SkeletonOne />,
-    className: 'md:col-span-2',
-    thumbnail:
-      'https://images.unsplash.com/photo-1476231682828-37e571bc172f?q=80&w=3474&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  },
-  {
-    id: 2,
-    content: <SkeletonTwo />,
-    className: 'col-span-1',
-    thumbnail:
-      'https://images.unsplash.com/photo-1464457312035-3d7d0e0c058e?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  },
-  {
-    id: 3,
-    content: <SkeletonThree />,
-    className: 'col-span-1',
-    thumbnail:
-      'https://images.unsplash.com/photo-1588880331179-bc9b93a8cb5e?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  },
-  {
-    id: 4,
-    content: <SkeletonFour />,
-    className: 'md:col-span-2',
-    thumbnail:
-      'https://images.unsplash.com/photo-1475070929565-c985b496cb9f?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  },
-];
