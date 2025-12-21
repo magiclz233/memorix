@@ -1,8 +1,8 @@
 import type { InvoiceForm, InvoiceWithPriority } from "./definitions";
 import { formatCurrency } from "./utils";
 import { db } from "./drizzle";
-import { invoices, customers, revenue } from "./schema";
-import { desc, asc, eq, ilike, or, sql, count } from "drizzle-orm";
+import { invoices, customers, revenue, userStorages, files, photoMetadata, users } from './schema';
+import { desc, asc, eq, ilike, or, sql, count, and } from 'drizzle-orm';
 
 export async function fetchRevenue() {
   try {
@@ -327,4 +327,63 @@ export async function fetchInvoicesWithBusinessLogic(
     console.error("Database Error:", error);
     throw new Error("Failed to fetch invoices with priority.");
   }
+}
+
+export async function fetchUserByEmail(email: string) {
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, email),
+  });
+  return user ?? null;
+}
+
+export async function fetchUserStorages(userId: string) {
+  return db
+    .select({
+      id: userStorages.id,
+      type: userStorages.type,
+      config: userStorages.config,
+      createdAt: userStorages.createdAt,
+      updatedAt: userStorages.updatedAt,
+    })
+    .from(userStorages)
+    .where(eq(userStorages.userId, userId))
+    .orderBy(desc(userStorages.updatedAt));
+}
+
+export async function fetchStorageFiles(storageId: number) {
+  return db
+    .select({
+      id: files.id,
+      title: files.title,
+      path: files.path,
+      size: files.size,
+      mimeType: files.mimeType,
+      mtime: files.mtime,
+      isPublished: files.isPublished,
+      resolutionWidth: photoMetadata.resolutionWidth,
+      resolutionHeight: photoMetadata.resolutionHeight,
+    })
+    .from(files)
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .where(eq(files.userStorageId, storageId))
+    .orderBy(desc(files.mtime));
+}
+
+export async function fetchPublishedPhotos(userId: string) {
+  return db
+    .select({
+      id: files.id,
+      title: files.title,
+      path: files.path,
+      size: files.size,
+      mimeType: files.mimeType,
+      mtime: files.mtime,
+      resolutionWidth: photoMetadata.resolutionWidth,
+      resolutionHeight: photoMetadata.resolutionHeight,
+    })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .where(and(eq(files.isPublished, true), eq(userStorages.userId, userId)))
+    .orderBy(desc(files.mtime));
 }
