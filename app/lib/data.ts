@@ -370,7 +370,7 @@ export async function fetchStorageFiles(storageId: number) {
 }
 
 export async function fetchPublishedPhotos(userId: string) {
-  return db
+  const records = await db
     .select({
       id: files.id,
       title: files.title,
@@ -380,10 +380,18 @@ export async function fetchPublishedPhotos(userId: string) {
       mtime: files.mtime,
       resolutionWidth: photoMetadata.resolutionWidth,
       resolutionHeight: photoMetadata.resolutionHeight,
+      storageConfig: userStorages.config,
     })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
     .where(and(eq(files.isPublished, true), eq(userStorages.userId, userId)))
     .orderBy(desc(files.mtime));
+
+  return records
+    .filter(
+      (record) =>
+        !(record.storageConfig as { isDisabled?: boolean })?.isDisabled,
+    )
+    .map(({ storageConfig, ...rest }) => rest);
 }

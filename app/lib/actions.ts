@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from 'next/cache';
 import { auth, signIn } from '@/auth';
 import { AuthError } from "next-auth";
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from './drizzle'; // 引入 db
 import { files, invoices, photoMetadata, userStorages, users } from './schema'; // 引入表定义
 import { readPhotoMetadata, scanImageFiles } from './storage';
@@ -173,6 +173,7 @@ const StorageConfigSchema = z.object({
   accessKey: z.string().optional(),
   secretKey: z.string().optional(),
   prefix: z.string().optional(),
+  isDisabled: z.boolean().optional(),
 });
 
 export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>) {
@@ -183,14 +184,30 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
 
   const user = await requireUser();
   const data = parsed.data;
+  const existingStorage = data.id
+    ? await db.query.userStorages.findFirst({
+        where: and(eq(userStorages.id, data.id), eq(userStorages.userId, user.id)),
+      })
+    : null;
+
+  if (data.id && !existingStorage) {
+    return { success: false, message: '存储配置不存在。' };
+  }
 
   const rootPath = data.rootPath?.trim();
+  const existingConfig = (existingStorage?.config ?? {}) as { isDisabled?: boolean };
+  const isDisabled =
+    typeof data.isDisabled === 'boolean'
+      ? data.isDisabled
+      : typeof existingConfig.isDisabled === 'boolean'
+        ? existingConfig.isDisabled
+        : false;
 
   if ((data.type === 'local' || data.type === 'nas') && !rootPath) {
     return { success: false, message: '请填写根目录路径。' };
   }
 
-  const config =
+  const configBase =
     data.type === 'local' || data.type === 'nas'
       ? {
           rootPath,
@@ -204,6 +221,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
           secretKey: data.secretKey ?? null,
           prefix: data.prefix ?? null,
         };
+  const config = { ...configBase, isDisabled };
 
   try {
     if (data.id) {
@@ -240,6 +258,53 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
   }
 }
 
+export async function setUserStorageDisabled(storageId: number, isDisabled: boolean) {
+  const user = await requireUser();
+  const storage = await db.query.userStorages.findFirst({
+    where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
+  });
+
+  if (!storage) {
+    return { success: false, message: '存储配置不存在。' };
+  }
+
+  const config = (storage.config ?? {}) as Record<string, unknown>;
+
+  await db
+    .update(userStorages)
+    .set({
+      config: { ...config, isDisabled },
+      updatedAt: new Date(),
+    })
+    .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
+
+  revalidatePath('/dashboard/photos');
+  revalidatePath('/gallery');
+  return {
+    success: true,
+    message: isDisabled ? '已禁用存储配置。' : '已启用存储配置。',
+  };
+}
+
+export async function deleteUserStorage(storageId: number) {
+  const user = await requireUser();
+  const storage = await db.query.userStorages.findFirst({
+    where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
+  });
+
+  if (!storage) {
+    return { success: false, message: '存储配置不存在。' };
+  }
+
+  await db
+    .delete(userStorages)
+    .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
+
+  revalidatePath('/dashboard/photos');
+  revalidatePath('/gallery');
+  return { success: true, message: '存储配置已删除。' };
+}
+
 export async function scanStorage(storageId: number) {
   const user = await requireUser();
   const storage = await db.query.userStorages.findFirst({
@@ -254,7 +319,16 @@ export async function scanStorage(storageId: number) {
     return { success: false, message: '当前存储类型暂不支持扫描。' };
   }
 
-  const rootPath = (storage.config as { rootPath?: string })?.rootPath;
+  const storageConfig = (storage.config ?? {}) as {
+    rootPath?: string;
+    isDisabled?: boolean;
+  };
+
+  if (storageConfig.isDisabled) {
+    return { success: false, message: '当前配置已禁用，请先启用。' };
+  }
+
+  const rootPath = storageConfig.rootPath;
   if (!rootPath) {
     return { success: false, message: '根目录路径未配置。' };
   }
@@ -269,61 +343,43 @@ export async function scanStorage(storageId: number) {
 
   let processed = 0;
 
-  for (const file of fileList) {
-    const [saved] = await db
-      .insert(files)
-      .values({
-        title: file.title,
-        path: file.relativePath,
-        sourceType: storage.type,
-        size: file.size,
-        mimeType: file.mimeType,
-        mtime: file.mtime,
-        userStorageId: storage.id,
-        mediaType: 'image',
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [files.userStorageId, files.path],
-        set: {
+  await db.transaction(async (tx) => {
+    await tx.delete(files).where(eq(files.userStorageId, storage.id));
+
+    for (const file of fileList) {
+      const [saved] = await tx
+        .insert(files)
+        .values({
           title: file.title,
+          path: file.relativePath,
+          sourceType: storage.type,
           size: file.size,
           mimeType: file.mimeType,
           mtime: file.mtime,
-          sourceType: storage.type,
+          userStorageId: storage.id,
+          mediaType: 'image',
           updatedAt: new Date(),
-        },
-      })
-      .returning({ id: files.id });
+        })
+        .onConflictDoUpdate({
+          target: [files.userStorageId, files.path],
+          set: {
+            title: file.title,
+            size: file.size,
+            mimeType: file.mimeType,
+            mtime: file.mtime,
+            sourceType: storage.type,
+            updatedAt: new Date(),
+          },
+        })
+        .returning({ id: files.id });
 
-    if (saved?.id) {
-      const metadata = await readPhotoMetadata(file.absolutePath);
-      if (metadata) {
-        await db
-          .insert(photoMetadata)
-          .values({
-            fileId: saved.id,
-            description: metadata.description ?? null,
-            camera: metadata.camera ?? null,
-            maker: metadata.maker ?? null,
-            lens: metadata.lens ?? null,
-            dateShot: metadata.dateShot ?? null,
-            exposure: metadata.exposure ?? null,
-            aperture: metadata.aperture ?? null,
-            iso: metadata.iso ?? null,
-            focalLength: metadata.focalLength ?? null,
-            flash: metadata.flash ?? null,
-            orientation: metadata.orientation ?? null,
-            exposureProgram: metadata.exposureProgram ?? null,
-            gpsLatitude: metadata.gpsLatitude ?? null,
-            gpsLongitude: metadata.gpsLongitude ?? null,
-            resolutionWidth: metadata.resolutionWidth ?? null,
-            resolutionHeight: metadata.resolutionHeight ?? null,
-            whiteBalance: metadata.whiteBalance ?? null,
-          })
-          .onConflictDoUpdate({
-            target: [photoMetadata.fileId],
-            set: {
+      if (saved?.id) {
+        const metadata = await readPhotoMetadata(file.absolutePath);
+        if (metadata) {
+          await tx
+            .insert(photoMetadata)
+            .values({
+              fileId: saved.id,
               description: metadata.description ?? null,
               camera: metadata.camera ?? null,
               maker: metadata.maker ?? null,
@@ -341,17 +397,47 @@ export async function scanStorage(storageId: number) {
               resolutionWidth: metadata.resolutionWidth ?? null,
               resolutionHeight: metadata.resolutionHeight ?? null,
               whiteBalance: metadata.whiteBalance ?? null,
-            },
-          });
+            })
+            .onConflictDoUpdate({
+              target: [photoMetadata.fileId],
+              set: {
+                description: metadata.description ?? null,
+                camera: metadata.camera ?? null,
+                maker: metadata.maker ?? null,
+                lens: metadata.lens ?? null,
+                dateShot: metadata.dateShot ?? null,
+                exposure: metadata.exposure ?? null,
+                aperture: metadata.aperture ?? null,
+                iso: metadata.iso ?? null,
+                focalLength: metadata.focalLength ?? null,
+                flash: metadata.flash ?? null,
+                orientation: metadata.orientation ?? null,
+                exposureProgram: metadata.exposureProgram ?? null,
+                gpsLatitude: metadata.gpsLatitude ?? null,
+                gpsLongitude: metadata.gpsLongitude ?? null,
+                resolutionWidth: metadata.resolutionWidth ?? null,
+                resolutionHeight: metadata.resolutionHeight ?? null,
+                whiteBalance: metadata.whiteBalance ?? null,
+              },
+            });
+        }
       }
+
+      processed += 1;
     }
 
-    processed += 1;
-  }
+    await tx
+      .update(files)
+      .set({
+        url: sql<string>`'/api/local-files/' || ${files.id}`,
+        thumbUrl: sql<string>`'/api/local-files/' || ${files.id}`,
+      })
+      .where(eq(files.userStorageId, storage.id));
+  });
 
   revalidatePath('/dashboard/photos');
   revalidatePath('/gallery');
-  return { success: true, message: `扫描完成，共处理 ${processed} 张图片。` };
+  return { success: true, message: `扫描完成，共处理 ${processed} 张图片，旧记录已清空。` };
 }
 
 export async function setFilesPublished(fileIds: number[], isPublished: boolean) {
