@@ -55,7 +55,13 @@ export default async function Page() {
 
         {photos.length === 0 ? (
           <div className='rounded-2xl border border-white/10 bg-white/5 p-12 text-center text-sm text-gray-300'>
-            暂无已发布的图片，请先在配置页扫描并发布。
+            <p>暂无已发布的图片，请先在配置页扫描并发布。</p>
+            <Link
+              href='/dashboard/photos'
+              className='mt-4 inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-gray-900'
+            >
+              去配置
+            </Link>
           </div>
         ) : (
           <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
