@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { auth } from '@/auth';
 import { fetchPublishedPhotos, fetchUserByEmail } from '@/app/lib/data';
+import { Gallery25 } from '@/components/gallery25';
 
 export default async function Page() {
   const session = await auth();
@@ -36,11 +37,33 @@ export default async function Page() {
   }
 
   const photos = await fetchPublishedPhotos(user.id);
+  const items = photos.map((photo) => ({
+    id: photo.id,
+    src: `/api/local-files/${photo.id}`,
+    title: photo.title ?? photo.path,
+    width: photo.resolutionWidth ?? null,
+    height: photo.resolutionHeight ?? null,
+    resolution:
+      photo.resolutionWidth && photo.resolutionHeight
+        ? `${photo.resolutionWidth}×${photo.resolutionHeight}`
+        : null,
+    description: photo.description ?? null,
+    camera: photo.camera ?? null,
+    maker: photo.maker ?? null,
+    lens: photo.lens ?? null,
+    dateShot: photo.dateShot ? new Date(photo.dateShot).toISOString() : null,
+    exposure: photo.exposure ?? null,
+    aperture: photo.aperture ?? null,
+    iso: photo.iso ?? null,
+    focalLength: photo.focalLength ?? null,
+    whiteBalance: photo.whiteBalance ?? null,
+    size: photo.size ?? null,
+  }));
 
   return (
     <main className='min-h-screen bg-gray-950 px-6 py-12 text-white'>
-      <div className='mx-auto flex max-w-6xl flex-col gap-8'>
-        <div className='flex flex-wrap items-center justify-between gap-4'>
+      <div className='flex flex-col gap-8'>
+        <div className='mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4'>
           <div>
             <h1 className='text-3xl font-semibold'>图库</h1>
             <p className='text-sm text-gray-300'>仅展示已发布的图片。</p>
@@ -54,7 +77,7 @@ export default async function Page() {
         </div>
 
         {photos.length === 0 ? (
-          <div className='rounded-2xl border border-white/10 bg-white/5 p-12 text-center text-sm text-gray-300'>
+          <div className='mx-auto w-full max-w-6xl rounded-2xl border border-white/10 bg-white/5 p-12 text-center text-sm text-gray-300'>
             <p>暂无已发布的图片，请先在配置页扫描并发布。</p>
             <Link
               href='/dashboard/photos'
@@ -64,34 +87,7 @@ export default async function Page() {
             </Link>
           </div>
         ) : (
-          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-            {photos.map((photo) => {
-              const title = photo.title ?? photo.path;
-              return (
-                <article
-                  key={photo.id}
-                  className='group overflow-hidden rounded-2xl border border-white/10 bg-white/5'
-                >
-                  <div className='aspect-square w-full overflow-hidden bg-black/40'>
-                    <img
-                      src={`/api/local-files/${photo.id}`}
-                      alt={title}
-                      loading='lazy'
-                      className='h-full w-full object-cover transition duration-300 group-hover:scale-105'
-                    />
-                  </div>
-                  <div className='space-y-1 p-4'>
-                    <h2 className='truncate text-sm font-medium text-white'>{title}</h2>
-                    <p className='text-xs text-gray-400'>
-                      {photo.resolutionWidth && photo.resolutionHeight
-                        ? `${photo.resolutionWidth}×${photo.resolutionHeight}`
-                        : '暂无分辨率'}
-                    </p>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+          <Gallery25 items={items} />
         )}
       </div>
     </main>

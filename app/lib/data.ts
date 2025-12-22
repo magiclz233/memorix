@@ -380,6 +380,16 @@ export async function fetchPublishedPhotos(userId: string) {
       mtime: files.mtime,
       resolutionWidth: photoMetadata.resolutionWidth,
       resolutionHeight: photoMetadata.resolutionHeight,
+      description: photoMetadata.description,
+      camera: photoMetadata.camera,
+      maker: photoMetadata.maker,
+      lens: photoMetadata.lens,
+      dateShot: photoMetadata.dateShot,
+      exposure: photoMetadata.exposure,
+      aperture: photoMetadata.aperture,
+      iso: photoMetadata.iso,
+      focalLength: photoMetadata.focalLength,
+      whiteBalance: photoMetadata.whiteBalance,
       storageConfig: userStorages.config,
     })
     .from(files)
