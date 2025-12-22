@@ -10,11 +10,12 @@ import { eq } from 'drizzle-orm';
 export const runtime = 'nodejs';
 
 type Params = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export async function GET(_request: Request, { params }: Params) {
-  const fileId = Number(params.id);
+  const { id } = await params;
+  const fileId = Number(id);
   if (!Number.isFinite(fileId)) {
     return NextResponse.json({ message: '参数错误。' }, { status: 400 });
   }
