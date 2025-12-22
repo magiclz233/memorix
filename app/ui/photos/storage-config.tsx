@@ -11,6 +11,18 @@ type StorageItem = {
   config: unknown;
 };
 
+type StorageConfig = {
+  rootPath?: string | null;
+  alias?: string | null;
+  endpoint?: string | null;
+  bucket?: string | null;
+  region?: string | null;
+  accessKey?: string | null;
+  secretKey?: string | null;
+  prefix?: string | null;
+  isDisabled?: boolean;
+};
+
 type StorageConfigFormProps = {
   storage: StorageItem | null;
 };
@@ -25,10 +37,7 @@ const STORAGE_TYPES = [
 export function StorageConfigForm({ storage }: StorageConfigFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const config = (storage?.config ?? {}) as Record<
-    string,
-    string | null | undefined
-  >;
+  const config = (storage?.config ?? {}) as StorageConfig;
   const [editingId, setEditingId] = useState<number | undefined>(
     () => storage?.id,
   );
@@ -86,6 +95,11 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
 
   return (
     <form onSubmit={handleSave} className='space-y-6'>
+      {config.isDisabled ? (
+        <div className='rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700'>
+          当前配置已禁用，启用后才能扫描与展示。
+        </div>
+      ) : null}
       <div className='flex flex-wrap items-center gap-3'>
         {STORAGE_TYPES.map((item) => (
           <label
