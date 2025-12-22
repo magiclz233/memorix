@@ -4,10 +4,10 @@ import { z } from "zod";
 import { revalidatePath } from 'next/cache';
 import { auth, signIn } from '@/auth';
 import { AuthError } from "next-auth";
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db } from './drizzle'; // 引入 db
-import { files, invoices, photoMetadata, userStorages, users } from './schema'; // 引入表定义
-import { readPhotoMetadata, scanImageFiles } from './storage';
+import { files, invoices, userStorages, users } from './schema'; // 引入表定义
+import { runStorageScan } from './storage-scan';
 
 const FormSchema = z.object({
   id: z.string(),
@@ -319,6 +319,7 @@ export async function scanStorage(storageId: number) {
     return { success: false, message: '当前存储类型暂不支持扫描。' };
   }
 
+  const storageType = storage.type as 'local' | 'nas';
   const storageConfig = (storage.config ?? {}) as {
     rootPath?: string;
     isDisabled?: boolean;
@@ -333,111 +334,31 @@ export async function scanStorage(storageId: number) {
     return { success: false, message: '根目录路径未配置。' };
   }
 
-  let fileList: Awaited<ReturnType<typeof scanImageFiles>>;
   try {
-    fileList = await scanImageFiles(rootPath);
+    const { processed } = await runStorageScan({
+      storageId: storage.id,
+      storageType,
+      rootPath,
+      onLog: (entry) => {
+        const text = `[扫描] ${entry.message}`;
+        if (entry.level === 'error') {
+          console.error(text);
+          return;
+        }
+        if (entry.level === 'warn') {
+          console.warn(text);
+          return;
+        }
+        console.info(text);
+      },
+    });
+    revalidatePath('/dashboard/photos');
+    revalidatePath('/gallery');
+    return { success: true, message: `扫描完成，共处理 ${processed} 张图片，旧记录已清空。` };
   } catch (error) {
     console.error('扫描目录失败：', error);
     return { success: false, message: '扫描目录失败，请检查路径是否可访问。' };
   }
-
-  let processed = 0;
-
-  await db.transaction(async (tx) => {
-    await tx.delete(files).where(eq(files.userStorageId, storage.id));
-
-    for (const file of fileList) {
-      const [saved] = await tx
-        .insert(files)
-        .values({
-          title: file.title,
-          path: file.relativePath,
-          sourceType: storage.type,
-          size: file.size,
-          mimeType: file.mimeType,
-          mtime: file.mtime,
-          userStorageId: storage.id,
-          mediaType: 'image',
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: [files.userStorageId, files.path],
-          set: {
-            title: file.title,
-            size: file.size,
-            mimeType: file.mimeType,
-            mtime: file.mtime,
-            sourceType: storage.type,
-            updatedAt: new Date(),
-          },
-        })
-        .returning({ id: files.id });
-
-      if (saved?.id) {
-        const metadata = await readPhotoMetadata(file.absolutePath);
-        if (metadata) {
-          await tx
-            .insert(photoMetadata)
-            .values({
-              fileId: saved.id,
-              description: metadata.description ?? null,
-              camera: metadata.camera ?? null,
-              maker: metadata.maker ?? null,
-              lens: metadata.lens ?? null,
-              dateShot: metadata.dateShot ?? null,
-              exposure: metadata.exposure ?? null,
-              aperture: metadata.aperture ?? null,
-              iso: metadata.iso ?? null,
-              focalLength: metadata.focalLength ?? null,
-              flash: metadata.flash ?? null,
-              orientation: metadata.orientation ?? null,
-              exposureProgram: metadata.exposureProgram ?? null,
-              gpsLatitude: metadata.gpsLatitude ?? null,
-              gpsLongitude: metadata.gpsLongitude ?? null,
-              resolutionWidth: metadata.resolutionWidth ?? null,
-              resolutionHeight: metadata.resolutionHeight ?? null,
-              whiteBalance: metadata.whiteBalance ?? null,
-            })
-            .onConflictDoUpdate({
-              target: [photoMetadata.fileId],
-              set: {
-                description: metadata.description ?? null,
-                camera: metadata.camera ?? null,
-                maker: metadata.maker ?? null,
-                lens: metadata.lens ?? null,
-                dateShot: metadata.dateShot ?? null,
-                exposure: metadata.exposure ?? null,
-                aperture: metadata.aperture ?? null,
-                iso: metadata.iso ?? null,
-                focalLength: metadata.focalLength ?? null,
-                flash: metadata.flash ?? null,
-                orientation: metadata.orientation ?? null,
-                exposureProgram: metadata.exposureProgram ?? null,
-                gpsLatitude: metadata.gpsLatitude ?? null,
-                gpsLongitude: metadata.gpsLongitude ?? null,
-                resolutionWidth: metadata.resolutionWidth ?? null,
-                resolutionHeight: metadata.resolutionHeight ?? null,
-                whiteBalance: metadata.whiteBalance ?? null,
-              },
-            });
-        }
-      }
-
-      processed += 1;
-    }
-
-    await tx
-      .update(files)
-      .set({
-        url: sql<string>`'/api/local-files/' || ${files.id}`,
-        thumbUrl: sql<string>`'/api/local-files/' || ${files.id}`,
-      })
-      .where(eq(files.userStorageId, storage.id));
-  });
-
-  revalidatePath('/dashboard/photos');
-  revalidatePath('/gallery');
-  return { success: true, message: `扫描完成，共处理 ${processed} 张图片，旧记录已清空。` };
 }
 
 export async function setFilesPublished(fileIds: number[], isPublished: boolean) {

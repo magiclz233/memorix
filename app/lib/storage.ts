@@ -46,12 +46,21 @@ export type ParsedPhotoMetadata = {
   whiteBalance?: string | null;
 };
 
+export type ScanWalkEvent = {
+  kind: 'dir' | 'file' | 'error';
+  path: string;
+  message?: string;
+};
+
 function getMimeType(fileName: string) {
   const ext = path.extname(fileName).toLowerCase();
   return IMAGE_MIME_BY_EXT[ext];
 }
 
-export async function scanImageFiles(rootPath: string) {
+export async function scanImageFiles(
+  rootPath: string,
+  onEvent?: (event: ScanWalkEvent) => void,
+) {
   const normalizedRoot = path.resolve(rootPath);
   const rootStat = await fs.stat(normalizedRoot);
   if (!rootStat.isDirectory()) {
@@ -59,6 +68,7 @@ export async function scanImageFiles(rootPath: string) {
   }
   const stack = [normalizedRoot];
   const results: ImageFileInfo[] = [];
+  onEvent?.({ kind: 'dir', path: normalizedRoot });
 
   while (stack.length > 0) {
     const current = stack.pop();
@@ -68,6 +78,7 @@ export async function scanImageFiles(rootPath: string) {
     try {
       entries = await fs.readdir(current, { withFileTypes: true });
     } catch (error) {
+      onEvent?.({ kind: 'error', path: current, message: '读取目录失败' });
       console.warn('读取目录失败，已跳过：', current, error);
       continue;
     }
@@ -75,6 +86,7 @@ export async function scanImageFiles(rootPath: string) {
     for (const entry of entries) {
       const fullPath = path.join(current, entry.name);
       if (entry.isDirectory()) {
+        onEvent?.({ kind: 'dir', path: fullPath });
         stack.push(fullPath);
         continue;
       }
@@ -83,10 +95,13 @@ export async function scanImageFiles(rootPath: string) {
       const mimeType = getMimeType(entry.name);
       if (!mimeType) continue;
 
+      onEvent?.({ kind: 'file', path: fullPath });
+
       let stat: Stats;
       try {
         stat = await fs.stat(fullPath);
       } catch (error) {
+        onEvent?.({ kind: 'error', path: fullPath, message: '读取文件信息失败' });
         console.warn('读取文件信息失败，已跳过：', fullPath, error);
         continue;
       }
