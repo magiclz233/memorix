@@ -21,6 +21,7 @@ type StorageFilesManagerProps = {
   storageId: number;
   storageType: string;
   files: StorageFile[];
+  isDisabled?: boolean;
 };
 
 function formatSize(size: number | null) {
@@ -45,7 +46,12 @@ function formatDate(value: Date | string | null) {
   }).format(date);
 }
 
-export function StorageFilesManager({ storageId, storageType, files }: StorageFilesManagerProps) {
+export function StorageFilesManager({
+  storageId,
+  storageType,
+  files,
+  isDisabled = false,
+}: StorageFilesManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -53,6 +59,9 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
 
   const allIds = useMemo(() => files.map((item) => item.id), [files]);
   const selectedCount = selectedIds.length;
+  const canScan = storageType === 'local' || storageType === 'nas';
+  const scanLabel = files.length > 0 ? '重新扫描' : '立即扫描';
+  const isActionDisabled = isPending || isDisabled;
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
@@ -61,15 +70,24 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
   };
 
   const handleScan = () => {
+    if (isDisabled) {
+      setMessage('当前配置已禁用，请先启用。');
+      return;
+    }
     setMessage(null);
     startTransition(async () => {
       const result = await scanStorage(storageId);
       setMessage(result.message ?? null);
+      setSelectedIds([]);
       router.refresh();
     });
   };
 
   const updateSelected = (isPublished: boolean) => {
+    if (isDisabled) {
+      setMessage('当前配置已禁用，请先启用。');
+      return;
+    }
     if (!selectedIds.length) {
       setMessage('请先选择要更新的图片。');
       return;
@@ -83,6 +101,10 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
   };
 
   const updateAll = (isPublished: boolean) => {
+    if (isDisabled) {
+      setMessage('当前配置已禁用，请先启用。');
+      return;
+    }
     setMessage(null);
     startTransition(async () => {
       const result = await setStoragePublished(storageId, isPublished);
@@ -91,7 +113,7 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
     });
   };
 
-  if (storageType !== 'local' && storageType !== 'nas') {
+  if (!canScan) {
     return (
       <div className='rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500'>
         当前存储类型暂不支持扫描与展示。
@@ -100,14 +122,26 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
   }
 
   return (
-    <section className='space-y-6 rounded-lg border border-gray-200 bg-white p-6'>
+    <section id='storage-scan' className='space-y-6 rounded-lg border border-gray-200 bg-white p-6'>
+      {isDisabled ? (
+        <div className='rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700'>
+          当前配置已禁用，启用后才能扫描与更新发布状态。
+        </div>
+      ) : null}
       <div className='flex flex-wrap items-center justify-between gap-4'>
         <div>
           <h2 className='text-lg font-semibold text-gray-900'>目录扫描</h2>
-          <p className='text-sm text-gray-500'>扫描后可以选择哪些图片进入图库。</p>
+          <p className='text-sm text-gray-500'>
+            扫描后可以选择哪些图片进入图库，重新扫描会清空旧记录。
+          </p>
         </div>
-        <Button type='button' aria-disabled={isPending} onClick={handleScan}>
-          立即扫描
+        <Button
+          type='button'
+          aria-disabled={isActionDisabled}
+          disabled={isActionDisabled}
+          onClick={handleScan}
+        >
+          {scanLabel}
         </Button>
       </div>
 
@@ -116,6 +150,7 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
           type='button'
           className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
           onClick={() => setSelectedIds(allIds)}
+          disabled={isActionDisabled}
         >
           全选
         </button>
@@ -123,6 +158,7 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
           type='button'
           className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
           onClick={() => setSelectedIds([])}
+          disabled={isActionDisabled}
         >
           清空选择
         </button>
@@ -130,6 +166,7 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
           type='button'
           className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
           onClick={() => updateSelected(true)}
+          disabled={isActionDisabled}
         >
           发布选中
         </button>
@@ -137,6 +174,7 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
           type='button'
           className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
           onClick={() => updateSelected(false)}
+          disabled={isActionDisabled}
         >
           取消发布
         </button>
@@ -144,6 +182,7 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
           type='button'
           className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
           onClick={() => updateAll(true)}
+          disabled={isActionDisabled}
         >
           全部发布
         </button>
@@ -151,6 +190,7 @@ export function StorageFilesManager({ storageId, storageType, files }: StorageFi
           type='button'
           className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
           onClick={() => updateAll(false)}
+          disabled={isActionDisabled}
         >
           全部取消
         </button>
