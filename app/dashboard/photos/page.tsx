@@ -3,11 +3,16 @@ import { auth } from '@/auth';
 import { fetchStorageFiles, fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
 import { StorageConfigForm } from '@/app/ui/photos/storage-config';
 import { StorageFilesManager } from '@/app/ui/photos/storage-files';
+import { StorageListManager } from '@/app/ui/photos/storage-list';
+
+type StorageConfig = {
+  isDisabled?: boolean;
+};
 
 type PageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     storageId?: string;
-  };
+  }>;
 };
 
 export default async function Page({ searchParams }: PageProps) {
@@ -44,12 +49,21 @@ export default async function Page({ searchParams }: PageProps) {
   }
 
   const storages = await fetchUserStorages(user.id);
-  const requestedId = Number(searchParams?.storageId);
-  const activeStorageId =
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const requestedId = Number(resolvedSearchParams?.storageId);
+  const requestedStorage =
     Number.isFinite(requestedId) && requestedId > 0
-      ? requestedId
-      : storages[0]?.id;
-  const activeStorage = storages.find((item) => item.id === activeStorageId) ?? null;
+      ? storages.find((item) => item.id === requestedId) ?? null
+      : null;
+  const fallbackStorage =
+    storages.find((item) => !(item.config as StorageConfig)?.isDisabled) ??
+    storages[0] ??
+    null;
+  const activeStorage = requestedStorage ?? fallbackStorage;
+  const activeStorageId = activeStorage?.id;
+  const isActiveDisabled = Boolean(
+    activeStorage && (activeStorage.config as StorageConfig)?.isDisabled,
+  );
   const files = activeStorageId ? await fetchStorageFiles(activeStorageId) : [];
 
   return (
@@ -74,38 +88,9 @@ export default async function Page({ searchParams }: PageProps) {
         />
       </div>
 
-      {storages.length > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">存储列表</h2>
-              <p className="text-sm text-gray-500">
-                点击切换要管理的存储配置。
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {storages.map((storage) => {
-                const isActive = storage.id === activeStorageId;
-                const rootPath = (storage.config as { rootPath?: string })?.rootPath;
-                return (
-                  <Link
-                    key={storage.id}
-                    href={`/dashboard/photos?storageId=${storage.id}`}
-                    className={`rounded-full border px-3 py-1 text-sm ${
-                      isActive
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-gray-200 text-gray-700 hover:border-blue-300 hover:text-blue-600'
-                    }`}
-                  >
-                    {storage.type.toUpperCase()}
-                    {rootPath ? ` · ${rootPath}` : ''}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {storages.length > 0 ? (
+        <StorageListManager storages={storages} activeStorageId={activeStorageId} />
+      ) : null}
 
       {activeStorage ? (
         <StorageFilesManager
@@ -113,6 +98,7 @@ export default async function Page({ searchParams }: PageProps) {
           storageId={activeStorage.id}
           storageType={activeStorage.type}
           files={files}
+          isDisabled={isActiveDisabled}
         />
       ) : (
         <div className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500">
