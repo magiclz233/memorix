@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { scanStorage, setFilesPublished, setStoragePublished } from '@/app/lib/actions';
+import { setFilesPublished, setStoragePublished } from '@/app/lib/actions';
 import { Button } from '@/app/ui/button';
 
 type StorageFile = {
@@ -56,12 +56,45 @@ export function StorageFilesManager({
   const [isPending, startTransition] = useTransition();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [scanLogs, setScanLogs] = useState<string[]>([]);
+  const [scanProgress, setScanProgress] = useState<{ processed: number; total: number } | null>(
+    null,
+  );
+  const [isScanning, setIsScanning] = useState(false);
+  const scanSourceRef = useRef<EventSource | null>(null);
+  const scanDoneRef = useRef(false);
 
   const allIds = useMemo(() => files.map((item) => item.id), [files]);
   const selectedCount = selectedIds.length;
   const canScan = storageType === 'local' || storageType === 'nas';
-  const scanLabel = files.length > 0 ? '重新扫描' : '立即扫描';
-  const isActionDisabled = isPending || isDisabled;
+  const scanLabel = isScanning ? '扫描中...' : files.length > 0 ? '重新扫描' : '立即扫描';
+  const isActionDisabled = isPending || isDisabled || isScanning;
+  const progressText = scanProgress
+    ? scanProgress.total > 0
+      ? `已处理 ${scanProgress.processed}/${scanProgress.total}`
+      : `已处理 ${scanProgress.processed}`
+    : null;
+
+  useEffect(() => {
+    return () => {
+      scanSourceRef.current?.close();
+    };
+  }, []);
+
+  const appendLog = (line: string) => {
+    setScanLogs((prev) => {
+      const next = [...prev, line];
+      return next.length > 200 ? next.slice(-200) : next;
+    });
+  };
+
+  const parseEventData = (event: MessageEvent) => {
+    try {
+      return JSON.parse(event.data);
+    } catch {
+      return null;
+    }
+  };
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
@@ -74,12 +107,54 @@ export function StorageFilesManager({
       setMessage('当前配置已禁用，请先启用。');
       return;
     }
+    if (isScanning) {
+      return;
+    }
     setMessage(null);
-    startTransition(async () => {
-      const result = await scanStorage(storageId);
-      setMessage(result.message ?? null);
+    setScanLogs([]);
+    setScanProgress(null);
+    setIsScanning(true);
+    scanDoneRef.current = false;
+    scanSourceRef.current?.close();
+
+    const source = new EventSource(`/api/storage/scan?storageId=${storageId}`);
+    scanSourceRef.current = source;
+
+    source.addEventListener('log', (event) => {
+      const data = parseEventData(event);
+      if (!data || typeof data.message !== 'string') return;
+      const prefix = typeof data.level === 'string' ? `[${data.level}] ` : '';
+      appendLog(`${prefix}${data.message}`);
+    });
+
+    source.addEventListener('progress', (event) => {
+      const data = parseEventData(event);
+      if (!data) return;
+      const processed = Number(data.processed);
+      const total = Number(data.total);
+      if (!Number.isFinite(processed)) return;
+      setScanProgress({
+        processed,
+        total: Number.isFinite(total) ? total : 0,
+      });
+    });
+
+    source.addEventListener('done', (event) => {
+      scanDoneRef.current = true;
+      const data = parseEventData(event);
+      setMessage(typeof data?.message === 'string' ? data.message : '扫描完成。');
+      setIsScanning(false);
       setSelectedIds([]);
+      source.close();
       router.refresh();
+    });
+
+    source.addEventListener('error', () => {
+      if (scanDoneRef.current) return;
+      appendLog('扫描连接已中断。');
+      setMessage('扫描失败或连接中断。');
+      setIsScanning(false);
+      source.close();
     });
   };
 
@@ -197,6 +272,22 @@ export function StorageFilesManager({
         <span className='text-gray-500'>已选 {selectedCount} 张</span>
         {message ? <span className='text-gray-500'>{message}</span> : null}
       </div>
+
+      {scanLogs.length > 0 || isScanning ? (
+        <div className='rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-xs text-gray-600'>
+          <div className='flex flex-wrap items-center justify-between gap-2 text-gray-500'>
+            <span>扫描日志</span>
+            {progressText ? <span>{progressText}</span> : null}
+          </div>
+          <div className='mt-2 max-h-56 overflow-auto whitespace-pre-wrap font-mono text-gray-600'>
+            {scanLogs.length > 0 ? (
+              scanLogs.map((line, index) => <div key={`${index}-${line}`}>{line}</div>)
+            ) : (
+              <div>等待扫描日志...</div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {files.length === 0 ? (
         <div className='rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500'>
