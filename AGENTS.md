@@ -16,7 +16,7 @@
 ## 代码风格与命名规范
 - TypeScript + React，默认 Server Component，需客户端交互时添加 `"use client"`。
 - 组件命名用 PascalCase；文件名用小写短横线或语义词（如 `app/ui/invoices/table.tsx`）；路由遵循 Next.js 约定（`[id]` 动态段、`(overview)` 组）。
-- 样式优先 Tailwind 工具类，公共设计令牌在 `tailwind.config.ts`。缩进 2 空格，字符串单引号。避免提交敏感信息，私密配置放 `.env.local`。
+- UI 优先使用 shadcn/ui 组件库；样式优先 Tailwind 工具类，公共设计令牌在 `tailwind.config.ts`。缩进 2 空格，字符串单引号。避免提交敏感信息，私密配置放 `.env.local`。
 
 ## 测试指引
 - 当前无自动化测试；至少确保 `pnpm lint` 通过，并手动验证 `/login`、`/dashboard`、发票创建/编辑/搜索/分页。
