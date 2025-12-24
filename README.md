@@ -1,4 +1,4 @@
-# Next.js Dashboard (App Router)
+# Memorix - Next.js (App Router) Gallery
 
 [English](README.md) | [中文](README.zh-CN.md)
 
