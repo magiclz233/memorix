@@ -72,6 +72,7 @@ export const files = pgTable('files', {
   userStorageId: integer('user_storage_id').notNull().references(() => userStorages.id, { onDelete: 'cascade' }),  // 关联存储配置
   mediaType: varchar('media_type', { length: 50 }).notNull(),  // 媒体类型：'image'、'audio'、'video' 等
   isPublished: boolean('is_published').notNull().default(false),  // 是否在图库展示
+  isHero: boolean('is_hero').notNull().default(false),  // 是否在首页展示
 }, (table) => ({
   storagePathUnique: uniqueIndex('files_storage_path_unique').on(table.userStorageId, table.path),
 }));

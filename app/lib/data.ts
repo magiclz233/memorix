@@ -360,6 +360,7 @@ export async function fetchStorageFiles(storageId: number) {
       mimeType: files.mimeType,
       mtime: files.mtime,
       isPublished: files.isPublished,
+      isHero: files.isHero,
       resolutionWidth: photoMetadata.resolutionWidth,
       resolutionHeight: photoMetadata.resolutionHeight,
     })
@@ -397,6 +398,52 @@ export async function fetchPublishedPhotos(userId: string) {
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
     .where(and(eq(files.isPublished, true), eq(userStorages.userId, userId)))
     .orderBy(desc(files.mtime));
+
+  return records
+    .filter(
+      (record) =>
+        !(record.storageConfig as { isDisabled?: boolean })?.isDisabled,
+    )
+    .map(({ storageConfig, ...rest }) => rest);
+}
+
+export async function fetchHeroPhotos(limit = 12) {
+  const records = await db
+    .select({
+      id: files.id,
+      title: files.title,
+      path: files.path,
+      mtime: files.mtime,
+      storageConfig: userStorages.config,
+    })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .where(and(eq(files.isPublished, true), eq(files.isHero, true)))
+    .orderBy(desc(files.mtime))
+    .limit(limit);
+
+  return records
+    .filter(
+      (record) =>
+        !(record.storageConfig as { isDisabled?: boolean })?.isDisabled,
+    )
+    .map(({ storageConfig, ...rest }) => rest);
+}
+
+export async function fetchPublishedPhotosForHome(limit = 12) {
+  const records = await db
+    .select({
+      id: files.id,
+      title: files.title,
+      path: files.path,
+      mtime: files.mtime,
+      storageConfig: userStorages.config,
+    })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .where(eq(files.isPublished, true))
+    .orderBy(desc(files.mtime))
+    .limit(limit);
 
   return records
     .filter(
