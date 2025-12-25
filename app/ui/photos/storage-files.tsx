@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { setFilesPublished, setStoragePublished } from '@/app/lib/actions';
+import { setFilesHero, setFilesPublished, setStoragePublished } from '@/app/lib/actions';
 import { Button } from '@/app/ui/button';
 
 type StorageFile = {
@@ -13,6 +13,7 @@ type StorageFile = {
   mimeType: string | null;
   mtime: Date | string | null;
   isPublished: boolean | null;
+  isHero: boolean | null;
   resolutionWidth: number | null;
   resolutionHeight: number | null;
 };
@@ -175,6 +176,23 @@ export function StorageFilesManager({
     });
   };
 
+  const updateSelectedHero = (isHero: boolean) => {
+    if (isDisabled) {
+      setMessage('当前配置已禁用，请先启用。');
+      return;
+    }
+    if (!selectedIds.length) {
+      setMessage('请先选择要更新的图片。');
+      return;
+    }
+    setMessage(null);
+    startTransition(async () => {
+      const result = await setFilesHero(selectedIds, isHero);
+      setMessage(result.message ?? null);
+      router.refresh();
+    });
+  };
+
   const updateAll = (isPublished: boolean) => {
     if (isDisabled) {
       setMessage('当前配置已禁用，请先启用。');
@@ -252,6 +270,22 @@ export function StorageFilesManager({
           disabled={isActionDisabled}
         >
           取消发布
+        </button>
+        <button
+          type='button'
+          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          onClick={() => updateSelectedHero(true)}
+          disabled={isActionDisabled}
+        >
+          设为首页
+        </button>
+        <button
+          type='button'
+          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          onClick={() => updateSelectedHero(false)}
+          disabled={isActionDisabled}
+        >
+          取消首页
         </button>
         <button
           type='button'
@@ -334,6 +368,9 @@ export function StorageFilesManager({
                   <div className='text-xs text-gray-500'>{meta}</div>
                   <div className='text-xs text-gray-500'>
                     {file.isPublished ? '已发布' : '未发布'}
+                  </div>
+                  <div className='text-xs text-gray-500'>
+                    {file.isHero ? '首页展示' : '未设为首页'}
                   </div>
                 </div>
               </label>
