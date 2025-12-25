@@ -393,6 +393,41 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
   return { success: true, message: '图库展示状态已更新。' };
 }
 
+export async function setFilesHero(fileIds: number[], isHero: boolean) {
+  const user = await requireUser();
+
+  const storageIds = await db
+    .select({ id: userStorages.id })
+    .from(userStorages)
+    .where(eq(userStorages.userId, user.id));
+
+  const allowedStorageIds = storageIds.map((item) => item.id);
+  if (allowedStorageIds.length === 0) {
+    return { success: false, message: '未找到可用的存储配置。' };
+  }
+
+  if (!fileIds.length) {
+    return { success: false, message: '未选择任何图片。' };
+  }
+
+  await db
+    .update(files)
+    .set({ isHero, updatedAt: new Date() })
+    .where(
+      and(
+        inArray(files.id, fileIds),
+        inArray(files.userStorageId, allowedStorageIds),
+      ),
+    );
+
+  revalidatePath('/dashboard/photos');
+  revalidatePath('/');
+  return {
+    success: true,
+    message: isHero ? '首页展示状态已更新。' : '已取消首页展示。',
+  };
+}
+
 export async function setStoragePublished(storageId: number, isPublished: boolean) {
   const user = await requireUser();
   const storage = await db.query.userStorages.findFirst({
