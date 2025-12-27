@@ -1,10 +1,17 @@
-import { fetchHeroPhotos, fetchPublishedPhotosForHome } from '@/app/lib/data';
+import { auth } from '@/auth';
+import { fetchHeroPhotosForHome, fetchPublishedPhotosForHome, fetchUserByEmail } from '@/app/lib/data';
 import { Hero234 } from '@/components/hero234';
 
 const HERO_IMAGE_LIMIT = 12;
 
 export default async function Page() {
-  const heroPhotos = await fetchHeroPhotos(HERO_IMAGE_LIMIT);
+  const session = await auth();
+  const email = session?.user?.email ?? null;
+  const user = email ? await fetchUserByEmail(email) : null;
+  const heroPhotos = await fetchHeroPhotosForHome({
+    userId: user?.id ?? undefined,
+    limit: HERO_IMAGE_LIMIT,
+  });
   const fallbackPhotos =
     heroPhotos.length > 0
       ? heroPhotos
