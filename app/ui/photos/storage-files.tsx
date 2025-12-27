@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { setFilesHero, setFilesPublished, setStoragePublished } from '@/app/lib/actions';
+import { setHeroPhotos, setFilesPublished, setStoragePublished } from '@/app/lib/actions';
 import { Button } from '@/app/ui/button';
 
 type StorageFile = {
@@ -13,7 +13,6 @@ type StorageFile = {
   mimeType: string | null;
   mtime: Date | string | null;
   isPublished: boolean | null;
-  isHero: boolean | null;
   resolutionWidth: number | null;
   resolutionHeight: number | null;
 };
@@ -23,6 +22,7 @@ type StorageFilesManagerProps = {
   storageType: string;
   files: StorageFile[];
   isDisabled?: boolean;
+  heroIds?: number[];
 };
 
 function formatSize(size: number | null) {
@@ -52,6 +52,7 @@ export function StorageFilesManager({
   storageType,
   files,
   isDisabled = false,
+  heroIds = [],
 }: StorageFilesManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -75,6 +76,7 @@ export function StorageFilesManager({
       ? `已处理 ${scanProgress.processed}/${scanProgress.total}`
       : `已处理 ${scanProgress.processed}`
     : null;
+  const heroIdSet = useMemo(() => new Set(heroIds), [heroIds]);
 
   useEffect(() => {
     return () => {
@@ -187,7 +189,7 @@ export function StorageFilesManager({
     }
     setMessage(null);
     startTransition(async () => {
-      const result = await setFilesHero(selectedIds, isHero);
+      const result = await setHeroPhotos(selectedIds, isHero);
       setMessage(result.message ?? null);
       router.refresh();
     });
@@ -370,7 +372,7 @@ export function StorageFilesManager({
                     {file.isPublished ? '已发布' : '未发布'}
                   </div>
                   <div className='text-xs text-gray-500'>
-                    {file.isHero ? '首页展示' : '未设为首页'}
+                    {heroIdSet.has(file.id) ? '首页展示' : '未设为首页'}
                   </div>
                 </div>
               </label>
