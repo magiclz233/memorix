@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { auth } from '@/auth';
-import { fetchStorageFiles, fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
+import { fetchHeroPhotoIdsByUser, fetchStorageFiles, fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
 import { StorageConfigForm } from '@/app/ui/photos/storage-config';
 import { StorageFilesManager } from '@/app/ui/photos/storage-files';
 import { StorageListManager } from '@/app/ui/photos/storage-list';
@@ -65,6 +65,7 @@ export default async function Page({ searchParams }: PageProps) {
     activeStorage && (activeStorage.config as StorageConfig)?.isDisabled,
   );
   const files = activeStorageId ? await fetchStorageFiles(activeStorageId) : [];
+  const heroIds = await fetchHeroPhotoIdsByUser(user.id);
 
   return (
     <main className="space-y-8">
@@ -99,6 +100,7 @@ export default async function Page({ searchParams }: PageProps) {
           storageType={activeStorage.type}
           files={files}
           isDisabled={isActiveDisabled}
+          heroIds={heroIds}
         />
       ) : (
         <div className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500">
