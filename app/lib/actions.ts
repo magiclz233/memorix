@@ -6,7 +6,7 @@ import { auth, signIn } from '@/auth';
 import { AuthError } from "next-auth";
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from './drizzle'; // 引入 db
-import { files, invoices, userStorages, users } from './schema'; // 引入表定义
+import { files, invoices, userSettings, userStorages, users } from './schema'; // 引入表定义
 import { runStorageScan } from './storage-scan';
 
 const FormSchema = z.object({
@@ -175,6 +175,8 @@ const StorageConfigSchema = z.object({
   prefix: z.string().optional(),
   isDisabled: z.boolean().optional(),
 });
+
+const HERO_SETTING_KEY = 'hero_images';
 
 export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>) {
   const parsed = StorageConfigSchema.safeParse(input);
@@ -393,7 +395,22 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
   return { success: true, message: '图库展示状态已更新。' };
 }
 
-export async function setFilesHero(fileIds: number[], isHero: boolean) {
+const normalizeIdList = (value: unknown) => {
+  if (!Array.isArray(value)) return [];
+  const ids = value
+    .map((item) => {
+      if (typeof item === 'number' && Number.isFinite(item)) return Math.trunc(item);
+      if (typeof item === 'string') {
+        const parsed = Number(item);
+        if (Number.isFinite(parsed)) return Math.trunc(parsed);
+      }
+      return null;
+    })
+    .filter((item): item is number => typeof item === 'number' && item > 0);
+  return Array.from(new Set(ids));
+};
+
+export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
   const user = await requireUser();
 
   const storageIds = await db
@@ -410,15 +427,55 @@ export async function setFilesHero(fileIds: number[], isHero: boolean) {
     return { success: false, message: '未选择任何图片。' };
   }
 
-  await db
-    .update(files)
-    .set({ isHero, updatedAt: new Date() })
+  const allowedFiles = await db
+    .select({ id: files.id })
+    .from(files)
     .where(
       and(
         inArray(files.id, fileIds),
         inArray(files.userStorageId, allowedStorageIds),
+        eq(files.isPublished, true),
       ),
     );
+
+  const allowedFileIds = allowedFiles.map((item) => item.id);
+  if (allowedFileIds.length === 0) {
+    return { success: false, message: '请选择已发布的图片。' };
+  }
+
+  const existing = await db
+    .select({
+      id: userSettings.id,
+      value: userSettings.value,
+    })
+    .from(userSettings)
+    .where(and(eq(userSettings.userId, user.id), eq(userSettings.key, HERO_SETTING_KEY)))
+    .limit(1);
+
+  const currentIds = normalizeIdList(existing[0]?.value);
+  const nextIds = isHero
+    ? Array.from(new Set([...currentIds, ...allowedFileIds]))
+    : currentIds.filter((id) => !allowedFileIds.includes(id));
+
+  if (nextIds.length === 0) {
+    if (existing[0]?.id) {
+      await db
+        .delete(userSettings)
+        .where(eq(userSettings.id, existing[0].id));
+    }
+  } else if (existing[0]?.id) {
+    await db
+      .update(userSettings)
+      .set({ value: nextIds, updatedAt: new Date() })
+      .where(eq(userSettings.id, existing[0].id));
+  } else {
+    await db.insert(userSettings).values({
+      userId: user.id,
+      key: HERO_SETTING_KEY,
+      value: nextIds,
+      updatedAt: new Date(),
+    });
+  }
 
   revalidatePath('/dashboard/photos');
   revalidatePath('/');
