@@ -151,6 +151,13 @@ ALTER TABLE "users" ALTER COLUMN "role" SET DEFAULT 'user';
 UPDATE "users" SET "role" = 'user' WHERE "role" IS NULL;
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "image_url" varchar(255);
 ```
+ --custom 会生成一个“空模板”，需要你手动写 SQL，所以只有注释
+ -- Custom SQL migration file, put your code below! --
+
+两种做法：
+
+继续用 --custom：把你要的 SQL 手动填进去。
+不用 --custom：修改完 schema.ts 后直接 pnpm drizzle-kit generate --name add-user-settings，它会根据 schema 自动生成 SQL。
 
 再执行：
 
