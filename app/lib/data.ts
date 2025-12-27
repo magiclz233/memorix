@@ -1,8 +1,8 @@
 import type { InvoiceForm, InvoiceWithPriority } from "./definitions";
 import { formatCurrency } from "./utils";
 import { db } from "./drizzle";
-import { invoices, customers, revenue, userStorages, files, photoMetadata, users } from './schema';
-import { desc, asc, eq, ilike, or, sql, count, and } from 'drizzle-orm';
+import { invoices, customers, revenue, userStorages, files, photoMetadata, users, userSettings } from './schema';
+import { desc, asc, eq, ilike, or, sql, count, and, inArray } from 'drizzle-orm';
 
 export async function fetchRevenue() {
   try {
@@ -360,7 +360,6 @@ export async function fetchStorageFiles(storageId: number) {
       mimeType: files.mimeType,
       mtime: files.mtime,
       isPublished: files.isPublished,
-      isHero: files.isHero,
       resolutionWidth: photoMetadata.resolutionWidth,
       resolutionHeight: photoMetadata.resolutionHeight,
     })
@@ -407,7 +406,50 @@ export async function fetchPublishedPhotos(userId: string) {
     .map(({ storageConfig, ...rest }) => rest);
 }
 
-export async function fetchHeroPhotos(limit = 12) {
+const HERO_SETTING_KEY = 'hero_images';
+
+const normalizeIdList = (value: unknown) => {
+  if (!Array.isArray(value)) return [];
+  const ids = value
+    .map((item) => {
+      if (typeof item === 'number' && Number.isFinite(item)) return Math.trunc(item);
+      if (typeof item === 'string') {
+        const parsed = Number(item);
+        if (Number.isFinite(parsed)) return Math.trunc(parsed);
+      }
+      return null;
+    })
+    .filter((item): item is number => typeof item === 'number' && item > 0);
+  return Array.from(new Set(ids));
+};
+
+export async function fetchHeroPhotoIdsByUser(userId: string) {
+  const record = await db
+    .select({ value: userSettings.value })
+    .from(userSettings)
+    .where(and(eq(userSettings.userId, userId), eq(userSettings.key, HERO_SETTING_KEY)))
+    .limit(1);
+  return normalizeIdList(record[0]?.value);
+}
+
+const fetchHeroPhotoIdsForHome = async (userId?: string) => {
+  if (userId) {
+    return fetchHeroPhotoIdsByUser(userId);
+  }
+  const record = await db
+    .select({ value: userSettings.value })
+    .from(userSettings)
+    .where(eq(userSettings.key, HERO_SETTING_KEY))
+    .orderBy(desc(userSettings.updatedAt))
+    .limit(1);
+  return normalizeIdList(record[0]?.value);
+};
+
+export async function fetchHeroPhotosForHome(options?: { userId?: string; limit?: number }) {
+  const limit = options?.limit ?? 12;
+  const heroIds = await fetchHeroPhotoIdsForHome(options?.userId);
+  if (heroIds.length === 0) return [];
+  const limitedIds = heroIds.slice(0, limit);
   const records = await db
     .select({
       id: files.id,
@@ -418,16 +460,19 @@ export async function fetchHeroPhotos(limit = 12) {
     })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(and(eq(files.isPublished, true), eq(files.isHero, true)))
-    .orderBy(desc(files.mtime))
-    .limit(limit);
+    .where(and(inArray(files.id, limitedIds), eq(files.isPublished, true)));
 
-  return records
+  const filtered = records
     .filter(
       (record) =>
         !(record.storageConfig as { isDisabled?: boolean })?.isDisabled,
     )
     .map(({ storageConfig, ...rest }) => rest);
+
+  const recordMap = new Map(filtered.map((item) => [item.id, item]));
+  return limitedIds
+    .map((id) => recordMap.get(id))
+    .filter((item): item is (typeof filtered)[number] => Boolean(item));
 }
 
 export async function fetchPublishedPhotosForHome(limit = 12) {
