@@ -72,9 +72,19 @@ export const files = pgTable('files', {
   userStorageId: integer('user_storage_id').notNull().references(() => userStorages.id, { onDelete: 'cascade' }),  // 关联存储配置
   mediaType: varchar('media_type', { length: 50 }).notNull(),  // 媒体类型：'image'、'audio'、'video' 等
   isPublished: boolean('is_published').notNull().default(false),  // 是否在图库展示
-  isHero: boolean('is_hero').notNull().default(false),  // 是否在首页展示
 }, (table) => ({
   storagePathUnique: uniqueIndex('files_storage_path_unique').on(table.userStorageId, table.path),
+}));
+
+export const userSettings = pgTable('user_settings', {
+  id: serial('id').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  key: varchar('key', { length: 100 }).notNull(),
+  value: jsonb('value').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  userKeyUnique: uniqueIndex('user_settings_user_key_unique').on(table.userId, table.key),
 }));
 
 // 图片元数据子表
