@@ -1,16 +1,16 @@
-# Next.js Dashboard（App Router）
+# memorix 画廊（Next.js App Router）
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-这是一个基于 Next.js App Router 的示例仪表盘项目，整合了登录鉴权、Postgres 数据访问、Server Actions、Suspense Streaming、以及发票/客户等典型业务页面，适合作为学习与二次开发的起点。
+这是一个基于 Next.js App Router 的画廊项目，包含前端展示站点与管理端 dashboard。前端主要展示照片墙、画廊、Hero 页面与作品集，管理端用于管理内容与业务数据。
 
 ## 功能概览
 
+- 前端展示：Hero、照片墙、画廊、作品集
+- 管理端 dashboard：内容与业务数据管理
 - NextAuth v5：Credentials（邮箱/密码）+ GitHub OAuth 登录
 - `proxy.ts` 路由保护：未登录访问 `/dashboard/**` 自动跳转 `/login`
-- Dashboard 概览：卡片指标、营收图表、最新发票（Suspense + Skeleton）
-- Customers：客户列表与搜索
-- Invoices：搜索、分页、新增/编辑（并行路由 + 拦截路由弹窗）、删除、error boundary、not-found
+- Server Actions + Postgres（Drizzle ORM）用于服务端数据访问
 
 ## 技术栈
 
@@ -60,7 +60,7 @@ pnpm dev
 pnpm drizzle-kit migrate
 ```
 
-再访问 `/seed` 写入示例数据（`users/customers/invoices/revenue`）：
+再访问 `/seed` 写入示例数据（用户/画廊/作品集等）：
 
 ```bash
 curl http://localhost:3000/seed
@@ -81,18 +81,18 @@ Invoke-WebRequest http://localhost:3000/seed
 
 ## 常用路由
 
-- `/` 首页
-- `/login` 登录页（Credentials + GitHub）
-- `/dashboard` 概览
-- `/dashboard/customers` 客户列表
-- `/dashboard/invoices` 发票列表（搜索/分页/新增/编辑/删除）
+- `/` 前台首页（Hero + 入口）
+- `/gallery` 画廊
+- `/portfolio` 作品集
+- `/login` 管理端登录（Credentials + GitHub）
+- `/dashboard` 管理端 dashboard
 - `/seed` 预置数据库（仅建议本地开发使用）
 - `/query` 查询示例（仅建议本地开发使用）
 
 ## 目录结构
 
-- `app/layout.tsx` / `app/page.tsx`：App Router 入口
-- `app/dashboard/**`：仪表盘路由（含 `(overview)`、`customers`、`invoices`、动态路由等）
+- `app/layout.tsx` / `app/page.tsx`：App Router 入口与前台入口
+- `app/dashboard/**`：管理端 dashboard 路由
 - `app/lib/**`：服务端逻辑（`actions.ts`、`data.ts`、`definitions.ts` 等）
 - `app/ui/**`：UI 组件与样式
 - `public/**`：静态资源
