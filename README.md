@@ -2,15 +2,15 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-An example dashboard app built with the Next.js App Router. It includes authentication, invoices/customers pages, server-side data access, and Server Actions—useful as a learning project or a starter for further customization.
+Memorix is a gallery project built with the Next.js App Router. It includes a public-facing site (photo wall, gallery, hero, portfolio) and an admin dashboard for managing content and business data.
 
 ## Features
 
+- Public site: hero landing, photo wall, gallery, portfolio
+- Admin dashboard: content and business data management
 - NextAuth v5: Credentials (email/password) + GitHub OAuth sign-in
 - Route protection via `proxy.ts`: unauthenticated users are redirected to `/login`
-- Dashboard overview: cards, revenue chart, latest invoices (Suspense + Skeleton)
-- Customers: list + search
-- Invoices: search, pagination, create/edit (parallel + intercepting routes as modal), delete, error boundary, not-found
+- Server Actions + Postgres (Drizzle ORM) for server-side data access
 
 ## Tech Stack
 
@@ -75,18 +75,18 @@ After seeding, you can sign in with the default credentials:
 
 ## Routes
 
-- `/` Home
-- `/login` Login (Credentials + GitHub)
-- `/dashboard` Overview
-- `/dashboard/customers` Customers
-- `/dashboard/invoices` Invoices (search/pagination/create/edit/delete)
+- `/` Public home (hero + highlights)
+- `/gallery` Gallery
+- `/portfolio` Portfolio
+- `/login` Admin login (Credentials + GitHub)
+- `/dashboard` Admin dashboard
 - `/seed` Seed database (dev only)
 - `/query` Example query (dev only)
 
 ## Project Structure
 
-- `app/layout.tsx` / `app/page.tsx`: App Router entry
-- `app/dashboard/**`: dashboard routes (`(overview)`, `customers`, `invoices`, dynamic routes)
+- `app/layout.tsx` / `app/page.tsx`: App Router entry and public site entry
+- `app/dashboard/**`: admin dashboard routes
 - `app/lib/**`: server logic (`actions.ts` Server Actions, `data.ts` queries, `definitions.ts` types)
 - `app/ui/**`: UI components and styles
 - `public/**`: static assets
