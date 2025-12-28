@@ -1,6 +1,13 @@
 # Drizzle ORM（Postgres）使用与迁移流程（Next.js App Router）
 
-本文档面向本仓库：使用 `drizzle-orm` + `drizzle-kit` 管理 Postgres 表结构与迁移，并在 Next.js（App Router）中进行服务端查询与写入。
+本文档面向 memorix 画廊项目：使用 `drizzle-orm` + `drizzle-kit` 管理 Postgres 表结构与迁移，并在 Next.js（App Router）中进行服务端查询与写入。
+
+项目说明：
+
+- 项目名称：memorix
+- 形态：前端画廊站点 + 管理端 dashboard
+- 前端重点：照片墙、画廊、Hero 页面、作品集
+- 管理端：管理内容与相关业务数据
 
 ## 目录
 
