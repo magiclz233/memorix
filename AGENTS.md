@@ -1,7 +1,7 @@
-﻿# Repository Guidelines
+# Repository Guidelines
 
 ## 项目结构与模块组织
-- Next.js App Router 入口在 `app/layout.tsx` 与 `app/page.tsx`；仪表盘路由集中于 `app/dashboard`（含 `(overview)`、`customers`、`invoices`、动态 `invoices/[id]`），局部布局在 `app/dashboard/layout.tsx`。
+- Next.js App Router 入口在 `app/layout.tsx` 与 `app/page.tsx`；前端展示页面位于 `app` 下（Hero、照片墙、画廊、作品集等路由），管理端路由集中于 `app/dashboard`，局部布局在 `app/dashboard/layout.tsx`。
 - 共享服务器逻辑在 `app/lib/`：`actions.ts`（服务器动作）、`data.ts`（查询）、`definitions.ts`（类型）、`utils.ts` 与 `placeholder-data.ts`（工具/示例数据）。
 - UI 组件在 `app/ui/**`，按功能拆分；全局样式 `app/ui/global.css`，字体 `app/ui/fonts.ts`，通用组件如 `acme-logo.tsx`、`button.tsx`。静态资源在 `public/`。
 - API/脚本路由：`app/seed/route.ts`（数据库预置）、`app/query/route.ts`（查询示例）。配置文件：`next.config.ts`、`tailwind.config.ts`、`eslint.config.mjs`、`tsconfig.json`、`auth.config.ts` 等。
@@ -15,11 +15,11 @@
 
 ## 代码风格与命名规范
 - TypeScript + React，默认 Server Component，需客户端交互时添加 `"use client"`。
-- 组件命名用 PascalCase；文件名用小写短横线或语义词（如 `app/ui/invoices/table.tsx`）；路由遵循 Next.js 约定（`[id]` 动态段、`(overview)` 组）。
+- 组件命名用 PascalCase；文件名用小写短横线或语义词（如 `app/ui/gallery/grid.tsx`）；路由遵循 Next.js 约定（`[id]` 动态段、`(overview)` 组）。
 - UI 优先使用 shadcn/ui 组件库；样式优先 Tailwind 工具类，公共设计令牌在 `tailwind.config.ts`。缩进 2 空格，字符串单引号。避免提交敏感信息，私密配置放 `.env.local`。
 
 ## 测试指引
-- 当前无自动化测试；至少确保 `pnpm lint` 通过，并手动验证 `/login`、`/dashboard`、发票创建/编辑/搜索/分页。
+- 当前无自动化测试；至少确保 `pnpm lint` 通过，并手动验证 `/login`、`/dashboard`、前台 Hero/画廊/作品集页面。
 - 若新增测试，建议对服务器动作（`app/lib/actions.ts`）或关键组件做轻量集成测试；命名 `*.test.ts[x]`，就近放置。
 
 ## 提交与 Pull Request
@@ -32,3 +32,4 @@
 
 ## 语言与注释
 - 本仓库相关的沟通、提交描述、代码注释统一使用简体中文，保持简洁明确；引用外部文档或协议时可保留原文。
+
