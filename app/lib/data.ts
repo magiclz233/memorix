@@ -423,26 +423,49 @@ const normalizeIdList = (value: unknown) => {
   return Array.from(new Set(ids));
 };
 
+const isMissingRelationError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  return (error as { code?: string }).code === '42P01';
+};
+
 export async function fetchHeroPhotoIdsByUser(userId: string) {
-  const record = await db
-    .select({ value: userSettings.value })
-    .from(userSettings)
-    .where(and(eq(userSettings.userId, userId), eq(userSettings.key, HERO_SETTING_KEY)))
-    .limit(1);
-  return normalizeIdList(record[0]?.value);
+  try {
+    const record = await db
+      .select({ value: userSettings.value })
+      .from(userSettings)
+      .where(and(eq(userSettings.userId, userId), eq(userSettings.key, HERO_SETTING_KEY)))
+      .limit(1);
+    return normalizeIdList(record[0]?.value);
+  } catch (error) {
+    // 兼容未执行迁移导致表不存在的情况
+    if (isMissingRelationError(error)) {
+      console.warn('数据库未找到 user_settings 表，请先执行迁移。');
+      return [];
+    }
+    throw error;
+  }
 }
 
 const fetchHeroPhotoIdsForHome = async (userId?: string) => {
-  if (userId) {
-    return fetchHeroPhotoIdsByUser(userId);
+  try {
+    if (userId) {
+      return fetchHeroPhotoIdsByUser(userId);
+    }
+    const record = await db
+      .select({ value: userSettings.value })
+      .from(userSettings)
+      .where(eq(userSettings.key, HERO_SETTING_KEY))
+      .orderBy(desc(userSettings.updatedAt))
+      .limit(1);
+    return normalizeIdList(record[0]?.value);
+  } catch (error) {
+    // 兼容未执行迁移导致表不存在的情况
+    if (isMissingRelationError(error)) {
+      console.warn('数据库未找到 user_settings 表，请先执行迁移。');
+      return [];
+    }
+    throw error;
   }
-  const record = await db
-    .select({ value: userSettings.value })
-    .from(userSettings)
-    .where(eq(userSettings.key, HERO_SETTING_KEY))
-    .orderBy(desc(userSettings.updatedAt))
-    .limit(1);
-  return normalizeIdList(record[0]?.value);
 };
 
 export async function fetchHeroPhotosForHome(options?: { userId?: string; limit?: number }) {
