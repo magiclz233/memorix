@@ -440,14 +440,60 @@ const getErrorCode = (error: unknown): string | null => {
   return null;
 };
 
+const getErrorMessage = (error: unknown): string | null => {
+  if (!error || typeof error !== 'object') return null;
+  const message = (error as { message?: string }).message;
+  if (typeof message === 'string' && message.length > 0) return message;
+  const cause = (error as { cause?: unknown }).cause;
+  if (cause && cause !== error) {
+    const nestedMessage = getErrorMessage(cause);
+    if (nestedMessage) return nestedMessage;
+  }
+  const original = (error as { original?: unknown; originalError?: unknown }).original ?? (error as { originalError?: unknown }).originalError;
+  if (original && original !== error) {
+    const nestedMessage = getErrorMessage(original);
+    if (nestedMessage) return nestedMessage;
+  }
+  return null;
+};
+
+const getErrorQuery = (error: unknown): string | null => {
+  if (!error || typeof error !== 'object') return null;
+  const query = (error as { query?: string }).query;
+  if (typeof query === 'string' && query.length > 0) return query;
+  const cause = (error as { cause?: unknown }).cause;
+  if (cause && cause !== error) {
+    const nestedQuery = getErrorQuery(cause);
+    if (nestedQuery) return nestedQuery;
+  }
+  const original = (error as { original?: unknown; originalError?: unknown }).original ?? (error as { originalError?: unknown }).originalError;
+  if (original && original !== error) {
+    const nestedQuery = getErrorQuery(original);
+    if (nestedQuery) return nestedQuery;
+  }
+  return null;
+};
+
 const isMissingRelationError = (error: unknown) => {
   const code = getErrorCode(error);
   if (code === '42P01') return true;
-  if (error && typeof error === 'object') {
-    const message = (error as { message?: string }).message ?? '';
-    return message.includes('relation') && message.includes('does not exist');
-  }
-  return false;
+  const message = getErrorMessage(error) ?? '';
+  return message.includes('relation') && message.includes('does not exist');
+};
+
+const shouldIgnoreHeroSettingsError = (error: unknown) => {
+  if (isMissingRelationError(error)) return true;
+  const query = getErrorQuery(error) ?? '';
+  if (query.includes('"user_settings"')) return true;
+  const message = getErrorMessage(error) ?? '';
+  return message.includes('user_settings');
+};
+
+const warnHeroSettingsFallback = (error: unknown) => {
+  const code = getErrorCode(error);
+  const message = getErrorMessage(error);
+  const detail = [code ? `code=${code}` : null, message].filter(Boolean).join(' ');
+  console.warn(`读取 Hero 配置失败，已降级为默认图片。${detail ? ` ${detail}` : ''}`);
 };
 
 export async function fetchHeroPhotoIdsByUser(userId: string) {
@@ -459,9 +505,9 @@ export async function fetchHeroPhotoIdsByUser(userId: string) {
       .limit(1);
     return normalizeIdList(record[0]?.value);
   } catch (error) {
-    // 兼容未执行迁移导致表不存在的情况
-    if (isMissingRelationError(error)) {
-      console.warn('数据库未找到 user_settings 表，请先执行迁移。');
+    // 兼容未执行迁移或库权限不足导致读取失败的情况
+    if (shouldIgnoreHeroSettingsError(error)) {
+      warnHeroSettingsFallback(error);
       return [];
     }
     throw error;
@@ -481,9 +527,9 @@ const fetchHeroPhotoIdsForHome = async (userId?: string) => {
       .limit(1);
     return normalizeIdList(record[0]?.value);
   } catch (error) {
-    // 兼容未执行迁移导致表不存在的情况
-    if (isMissingRelationError(error)) {
-      console.warn('数据库未找到 user_settings 表，请先执行迁移。');
+    // 兼容未执行迁移或库权限不足导致读取失败的情况
+    if (shouldIgnoreHeroSettingsError(error)) {
+      warnHeroSettingsFallback(error);
       return [];
     }
     throw error;
