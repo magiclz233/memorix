@@ -135,13 +135,13 @@ const Hero234 = ({
 
       <div className='relative z-20 flex min-h-screen items-center justify-center'>
         <motion.div
-          className='rounded-lg bg-black/60 p-8 backdrop-blur-md md:p-12'
+          className='rounded-lg bg-background/80 p-8 text-foreground backdrop-blur-md md:p-12'
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
         >
           <motion.h1
-            className='text-3xl leading-tight text-white md:text-5xl lg:text-6xl'
+            className='text-3xl leading-tight md:text-5xl lg:text-6xl'
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.7 }}
