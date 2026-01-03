@@ -9,13 +9,13 @@ export default async function Page() {
 
   if (!email) {
     return (
-      <main className='min-h-screen bg-gray-950 px-6 py-12 text-white'>
+      <main className='min-h-screen bg-background px-6 py-12 text-foreground'>
         <div className='mx-auto max-w-4xl space-y-4'>
           <h1 className='text-3xl font-semibold'>图库</h1>
-          <p className='text-sm text-gray-300'>请先登录后查看图库内容。</p>
+          <p className='text-sm text-muted-foreground'>请先登录后查看图库内容。</p>
           <Link
             href='/login?callbackUrl=/gallery'
-            className='inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-gray-900'
+            className='inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground'
           >
             前往登录
           </Link>
@@ -27,10 +27,10 @@ export default async function Page() {
   const user = await fetchUserByEmail(email);
   if (!user) {
     return (
-      <main className='min-h-screen bg-gray-950 px-6 py-12 text-white'>
+      <main className='min-h-screen bg-background px-6 py-12 text-foreground'>
         <div className='mx-auto max-w-4xl space-y-4'>
           <h1 className='text-3xl font-semibold'>图库</h1>
-          <p className='text-sm text-gray-300'>未找到用户信息。</p>
+          <p className='text-sm text-muted-foreground'>未找到用户信息。</p>
         </div>
       </main>
     );
@@ -61,27 +61,27 @@ export default async function Page() {
   }));
 
   return (
-    <main className='min-h-screen bg-gray-950 px-6 py-12 text-white'>
+    <main className='min-h-screen bg-background px-6 py-12 text-foreground'>
       <div className='flex flex-col gap-8'>
         <div className='mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4'>
           <div>
             <h1 className='text-3xl font-semibold'>图库</h1>
-            <p className='text-sm text-gray-300'>仅展示已发布的图片。</p>
+            <p className='text-sm text-muted-foreground'>仅展示已发布的图片。</p>
           </div>
           <Link
             href='/dashboard/photos'
-            className='inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-gray-900'
+            className='inline-flex items-center rounded-full bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground'
           >
             返回配置
           </Link>
         </div>
 
         {photos.length === 0 ? (
-          <div className='mx-auto w-full max-w-6xl rounded-2xl border border-white/10 bg-white/5 p-12 text-center text-sm text-gray-300'>
+          <div className='mx-auto w-full max-w-6xl rounded-2xl border border-border bg-card p-12 text-center text-sm text-muted-foreground'>
             <p>暂无已发布的图片，请先在配置页扫描并发布。</p>
             <Link
               href='/dashboard/photos'
-              className='mt-4 inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-gray-900'
+              className='mt-4 inline-flex items-center rounded-full bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground'
             >
               去配置
             </Link>
