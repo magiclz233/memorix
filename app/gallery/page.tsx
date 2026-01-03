@@ -14,7 +14,7 @@ export default async function Page() {
           <h1 className='text-3xl font-semibold'>图库</h1>
           <p className='text-sm text-gray-300'>请先登录后查看图库内容。</p>
           <Link
-            href='/login'
+            href='/login?callbackUrl=/gallery'
             className='inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-gray-900'
           >
             前往登录
