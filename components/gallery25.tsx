@@ -181,10 +181,10 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
           isFullBleed ? 'w-full' : 'mx-auto max-w-6xl',
         )}
       >
-        <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-white/70'>
+        <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground'>
           <div className='flex flex-wrap items-center gap-4'>
             <span>共 {items.length} 张照片</span>
-            <label className='flex items-center gap-2 text-xs text-white/70'>
+            <label className='flex items-center gap-2 text-xs text-muted-foreground'>
               <span>每行</span>
               <input
                 type='range'
@@ -195,7 +195,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                 onChange={(event) =>
                   setColumnCount(clampColumnCount(Number(event.target.value)))
                 }
-                className='h-1 w-32 cursor-pointer accent-white'
+                className='h-1 w-32 cursor-pointer accent-primary'
                 aria-label='每行显示数量'
               />
               <span>{columnCount} 张</span>
@@ -204,7 +204,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
           <button
             type='button'
             onClick={() => setIsFullBleed((prev) => !prev)}
-            className='rounded-full border border-white/15 px-3 py-1 text-xs text-white/70 transition hover:text-white'
+            className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
           >
             {isFullBleed ? '两边留白' : '铺满屏幕'}
           </button>
@@ -221,7 +221,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                     initial={{ opacity: 0, scale: 0.96, y: yOffset }}
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ duration: 0.45, delay: itemIndex * 0.08 }}
-                    className='group relative w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5'
+                    className='group relative w-full overflow-hidden rounded-2xl border border-border bg-card'
                   >
                     <button
                       type='button'
@@ -290,19 +290,19 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
               transition={{ duration: 0.2 }}
               role='dialog'
               aria-modal='true'
-              className='relative z-10 w-full max-w-5xl rounded-2xl border border-white/10 bg-gray-950 p-6 text-white shadow-2xl'
+              className='relative z-10 w-full max-w-5xl rounded-2xl border border-border bg-card p-6 text-foreground shadow-2xl'
             >
               <button
                 type='button'
                 onClick={() => setSelected(null)}
-                className='absolute right-4 top-4 rounded-full border border-white/15 px-3 py-1 text-xs text-white/70 transition hover:text-white'
+                className='absolute right-4 top-4 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
               >
                 关闭
               </button>
               <div className='grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'>
-                <div className='rounded-2xl bg-black/60 p-3'>
+                <div className='rounded-2xl bg-muted/60 p-3'>
                   <div
-                    className='relative w-full overflow-hidden rounded-xl bg-black/80'
+                    className='relative w-full overflow-hidden rounded-xl bg-muted'
                     style={{ aspectRatio: getAspectRatioValue(selected, ratioMap) }}
                   >
                     <Image
@@ -323,11 +323,11 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                     />
                   </div>
                 </div>
-                <div className='space-y-4 text-sm text-white/80'>
+                <div className='space-y-4 text-sm text-muted-foreground'>
                   <div>
-                    <p className='text-base font-semibold text-white'>{selected.title}</p>
+                    <p className='text-base font-semibold text-foreground'>{selected.title}</p>
                     {selected.description ? (
-                      <p className='mt-2 text-sm text-white/70'>{selected.description}</p>
+                      <p className='mt-2 text-sm text-muted-foreground'>{selected.description}</p>
                     ) : null}
                   </div>
                   <div className='space-y-2'>
@@ -335,14 +335,14 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                       selectedDetails.map((detail) => (
                         <div
                           key={detail.label}
-                          className='flex items-start justify-between gap-4 border-b border-white/10 pb-2 last:border-b-0 last:pb-0'
+                          className='flex items-start justify-between gap-4 border-b border-border pb-2 last:border-b-0 last:pb-0'
                         >
-                          <span className='text-xs text-white/50'>{detail.label}</span>
-                          <span className='text-right text-sm text-white'>{detail.value}</span>
+                          <span className='text-xs text-muted-foreground'>{detail.label}</span>
+                          <span className='text-right text-sm text-foreground'>{detail.value}</span>
                         </div>
                       ))
                     ) : (
-                      <p className='text-sm text-white/60'>暂无可用的详细信息。</p>
+                      <p className='text-sm text-muted-foreground'>暂无可用的详细信息。</p>
                     )}
                   </div>
                 </div>
