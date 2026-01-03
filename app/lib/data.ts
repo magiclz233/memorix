@@ -423,9 +423,31 @@ const normalizeIdList = (value: unknown) => {
   return Array.from(new Set(ids));
 };
 
+const getErrorCode = (error: unknown): string | null => {
+  if (!error || typeof error !== 'object') return null;
+  const code = (error as { code?: string }).code;
+  if (code) return code;
+  const cause = (error as { cause?: unknown }).cause;
+  if (cause && cause !== error) {
+    const nestedCode = getErrorCode(cause);
+    if (nestedCode) return nestedCode;
+  }
+  const original = (error as { original?: unknown; originalError?: unknown }).original ?? (error as { originalError?: unknown }).originalError;
+  if (original && original !== error) {
+    const nestedCode = getErrorCode(original);
+    if (nestedCode) return nestedCode;
+  }
+  return null;
+};
+
 const isMissingRelationError = (error: unknown) => {
-  if (!error || typeof error !== 'object') return false;
-  return (error as { code?: string }).code === '42P01';
+  const code = getErrorCode(error);
+  if (code === '42P01') return true;
+  if (error && typeof error === 'object') {
+    const message = (error as { message?: string }).message ?? '';
+    return message.includes('relation') && message.includes('does not exist');
+  }
+  return false;
 };
 
 export async function fetchHeroPhotoIdsByUser(userId: string) {
