@@ -1,7 +1,6 @@
 'use client';
 
 import { useActionState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 import { authenticate } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -11,11 +10,16 @@ import { cn } from '@/lib/utils';
 
 type LoginFormFieldsProps = {
   className?: string;
+  redirectTo?: string;
 };
 
-export function LoginFormFields({ className }: LoginFormFieldsProps) {
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/gallery';
+export function LoginFormFields({
+  className,
+  redirectTo,
+}: LoginFormFieldsProps) {
+  const trimmedRedirectTo =
+    typeof redirectTo === 'string' ? redirectTo.trim() : '';
+  const safeRedirectTo = trimmedRedirectTo.length > 0 ? trimmedRedirectTo : '/gallery';
   const [errorMessage, formAction, isPending] = useActionState(
     authenticate,
     undefined,
@@ -53,8 +57,13 @@ export function LoginFormFields({ className }: LoginFormFieldsProps) {
           minLength={6}
         />
       </div>
-      <input type='hidden' name='redirectTo' value={callbackUrl} />
-      <Button type='submit' className='w-full' disabled={isPending} aria-disabled={isPending}>
+      <input type='hidden' name='redirectTo' value={safeRedirectTo} />
+      <Button
+        type='submit'
+        className='w-full'
+        disabled={isPending}
+        aria-disabled={isPending}
+      >
         Login
       </Button>
       {errorMessage ? (
