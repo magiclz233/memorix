@@ -363,6 +363,14 @@ export async function scanStorage(storageId: number) {
   }
 }
 
+export async function signInWithGitHub(formData: FormData) {
+  const redirectTo = formData.get('redirectTo');
+  const trimmedRedirectTo =
+    typeof redirectTo === 'string' ? redirectTo.trim() : '';
+  const safeRedirectTo = trimmedRedirectTo.length > 0 ? trimmedRedirectTo : '/gallery';
+  await signIn('github', { redirectTo: safeRedirectTo });
+}
+
 export async function setFilesPublished(fileIds: number[], isPublished: boolean) {
   const user = await requireUser();
 
