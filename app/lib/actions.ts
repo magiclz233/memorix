@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from 'next/cache';
-import { auth, signIn } from '@/auth';
+import { auth, signIn, signOut } from '@/auth';
 import { AuthError } from "next-auth";
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from './drizzle'; // 引入 db
@@ -145,6 +145,10 @@ export async function authenticate(
     }
     throw error;
   }
+}
+
+export async function signOutAction() {
+  await signOut({ redirectTo: '/' });
 }
 
 async function requireUser() {
