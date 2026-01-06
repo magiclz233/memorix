@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { auth, signIn, signOut } from '@/auth';
 import { AuthError } from "next-auth";
 import { and, eq, inArray } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 import { db } from './drizzle'; // 引入 db
 import { files, invoices, userSettings, userStorages, users } from './schema'; // 引入表定义
 import { runStorageScan } from './storage-scan';
@@ -35,6 +36,29 @@ export type State = {
   message?: string | null;
   success?: boolean;
 };
+
+export type SignupState = {
+  errors?: {
+    name?: string[];
+    email?: string[];
+    password?: string[];
+    confirmPassword?: string[];
+  };
+  message?: string | null;
+  success?: boolean;
+};
+
+const SignupSchema = z
+  .object({
+    name: z.string().trim().min(1, { message: '请输入姓名。' }),
+    email: z.string().trim().email({ message: '请输入有效邮箱。' }),
+    password: z.string().min(6, { message: '密码至少需要 6 位。' }),
+    confirmPassword: z.string().min(6, { message: '请再次输入至少 6 位密码。' }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: '两次输入的密码不一致。',
+    path: ['confirmPassword'],
+  });
 
 export async function createInvoice(prevState: State, formData: FormData) {
   // Validate form fields using Zod
@@ -144,6 +168,49 @@ export async function authenticate(
       }
     }
     throw error;
+  }
+}
+
+export async function signup(
+  prevState: SignupState,
+  formData: FormData,
+): Promise<SignupState> {
+  const validatedFields = SignupSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: '请检查表单信息。',
+      success: false,
+    };
+  }
+
+  const { name, email, password } = validatedFields.data;
+
+  try {
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    if (existingUser) {
+      return {
+        errors: { email: ['该邮箱已注册。'] },
+        message: '该邮箱已注册。',
+        success: false,
+      };
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await db.insert(users).values({ name, email, password: hashedPassword });
+    return { success: true, message: null, errors: {} };
+  } catch (error) {
+    console.error('注册失败：', error);
+    return { success: false, message: '注册失败，请稍后重试。' };
   }
 }
 
