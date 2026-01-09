@@ -35,7 +35,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
+      <SidebarGroupLabel>管理菜单</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const hasSubItems = Boolean(item.items?.length);
