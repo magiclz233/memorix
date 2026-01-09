@@ -1,4 +1,4 @@
-import { pgTable, uuid, date, serial, text, bigint, varchar, timestamp, integer, jsonb, doublePrecision, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, date, serial, text, bigint, varchar, timestamp, integer, jsonb, doublePrecision, boolean, uniqueIndex, primaryKey } from 'drizzle-orm/pg-core';
 
 import { relations } from 'drizzle-orm';
 
@@ -108,6 +108,68 @@ export const photoMetadata = pgTable('photo_metadata', {
   resolutionHeight: integer('resolution_height'),  // 高度
   whiteBalance: varchar('white_balance', { length: 255 }),  // 白平衡
 });
+
+// 存储配置表（后台管理使用）
+export const storageConfigs = pgTable('storage_configs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  type: varchar('type', { length: 16 }).notNull(),
+  config: jsonb('config').notNull(),
+  status: varchar('status', { length: 32 }).notNull(),
+});
+
+// 图集表
+export const photoCollections = pgTable('photo_collections', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  coverImage: text('cover_image'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// 图集关联表
+export const collectionItems = pgTable(
+  'collection_items',
+  {
+    collectionId: uuid('collection_id')
+      .notNull()
+      .references(() => photoCollections.id, { onDelete: 'cascade' }),
+    fileId: integer('file_id')
+      .notNull()
+      .references(() => files.id, { onDelete: 'cascade' }),
+    sortOrder: integer('sort_order').notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.collectionId, table.fileId] }),
+  }),
+);
+
+// 视频集表
+export const videoSeries = pgTable('video_series', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  coverImage: text('cover_image'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// 视频集关联表
+export const videoSeriesItems = pgTable(
+  'video_series_items',
+  {
+    seriesId: uuid('series_id')
+      .notNull()
+      .references(() => videoSeries.id, { onDelete: 'cascade' }),
+    fileId: integer('file_id')
+      .notNull()
+      .references(() => files.id, { onDelete: 'cascade' }),
+    sortOrder: integer('sort_order').notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.seriesId, table.fileId] }),
+  }),
+);
 
 // 关系定义
 export const invoicesRelations = relations(invoices, ({ one }) => ({
