@@ -209,3 +209,15 @@
 1. 首先创建 `components/ui/admin/spotlight-card.tsx`，确保其在明亮模式下依然美观（不要只有黑色背景）。
 2. 然后基于 `app/dashboard/layout.tsx` 重构侧边栏，加入主题切换。
 3. 依次开发各个功能页面。
+
+## 8. 开发完成情况（2026-01-09）
+
+- [x] 3.A SpotlightCard（支持 Light/Dark）
+- [x] 3.B DotBackground（支持 Light/Dark + Aurora）
+- [x] 4 后台布局重构（AdminSidebar、ModeToggle、导航顺序）
+- [x] 5.1 存储配置页面（新 UI + 表单逻辑 + 扫描/启停/删除入口）
+- [ ] 5.2 资源库概览（已完成分页/筛选/瀑布流/时光轴 UI，真实数据与懒加载待接入）
+- [ ] 5.3 上传中心（已完成选择存储/拖拽区/进度 UI，真实上传接入待完成）
+- [ ] 5.4 集合管理（已完成 Tabs/UI，创建与拖拽排序待实现）
+- [ ] 5.5 设置模块（已完成表单 UI，保存逻辑待实现）
+- [ ] 6 数据库 Schema 更新（已在 `app/lib/schema.ts` 新增表定义，迁移脚本待补充）
