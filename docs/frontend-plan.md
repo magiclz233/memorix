@@ -1,113 +1,158 @@
-# 前台改版计划
+﻿# Memorix Project: Front-End UI Revamp (Lumina Design System & Theme Support)
 
-目标：重建 5 个前台页面(首页/画廊/照片作品集/视频作品集/关于)，支持明暗色模式切换，使用 shadcn/ui + TailwindCSS，并尽量采用 reactbits/magicui/aceternity 的组件与视觉风格(无法拉取时由我提示你手动导入对应组件)。
+## 1. 项目目标 (Objective)
 
-## 路由
-- / (首页)
-- /gallery
-- /photo-collections
-- /video-collections
-- /about
+我们将对 **Memorix** 项目的前台页面 (`app/(front)`) 进行彻底的视觉重构。 目标是实现 **"Lumina" 设计语言**，并确保 **前台与后台拥有统一的明暗色模式切换体验**。
 
-## 结构建议
-- app/(front)/layout.tsx (前台布局：导航、背景、字体、动效容器、明暗切换)
-- app/(front)/page.tsx (首页)
-- app/(front)/gallery/page.tsx
-- app/(front)/photo-collections/page.tsx
-- app/(front)/video-collections/page.tsx
-- app/(front)/about/page.tsx
-- app/ui/front/** (前台 UI 组件)
+**核心要求**：
 
-## 整体思路
-- 统一前台视觉语言：暗色宇宙背景 + 玻璃拟态导航 + 大卡片圆角 + 轻微霓虹高光，全站共享导航/页脚。
-- App Router 下把前台页面集中到 app/(front)，共享 layout.tsx 做导航、背景、字体、动效容器。
-- 组件分层：页面级组装 + UI 组件(shadcn/ui) + 视觉组件(reactbits/magicui/aceternity 灵感或改造)。
-- 数据结构先行：统一 Media/Collection 类型，保证首页/画廊/图集/视频集共用同一数据源与筛选逻辑。
-- 交互组件(轮播/筛选)使用 `use client`；页面保持 Server Component 默认模式。
-- 明暗色模式：基于全局主题变量 + 切换入口，前台布局提供切换按钮。
+1. **视觉风格**：融合沉浸式光影 (Cyberpunk/Aurora) 与极简杂志排版 (Editorial)。
+2. **双模适配 (Theme Aware)**：
+   - **Light Mode (默认)**：清爽、高雅、类似画廊的留白设计 (White/Zinc-50)。文字深灰，阴影柔和。
+   - **Dark Mode**：深邃、科技感、霓虹光晕 (Black/Zinc-950)。文字纯白，发光边框。
+   - **切换逻辑**：使用 `next-themes`，默认设置为 `system` 或 `light`，状态需全站同步。
+3. **响应式**：完美适配移动端和桌面端。
 
-## 页面模块明细
-### 首页
-- Hero 轮播：精选图集 + 视频集(统一 Featured 数据数组)
-- 轮播下方：精选视频集、精选图集、画廊亮点(卡片 + “查看全部”)
-- 视觉组件：Hero 背景使用 magicui 光晕/渐变叠层 + reactbits 粒子背景
-- 卡片交互：aceternity 玻璃卡片或 hover glow 风格
+## 2. 技术栈 (Tech Stack)
 
-### 画廊
-- 顶部筛选：Tabs/Segmented (全部/图片/视频/时间线)
-- 内容网格：Masonry 或 Staggered Grid (shadcn Card + 自定义 Grid)
-- 交互：点击卡片进入详情(后续可扩展动态路由)
+- **Framework**: Next.js 15 (App Router)
+- **Styling**: Tailwind CSS + `tailwindcss-animate`
+- **Components**: Shadcn UI (基础组件), Lucide React (图标)
+- **Theme**: `next-themes` (必须使用 `dark:` 修饰符适配所有组件)
+- **Animation**: `framer-motion` (推荐) 或 CSS Keyframes
 
-### 图集 / 视频集
-- 图集：Collection 卡片(封面 + 数量 + 主题)
-- 视频集：视频封面卡(时长/集数/分类)
-- 首页“精选”模块复用同一组件
+## 3. 全局主题配置 (Global Theme Setup)
 
-### 关于
-- 头像 + Studio 文案 + 3~4 个能力卡片(卡片阵列)
+**重要**：请首先检查 `app/layout.tsx` (Root Layout)，确保包含 `<ThemeProvider>`。
 
-## 组件与技术选型
-- shadcn/ui：Tabs、Card、Button、Badge、Tooltip、Separator
-- reactbits/magicui/aceternity：背景粒子、光晕、渐变球体、卡片 hover glow、玻璃容器、轻量入场动效
-- 明暗色模式：基于 `app/ui/global.css` + Tailwind 变量控制，并在前台布局提供切换入口
+- Attribute: `class`
+- DefaultTheme: `light`
+- EnableSystem: `true`
 
-## 数据与类型建议
-- MediaItem：id、type(photo|video)、title、cover、tags、createdAt、collectionId
-- Collection：id、type(photo|video)、title、cover、count、description
-- 首页/画廊/图集/视频集共用 `app/lib/definitions.ts` 中的类型定义
+## 4. 视觉基础组件 (Visual Foundation)
 
-## 开发阶段建议
-- 定路由 + 前台 layout + 导航
-- 搭基础 UI (Hero、精选区、画廊筛选、卡片)
-- 接数据与筛选逻辑(可先用 placeholder-data)
-- 逐步替换视觉组件(引入 reactbits/magicui/aceternity 风格)
-- 响应式细节与性能优化(图片懒加载/next/image)
+请在 `components/ui/front` 目录下创建/更新以下核心组件，**务必支持双色模式**：
 
-## 组件导入提示
-- 优先直接使用 reactbits/magicui/aceternity 的现成组件或模板。
-- 如果我无法拉取对应组件代码，我会明确指出需要你手动导入的组件名称与来源页面。
+### A. 全局背景 (`FrontBackground.tsx`)
 
-## 进度清单
-> 说明：[x] 表示已完成，[ ] 表示未完成。
-- [ ] 1. 确认路由名称、详情页(如有)、数据源(本地/接口)
-- [x] 2. 在 app/(front) 下添加前台路由骨架
-- [x] 3. 构建共享布局(导航/页脚/背景/排版/明暗切换)
-- [x] 4. 定义共享类型(MediaItem、Collection)
-- [x] 5. 共享 UI 组件
-  - [x] 5.1 玻璃态导航
-  - [x] 5.2 分区标题 + “查看全部”
-  - [x] 5.3 作品集卡片(照片/视频)
-  - [x] 5.4 媒体卡片(照片/视频)
-  - [x] 5.5 筛选 Tabs(全部/照片/视频/时间线)
-- [x] 6. 首页
-  - [x] 6.1 Hero 轮播(精选作品集)
-  - [x] 6.2 精选视频作品集
-  - [x] 6.3 精选照片作品集
-  - [x] 6.4 画廊亮点
-- [x] 7. 画廊页
-  - [x] 7.1 筛选栏
-  - [x] 7.2 Masonry 或错落网格
-- [x] 8. 照片作品集页
-- [x] 9. 视频作品集页
-- [x] 10. 关于页(头像、简介、亮点卡片)
-- [x] 11. 视觉层融合(reactbits/magicui/aceternity 风格)
-  - [x] 11.1 背景粒子/光晕
-  - [x] 11.2 卡片悬停光晕
-  - [x] 11.3 页面进入动效
-- [ ] 12. 响应式适配与细节打磨
-- [ ] 13. 手动检查与 lint(如需要)
+- **功能**：包裹前台页面的背景层，位于 `app/(front)/layout.tsx` 最外层。
+- **样式规范**：
+  - **Light Mode**:
+    - 底色：`bg-zinc-50` 或 `bg-white`。
+    - 纹理：极淡的黑色点阵 (`bg-[radial-gradient(#00000011_1px,transparent_1px)]`)。
+    - 光斑：角落仅保留极淡的蓝色/紫色晕染，避免显得“脏”。
+  - **Dark Mode**:
+    - 底色：`bg-black` 或 `bg-[#050505]`。
+    - 纹理：白色微弱点阵 (`bg-[radial-gradient(#ffffff15_1px,transparent_1px)]`)。
+    - 光斑：强烈的极光色（靛青、洋红）流动光斑 (`animate-pulse`)。
 
-> 备注：现有 `app/page.tsx` 与 `app/gallery/page.tsx` 无法删除，因此同路径在 `app/(front)` 下仍保留页面文件。若要完全切换到路由分组，请手动删除 `app/page.tsx` 与 `app/gallery` 下旧路由文件。
+### B. 聚光灯卡片 (`SpotlightCard.tsx`)
 
-## 待办列表
-- [ ] 明确是否需要详情页及其路由规则
-- [ ] 明确数据源(本地静态/服务端/接口)与字段
-- [ ] 明暗色模式的主题色板与变量命名
-- [ ] 优先使用的 reactbits/magicui/aceternity 组件清单
-- [x] 先搭公共布局与首页骨架，再拆出核心卡片组件
+- **交互**：鼠标移动时，卡片表面有圆形光晕跟随。
+- **样式规范**：
+  - **通用**：圆角 `rounded-3xl`，`overflow-hidden`，`relative`。
+  - **Light Mode**:
+    - 背景：白色半透明 `bg-white/80 backdrop-blur-md`。
+    - 边框：极细灰线 `border-zinc-200`。
+    - 光晕颜色：`rgba(0, 0, 0, 0.05)` (淡灰色光晕)。
+    - 阴影：`hover:shadow-xl shadow-black/5`。
+  - **Dark Mode**:
+    - 背景：黑色磨砂 `dark:bg-zinc-900/50`。
+    - 边框：`dark:border-white/10`。
+    - 光晕颜色：`rgba(255, 255, 255, 0.1)` (亮白色光晕)。
 
-## 组件参考(需适配)
-- reactbits.dev：粒子背景、移动光点、动态渐变
-- magicui.design：Hero 光晕、渐变球体、进入动效
-- ui.aceternity.com：悬停发光卡片、玻璃容器
+### C. 悬浮导航栏 (`FloatingNav.tsx`)
 
+- **位置**：页面顶部 `fixed top-6`，水平居中，`z-50`。
+- **样式**：
+  - 胶囊形状 `rounded-full`。
+  - 背景：`bg-white/70 dark:bg-black/70 backdrop-blur-xl`。
+  - 边框：`border border-zinc-200 dark:border-white/10`。
+  - 阴影：`shadow-lg`。
+- **内容**：
+  - 左侧：Logo (LUMINA)。
+  - 中间：菜单项 (首页, 画廊, 图集, 视频集, 关于)。选中态需有背景高亮（Light: 浅灰, Dark: 浅白）。
+  - 右侧：
+    - 搜索按钮。
+    - **主题切换按钮 (`ModeToggle`)**：直接复用 `components/theme-toggle.tsx`。
+    - 用户头像/登录按钮。
+
+## 5. 页面模块开发 (Page Implementation)
+
+请重构 `/app/(front)` 下的各个页面：
+
+### 5.1 首页 (`app/(front)/page.tsx`)
+
+**视觉结构**：
+
+1. **Hero Section (首屏)**：
+   - **容器**：高度 `h-[85vh]`，圆角 `rounded-[2.5rem]`，边距留白。
+   - **内容**：
+     - 背景：高质量摄影图（带视差滚动效果）。
+     - 遮罩：Light Mode 下使用浅色渐变遮罩，Dark Mode 使用深色遮罩。
+     - 文字：超大标题 "LUMINA VISION"，混合模式 `mix-blend-overlay` (Dark) 或 `text-zinc-900` (Light)。
+2. **精选图集 (Featured Collections)**：
+   - 使用 `SpotlightCard` 展示 3 个精选集。
+   - Light Mode 下文字为深色，Dark Mode 为浅色。
+
+### 5.2 画廊页面 (`app/(front)/gallery/page.tsx`)
+
+**功能**：展示所有资源的统一入口。
+
+- **筛选栏 (Filter Bar)**：
+  - 悬浮胶囊样式，位于内容上方。
+  - 样式：`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800`。
+- **网格视图 (Masonry)**：
+  - 图片和视频混排。
+  - 卡片背景：`bg-zinc-100 dark:bg-zinc-900`。
+  - **视频标识**：右上角播放图标，Dark Mode 下图标发光。
+
+### 5.3 集合页面 (`app/(front)/photo-collections` & `video-collections`)
+
+**重构目标**：实体质感。
+
+- **图集卡片**：
+  - 实现“堆叠”效果：主图下方有 1-2 层伪元素，模拟一叠照片。
+  - Light Mode：堆叠层有清晰的投影 `shadow-md`。
+- **视频集卡片**：
+  - 16:9 电影宽幅封面。
+  - 底部元信息栏：`bg-white/90 dark:bg-black/90`。
+
+### 5.4 关于页面 (`app/(front)/about/page.tsx`)
+
+**视觉风格**：极简杂志排版。
+
+- **排版**：大留白。
+- **字体**：Light Mode 下使用深灰色衬线体或无衬线细体，营造文艺感。
+- **Bento Grid**：展示设备清单，格子背景需适配 Light/Dark (`bg-zinc-50 dark:bg-zinc-900/50`)。
+
+## 6. 样式细节 (Design Tokens)
+
+请严格遵循以下 Tailwind 类名组合以保证双模适配：
+
+- **文字颜色**:
+  - 主标题: `text-zinc-900 dark:text-white`
+  - 副标题/正文: `text-zinc-500 dark:text-zinc-400`
+  - 强调色: `text-indigo-600 dark:text-indigo-400`
+- **背景颜色**:
+  - 页面底色: `bg-zinc-50 dark:bg-black`
+  - 卡片底色: `bg-white dark:bg-zinc-900`
+- **边框**:
+  - 通用: `border-zinc-200 dark:border-zinc-800`
+- **阴影**:
+  - Light: `shadow-lg shadow-zinc-200/50` (暖色调阴影)
+  - Dark: `shadow-2xl shadow-black/50` (深邃阴影)
+
+## 7. 开发步骤 (Execution Steps)
+
+1. **基础组件**:
+   - 创建 `components/ui/front/front-background.tsx`。
+   - 创建 `components/ui/front/spotlight-card.tsx`。
+   - 创建 `components/ui/front/floating-nav.tsx` (集成 `ModeToggle`)。
+2. **布局替换**:
+   - 修改 `app/(front)/layout.tsx`，引入新的 Background 和 Nav。
+3. **页面重写**:
+   - 重写 Home, Gallery, Collections, About 页面。
+   - 使用 Mock Data 填充，优先确保 UI 在 Light 和 Dark 模式下都完美无瑕。
+
+**特别提示**: 在编写代码时，请始终考虑 `dark:` 变体。如果一个颜色在 Light Mode 下是黑色的，在 Dark Mode 下通常应变为白色（反之亦然）。
