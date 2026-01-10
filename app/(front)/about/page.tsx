@@ -1,4 +1,4 @@
-import { spaceGrotesk } from '@/app/ui/fonts';
+import { lusitana, spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
 
 const capabilities = [
@@ -20,56 +20,117 @@ const capabilities = [
   },
 ];
 
+const equipment = [
+  {
+    title: '主力机身',
+    description: 'Leica M11 / Sony A7R V，专注细节与肤色层次。',
+    size: 'wide',
+  },
+  {
+    title: '电影机',
+    description: 'Sony FX3 + Atomos，记录更稳定的动态范围。',
+  },
+  {
+    title: '镜头组',
+    description: '35mm / 50mm / 85mm 定焦组合，偏爱自然视角。',
+  },
+  {
+    title: '灯光',
+    description: 'Aputure 300D + PavoTube，控制氛围与高光层次。',
+    size: 'wide',
+  },
+  {
+    title: '后期',
+    description: 'DaVinci Resolve / Capture One，偏向电影质感调色。',
+  },
+  {
+    title: '现场',
+    description: '移动控光布与烟雾机，塑造空间层次。',
+  },
+];
+
 export default function Page() {
   return (
-    <div className='space-y-16'>
-      <section className='front-fade-up grid gap-10 lg:grid-cols-[0.45fr_0.55fr] lg:items-center'>
+    <div className='space-y-20'>
+      <section className='front-fade-up grid gap-12 lg:grid-cols-[0.6fr_0.4fr] lg:items-start'>
         <div className='space-y-6'>
-          <div className='relative h-40 w-40 overflow-hidden rounded-full border border-white/20 bg-gradient-to-br from-slate-200/80 via-slate-100 to-white shadow-lg dark:from-slate-700 dark:via-slate-900 dark:to-slate-950'>
-            <div className='absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.35),transparent_60%)]' />
-            <span className='relative z-10 flex h-full w-full items-center justify-center text-2xl font-semibold text-slate-800 dark:text-white'>
-              NS
-            </span>
-          </div>
-          <div className='space-y-3'>
-            <p className='text-xs uppercase tracking-[0.4em] text-muted-foreground'>
-              About / Studio
-            </p>
-            <h1
-              className={cn(
-                spaceGrotesk.className,
-                'text-4xl font-semibold text-foreground md:text-5xl'
-              )}
-            >
-              Nebula Studio
-            </h1>
-            <p className='text-sm text-muted-foreground'>
-              以宇宙感视觉作为主线，将摄影与动态影像融合为统一的视觉档案。专注于冷调、光晕与玻璃质感，强调氛围与情绪的延展。
-            </p>
-          </div>
+          <p className='text-xs uppercase tracking-[0.4em] text-zinc-500 dark:text-zinc-400'>
+            About / Lumina
+          </p>
+          <h1
+            className={cn(
+              lusitana.className,
+              'text-4xl font-semibold text-zinc-900 dark:text-white md:text-6xl'
+            )}
+          >
+            Lumina Studio
+          </h1>
+          <p className='max-w-xl text-base text-zinc-500 dark:text-zinc-400'>
+            以极简排版承载高密度影像叙事，专注于光影与情绪的延展。在静态与动态之间，寻找更有呼吸感的视觉语言。
+          </p>
         </div>
         <div className='space-y-6'>
-          <div className='rounded-3xl border border-slate-200/70 bg-white/70 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5 dark:shadow-none'>
-            <h2 className='text-lg font-semibold text-foreground'>
+          <div className='rounded-3xl border border-zinc-200 bg-white/80 p-6 shadow-lg shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900/60 dark:shadow-black/50'>
+            <h2
+              className={cn(
+                spaceGrotesk.className,
+                'text-lg font-semibold text-zinc-900 dark:text-white'
+              )}
+            >
               工作室宣言
             </h2>
-            <p className='mt-3 text-sm text-muted-foreground'>
-              我们将每一次拍摄看作一次行星探索，通过影像记录不可复制的光线轨迹，并把它们整理成可持续更新的视觉档案。
+            <p className='mt-3 text-sm text-zinc-500 dark:text-zinc-400'>
+              我们将每一次拍摄视为一次光线实验，通过影像记录不可复制的高光与阴影，并整理成持续更新的视觉档案。
             </p>
           </div>
           <div className='grid gap-4 md:grid-cols-2'>
             {capabilities.map((item) => (
               <div
                 key={item.title}
-                className='rounded-2xl border border-slate-200/70 bg-white/70 p-5 text-sm text-muted-foreground shadow-sm backdrop-blur transition duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:shadow-none'
+                className='rounded-2xl border border-zinc-200 bg-white/70 p-5 text-sm text-zinc-500 shadow-lg shadow-zinc-200/40 transition duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400 dark:shadow-black/40'
               >
-                <h3 className='text-base font-semibold text-foreground'>
+                <h3 className='text-base font-semibold text-zinc-900 dark:text-white'>
                   {item.title}
                 </h3>
                 <p className='mt-2'>{item.description}</p>
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className='front-fade-up space-y-6'>
+        <div className='space-y-3'>
+          <p className='text-xs uppercase tracking-[0.4em] text-zinc-500 dark:text-zinc-400'>
+            Equipment / Bento
+          </p>
+          <h2
+            className={cn(
+              lusitana.className,
+              'text-3xl font-semibold text-zinc-900 dark:text-white md:text-4xl'
+            )}
+          >
+            设备清单
+          </h2>
+          <p className='max-w-2xl text-sm text-zinc-500 dark:text-zinc-400'>
+            以轻量化配置为主，保证现场机动性与光影塑形的稳定输出。
+          </p>
+        </div>
+        <div className='grid gap-4 md:grid-cols-2'>
+          {equipment.map((item) => (
+            <div
+              key={item.title}
+              className={cn(
+                'rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400',
+                item.size === 'wide' && 'md:col-span-2'
+              )}
+            >
+              <h3 className='text-base font-semibold text-zinc-900 dark:text-white'>
+                {item.title}
+              </h3>
+              <p className='mt-2'>{item.description}</p>
+            </div>
+          ))}
         </div>
       </section>
     </div>
