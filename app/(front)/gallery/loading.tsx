@@ -1,8 +1,8 @@
 function MediaCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={className}>
-      <div className='h-full w-full overflow-hidden rounded-2xl border border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5 dark:shadow-none'>
-        <div className='h-full w-full animate-pulse bg-slate-200/70 dark:bg-slate-800/70' />
+      <div className='h-full w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-lg shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-2xl dark:shadow-black/50'>
+        <div className='h-full w-full animate-pulse bg-zinc-200/70 dark:bg-zinc-800/70' />
       </div>
     </div>
   );
@@ -10,13 +10,13 @@ function MediaCardSkeleton({ className }: { className?: string }) {
 
 export default function Loading() {
   return (
-    <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
-      <MediaCardSkeleton className='md:col-span-2 h-60' />
-      <MediaCardSkeleton className='h-60' />
-      <MediaCardSkeleton className='h-60' />
-      <MediaCardSkeleton className='md:col-span-2 h-60' />
-      <MediaCardSkeleton className='h-60' />
-      <MediaCardSkeleton className='h-60' />
+    <div className='columns-1 gap-x-6 md:columns-2 xl:columns-3'>
+      <MediaCardSkeleton className='mb-6 aspect-[4/5] break-inside-avoid' />
+      <MediaCardSkeleton className='mb-6 aspect-video break-inside-avoid' />
+      <MediaCardSkeleton className='mb-6 aspect-[4/5] break-inside-avoid' />
+      <MediaCardSkeleton className='mb-6 aspect-[4/5] break-inside-avoid' />
+      <MediaCardSkeleton className='mb-6 aspect-video break-inside-avoid' />
+      <MediaCardSkeleton className='mb-6 aspect-[4/5] break-inside-avoid' />
     </div>
   );
 }
