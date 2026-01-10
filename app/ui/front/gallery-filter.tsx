@@ -37,7 +37,7 @@ export function GalleryFilter({ items }: GalleryFilterProps) {
 
   return (
     <div className='space-y-8'>
-      <div className='flex flex-wrap gap-3 rounded-full border border-slate-200/70 bg-white/70 px-2 py-2 text-sm shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5 dark:shadow-none'>
+      <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
         {filters.map((tab) => (
           <button
             key={tab.value}
@@ -46,22 +46,19 @@ export function GalleryFilter({ items }: GalleryFilterProps) {
             className={cn(
               'rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] transition',
               filter === tab.value
-                ? 'bg-foreground text-background'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white'
+                : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
             )}
           >
             {tab.label}
           </button>
         ))}
       </div>
-      <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
-        {visibleItems.map((item, index) => (
+      <div className='columns-1 gap-x-6 md:columns-2 xl:columns-3'>
+        {visibleItems.map((item) => (
           <div
             key={item.id}
-            className={cn(
-              index % 3 === 1 && 'md:translate-y-6',
-              index % 3 === 2 && 'md:-translate-y-4'
-            )}
+            className={cn('mb-6 break-inside-avoid')}
           >
             <MediaCard
               item={item}
