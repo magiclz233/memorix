@@ -1,3 +1,4 @@
+import { Play } from 'lucide-react';
 import type { MediaItem } from '@/app/lib/definitions';
 import { cn } from '@/lib/utils';
 
@@ -18,15 +19,27 @@ const formatDate = (value: string) => {
 
 export function MediaCard({ item, showDate }: MediaCardProps) {
   const typeLabel = item.type === 'photo' ? '照片' : '视频';
+  const isVideo = item.type === 'video';
 
   return (
-    <div className='group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/70 shadow-sm backdrop-blur transition duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:shadow-none'>
+    <div
+      className={cn(
+        'group relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-lg shadow-zinc-200/50 transition duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-2xl dark:shadow-black/50',
+        isVideo ? 'aspect-video' : 'aspect-[4/5]'
+      )}
+    >
       <div
         className={cn(
           'absolute inset-0 bg-gradient-to-br opacity-70 transition duration-500 group-hover:opacity-90',
           item.cover
         )}
       />
+      <div className='absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent' />
+      {isVideo ? (
+        <div className='absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white shadow-lg shadow-black/40 dark:border-white/20 dark:bg-black/40 dark:shadow-[0_0_18px_rgba(99,102,241,0.7)]'>
+          <Play className='h-4 w-4 fill-white text-white' />
+        </div>
+      ) : null}
       <div className='relative z-10 flex h-full flex-col justify-between gap-6 p-5 text-white'>
         <div className='flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-white/80'>
           <span>{typeLabel}</span>
