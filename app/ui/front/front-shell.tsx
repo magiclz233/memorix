@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { FrontBackground } from '@/app/ui/front/front-background';
 import { FrontFooter } from '@/app/ui/front/front-footer';
-import { FrontNav } from '@/app/ui/front/front-nav';
+import { FloatingNav } from '@/app/ui/front/floating-nav';
 
 type FrontShellProps = {
   children: ReactNode;
@@ -9,12 +9,12 @@ type FrontShellProps = {
 
 export function FrontShell({ children }: FrontShellProps) {
   return (
-    <div className='relative min-h-screen overflow-hidden bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100'>
+    <div className='relative min-h-screen overflow-hidden bg-zinc-50 text-zinc-900 dark:bg-black dark:text-white'>
       <FrontBackground />
       <div className='relative z-10 flex min-h-screen flex-col'>
-        <FrontNav />
+        <FloatingNav />
         <main className='flex-1'>
-          <div className='mx-auto w-full max-w-6xl px-6 py-16'>
+          <div className='mx-auto w-[80vw] max-w-none px-0 pb-16 pt-24'>
             {children}
           </div>
         </main>
