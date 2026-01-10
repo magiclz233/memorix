@@ -7,18 +7,18 @@ export default function Page() {
   return (
     <div className='space-y-12'>
       <header className='front-fade-up space-y-4'>
-        <p className='text-xs uppercase tracking-[0.4em] text-muted-foreground'>
+        <p className='text-xs uppercase tracking-[0.4em] text-zinc-500 dark:text-zinc-400'>
           Collections / Photo
         </p>
         <h1
           className={cn(
             spaceGrotesk.className,
-            'text-4xl font-semibold text-foreground md:text-5xl'
+            'text-4xl font-semibold text-zinc-900 dark:text-white md:text-5xl'
           )}
         >
           照片作品集
         </h1>
-        <p className='max-w-2xl text-sm text-muted-foreground'>
+        <p className='max-w-2xl text-sm text-zinc-500 dark:text-zinc-400'>
           每一个主题都是一段独立的光影旅程，聚焦构图与氛围的沉浸感。
         </p>
       </header>
