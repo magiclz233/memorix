@@ -1,6 +1,7 @@
-import '@/app/ui/global.css'
+import '@/app/ui/global.css';
 import { inter } from '@/app/ui/fonts';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
   title: {
@@ -17,9 +18,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang='en' suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
