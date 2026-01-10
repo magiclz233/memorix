@@ -21,13 +21,13 @@ export function SectionHeader({
         <h2
           className={cn(
             spaceGrotesk.className,
-            'text-2xl font-semibold text-foreground md:text-3xl'
+            'text-2xl font-semibold text-zinc-900 dark:text-white md:text-3xl'
           )}
         >
           {title}
         </h2>
         {description ? (
-          <p className='max-w-2xl text-sm text-muted-foreground'>
+          <p className='max-w-2xl text-sm text-zinc-500 dark:text-zinc-400'>
             {description}
           </p>
         ) : null}
@@ -35,7 +35,7 @@ export function SectionHeader({
       {actionLabel && actionHref ? (
         <Link
           href={actionHref}
-          className='text-xs uppercase tracking-[0.3em] text-muted-foreground transition hover:text-foreground'
+          className='text-xs uppercase tracking-[0.3em] text-indigo-600 transition hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300'
         >
           {actionLabel}
         </Link>
