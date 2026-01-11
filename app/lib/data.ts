@@ -566,6 +566,32 @@ export async function fetchHeroPhotosForHome(options?: { userId?: string; limit?
     .filter((item): item is (typeof filtered)[number] => Boolean(item));
 }
 
+export async function fetchPublishedMediaForGallery() {
+  const records = await db
+    .select({
+      id: files.id,
+      title: files.title,
+      path: files.path,
+      mimeType: files.mimeType,
+      mediaType: files.mediaType,
+      url: files.url,
+      thumbUrl: files.thumbUrl,
+      mtime: files.mtime,
+      storageConfig: userStorages.config,
+    })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .where(and(eq(files.isPublished, true), inArray(files.mediaType, ['image', 'video'])))
+    .orderBy(desc(files.mtime));
+
+  return records
+    .filter(
+      (record) =>
+        !(record.storageConfig as { isDisabled?: boolean })?.isDisabled,
+    )
+    .map(({ storageConfig, ...rest }) => rest);
+}
+
 export async function fetchPublishedPhotosForHome(limit = 12) {
   const records = await db
     .select({
