@@ -1,9 +1,13 @@
-import { galleryMedia } from '@/app/lib/front-data';
 import { spaceGrotesk } from '@/app/ui/fonts';
 import { GalleryFilter } from '@/app/ui/front/gallery-filter';
+import type { MediaItem } from '@/app/lib/definitions';
 import { cn } from '@/lib/utils';
 
-export function FrontGallery() {
+type FrontGalleryProps = {
+  items: MediaItem[];
+};
+
+export function FrontGallery({ items }: FrontGalleryProps) {
   return (
     <div className='space-y-12'>
       <header className='front-fade-up space-y-4'>
@@ -22,7 +26,7 @@ export function FrontGallery() {
           以时间线与媒介切换浏览影像档案，探索每一次拍摄留下的光痕。
         </p>
       </header>
-      <GalleryFilter items={galleryMedia} />
+      <GalleryFilter items={items} />
     </div>
   );
 }
