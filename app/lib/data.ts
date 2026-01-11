@@ -566,30 +566,71 @@ export async function fetchHeroPhotosForHome(options?: { userId?: string; limit?
     .filter((item): item is (typeof filtered)[number] => Boolean(item));
 }
 
-export async function fetchPublishedMediaForGallery() {
-  const records = await db
-    .select({
-      id: files.id,
-      title: files.title,
-      path: files.path,
-      mimeType: files.mimeType,
-      mediaType: files.mediaType,
-      url: files.url,
-      thumbUrl: files.thumbUrl,
-      mtime: files.mtime,
-      storageConfig: userStorages.config,
-    })
-    .from(files)
-    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(and(eq(files.isPublished, true), inArray(files.mediaType, ['image', 'video'])))
-    .orderBy(desc(files.mtime));
+type FetchGalleryOptions = {
+  limit?: number;
+  offset?: number;
+};
 
-  return records
-    .filter(
-      (record) =>
-        !(record.storageConfig as { isDisabled?: boolean })?.isDisabled,
-    )
-    .map(({ storageConfig, ...rest }) => rest);
+export async function fetchPublishedMediaForGallery(
+  options: FetchGalleryOptions = {},
+) {
+  try {
+    let query = db
+      .select({
+        id: files.id,
+        title: files.title,
+        path: files.path,
+        size: files.size,
+        mimeType: files.mimeType,
+        mediaType: files.mediaType,
+        url: files.url,
+        thumbUrl: files.thumbUrl,
+        mtime: files.mtime,
+        resolutionWidth: photoMetadata.resolutionWidth,
+        resolutionHeight: photoMetadata.resolutionHeight,
+        description: photoMetadata.description,
+        camera: photoMetadata.camera,
+        maker: photoMetadata.maker,
+        lens: photoMetadata.lens,
+        dateShot: photoMetadata.dateShot,
+        exposure: photoMetadata.exposure,
+        aperture: photoMetadata.aperture,
+        iso: photoMetadata.iso,
+        focalLength: photoMetadata.focalLength,
+        whiteBalance: photoMetadata.whiteBalance,
+        gpsLatitude: photoMetadata.gpsLatitude,
+        gpsLongitude: photoMetadata.gpsLongitude,
+        storageConfig: userStorages.config,
+      })
+      .from(files)
+      .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+      .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+      .where(
+        and(eq(files.isPublished, true), inArray(files.mediaType, ['image', 'video'])),
+      )
+      .orderBy(desc(files.mtime));
+    if (typeof options.limit === 'number') {
+      query = query.limit(options.limit);
+    }
+    if (typeof options.offset === 'number' && options.offset > 0) {
+      query = query.offset(options.offset);
+    }
+    const records = await query;
+
+    return records
+      .filter(
+        (record) =>
+          !(record.storageConfig as { isDisabled?: boolean })?.isDisabled,
+      )
+      .map(({ storageConfig, ...rest }) => rest);
+  } catch (error) {
+    const cause = (error as Error & { cause?: unknown }).cause;
+    console.error('画廊查询失败:', error);
+    if (cause) {
+      console.error('画廊查询原始错误:', cause);
+    }
+    throw error;
+  }
 }
 
 export async function fetchPublishedPhotosForHome(limit = 12) {
