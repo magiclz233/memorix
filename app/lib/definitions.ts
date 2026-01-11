@@ -98,8 +98,9 @@ export type MediaItem = {
   id: string;
   type: 'photo' | 'video';
   title: string;
-  cover: string;
-  tags: string[];
+  cover?: string;
+  coverUrl?: string;
+  tags?: string[];
   createdAt: string;
   collectionId?: string;
 };
