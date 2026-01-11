@@ -1,12 +1,15 @@
 'use client';
 
 import { AnimatePresence, motion } from 'motion/react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
+type GalleryId = string | number;
+
 type GalleryItem = {
-  id: number;
+  id: GalleryId;
   src: string;
   title: string;
   resolution?: string | null;
@@ -22,6 +25,8 @@ type GalleryItem = {
   iso?: number | null;
   focalLength?: number | null;
   whiteBalance?: string | null;
+  gpsLatitude?: number | null;
+  gpsLongitude?: number | null;
   size?: number | null;
 };
 
@@ -52,7 +57,7 @@ const readStoredNumber = (key: string, fallback: number) => {
 const createBalancedColumns = (
   items: GalleryItem[],
   columnCount: number,
-  ratioMap: Record<number, number>,
+  ratioMap: Record<string, number>,
 ) => {
   const columns = Array.from({ length: columnCount }, () => [] as GalleryItem[]);
   const columnHeights = Array.from({ length: columnCount }, () => 0);
@@ -92,11 +97,14 @@ const formatFileSize = (bytes?: number | null) => {
   return `${formatNumber(size, index === 0 ? 0 : 1)}${units[index]}`;
 };
 
+const getRatioKey = (id: GalleryId) => String(id);
+
 const getAspectRatioValue = (
   item: GalleryItem,
-  ratioMap: Record<number, number>,
+  ratioMap: Record<string, number>,
 ) => {
-  if (ratioMap[item.id]) return ratioMap[item.id];
+  const ratioKey = getRatioKey(item.id);
+  if (ratioMap[ratioKey]) return ratioMap[ratioKey];
   if (item.width && item.height) {
     return item.width / item.height;
   }
@@ -110,11 +118,20 @@ const formatDate = (value?: string | null) => {
   return parsed.toLocaleString('zh-CN', { hour12: false });
 };
 
+const formatCoordinate = (value?: number | null) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return null;
+  return formatNumber(value, 6);
+};
+
 const buildDetails = (item: GalleryItem) => {
   const cameraLabel =
     item.maker && item.camera ? `${item.maker} ${item.camera}` : item.camera ?? item.maker;
   const resolution =
     item.resolution ?? (item.width && item.height ? `${item.width}×${item.height}` : null);
+  const latitude = formatCoordinate(item.gpsLatitude);
+  const longitude = formatCoordinate(item.gpsLongitude);
+  const coordinate =
+    latitude && longitude ? `${latitude}, ${longitude}` : latitude ?? longitude ?? null;
 
   const details = [
     { label: '分辨率', value: resolution },
@@ -125,6 +142,7 @@ const buildDetails = (item: GalleryItem) => {
     { label: 'ISO', value: item.iso ? `ISO ${item.iso}` : null },
     { label: '焦距', value: item.focalLength ? `${formatNumber(item.focalLength, 1)}mm` : null },
     { label: '白平衡', value: item.whiteBalance },
+    { label: '拍摄坐标', value: coordinate },
     { label: '拍摄时间', value: formatDate(item.dateShot) },
     { label: '文件大小', value: formatFileSize(item.size) },
   ];
@@ -140,7 +158,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('gallery25-columns', 4),
   );
-  const [ratioMap, setRatioMap] = useState<Record<number, number>>({});
+  const [ratioMap, setRatioMap] = useState<Record<string, number>>({});
   const displayColumnCount = Math.min(columnCount, Math.max(1, items.length));
   const gridSizes = `(max-width: 768px) 50vw, ${Math.round(
     (isFullBleed ? 100 : 80) / displayColumnCount,
@@ -153,6 +171,14 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     () => (selected ? buildDetails(selected) : []),
     [selected],
   );
+  const selectedIndex = useMemo(() => {
+    if (!selected) return -1;
+    return items.findIndex((item) => item.id === selected.id);
+  }, [items, selected]);
+  const selectedAspectRatio = selected
+    ? getAspectRatioValue(selected, ratioMap)
+    : 1;
+  const isLandscape = selectedAspectRatio >= 1.2;
 
   useEffect(() => {
     window.localStorage.setItem('gallery25-full-bleed', String(isFullBleed));
@@ -167,11 +193,39 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setSelected(null);
+        return;
+      }
+      if (items.length < 2) return;
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        const prevIndex =
+          selectedIndex <= 0 ? items.length - 1 : selectedIndex - 1;
+        setSelected(items[prevIndex]);
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        const nextIndex =
+          selectedIndex >= items.length - 1 ? 0 : selectedIndex + 1;
+        setSelected(items[nextIndex]);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selected]);
+  }, [items, selected, selectedIndex]);
+
+  const canNavigate = items.length > 1 && selectedIndex !== -1;
+  const handleNavigate = (direction: 'prev' | 'next') => {
+    if (!canNavigate) return;
+    const nextIndex =
+      direction === 'prev'
+        ? selectedIndex <= 0
+          ? items.length - 1
+          : selectedIndex - 1
+        : selectedIndex >= items.length - 1
+          ? 0
+          : selectedIndex + 1;
+    setSelected(items[nextIndex]);
+  };
 
   return (
     <section className={cn('py-32', className)}>
@@ -183,7 +237,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
       >
         <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground'>
           <div className='flex flex-wrap items-center gap-4'>
-            <span>共 {items.length} 张照片</span>
+            <span>已加载 {items.length} 张照片</span>
             <label className='flex items-center gap-2 text-xs text-muted-foreground'>
               <span>每行</span>
               <input
@@ -239,12 +293,13 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                           src={item.src}
                           alt={item.title}
                           onLoadingComplete={(image) => {
-                            if (ratioMap[item.id]) return;
+                            const ratioKey = getRatioKey(item.id);
+                            if (ratioMap[ratioKey]) return;
                             if (!image.naturalWidth || !image.naturalHeight) return;
                             const ratio = image.naturalWidth / image.naturalHeight;
                             setRatioMap((prev) => ({
                               ...prev,
-                              [item.id]: ratio,
+                              [ratioKey]: ratio,
                             }));
                           }}
                         />
@@ -290,7 +345,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
               transition={{ duration: 0.2 }}
               role='dialog'
               aria-modal='true'
-              className='relative z-10 w-full max-w-5xl rounded-2xl border border-border bg-card p-6 text-foreground shadow-2xl'
+              className='relative z-10 h-[85vh] w-[96vw] max-w-7xl rounded-3xl border border-border bg-card p-6 text-foreground shadow-2xl md:h-[88vh] md:p-8'
             >
               <button
                 type='button'
@@ -299,10 +354,10 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
               >
                 关闭
               </button>
-              <div className='grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'>
-                <div className='rounded-2xl bg-muted/60 p-3'>
+              <div className='grid h-full gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]'>
+                <div className='relative flex min-h-0 flex-col rounded-2xl bg-muted/60 p-3'>
                   <div
-                    className='relative w-full overflow-hidden rounded-xl bg-muted'
+                    className='relative h-full w-full overflow-hidden rounded-xl bg-muted'
                     style={{ aspectRatio: getAspectRatioValue(selected, ratioMap) }}
                   >
                     <Image
@@ -310,20 +365,41 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                       sizes='(max-width: 768px) 90vw, 60vw'
                       src={selected.src}
                       alt={selected.title}
-                      className='object-contain'
+                      className={cn(isLandscape ? 'object-cover' : 'object-contain')}
                       onLoadingComplete={(image) => {
-                        if (ratioMap[selected.id]) return;
+                        const ratioKey = getRatioKey(selected.id);
+                        if (ratioMap[ratioKey]) return;
                         if (!image.naturalWidth || !image.naturalHeight) return;
                         const ratio = image.naturalWidth / image.naturalHeight;
                         setRatioMap((prev) => ({
                           ...prev,
-                          [selected.id]: ratio,
+                          [ratioKey]: ratio,
                         }));
                       }}
                     />
                   </div>
+                  {canNavigate ? (
+                    <>
+                      <button
+                        type='button'
+                        onClick={() => handleNavigate('prev')}
+                        className='absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
+                        aria-label='上一张'
+                      >
+                        <ChevronLeft className='h-5 w-5' />
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => handleNavigate('next')}
+                        className='absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
+                        aria-label='下一张'
+                      >
+                        <ChevronRight className='h-5 w-5' />
+                      </button>
+                    </>
+                  ) : null}
                 </div>
-                <div className='space-y-4 text-sm text-muted-foreground'>
+                <div className='max-h-full space-y-4 overflow-y-auto text-sm text-muted-foreground'>
                   <div>
                     <p className='text-base font-semibold text-foreground'>{selected.title}</p>
                     {selected.description ? (
