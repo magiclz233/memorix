@@ -1,31 +1,24 @@
 import { fetchPublishedMediaForGallery } from '@/app/lib/data';
-import type { MediaItem } from '@/app/lib/definitions';
-import { FrontGallery } from '@/app/ui/front/front-gallery';
+import { buildGalleryItems } from '@/app/lib/gallery';
+import { GalleryInfinite } from '@/app/ui/front/gallery-infinite';
 
-const normalizeType = (mediaType?: string | null, mimeType?: string | null) => {
-  if (mediaType === 'video' || mimeType?.startsWith('video/')) return 'video';
-  return 'photo';
-};
+const PAGE_SIZE = 12;
 
 export default async function Page() {
-  const records = await fetchPublishedMediaForGallery();
-  const items: MediaItem[] = records.map((record) => {
-    const title = record.title ?? record.path ?? '未命名';
-    const createdAt = record.mtime
-      ? new Date(record.mtime).toISOString()
-      : new Date().toISOString();
-    const coverUrl =
-      record.thumbUrl || record.url || `/api/local-files/${record.id}`;
-
-    return {
-      id: String(record.id),
-      type: normalizeType(record.mediaType, record.mimeType),
-      title,
-      coverUrl,
-      tags: [],
-      createdAt,
-    };
+  const records = await fetchPublishedMediaForGallery({
+    limit: PAGE_SIZE + 1,
+    offset: 0,
   });
+  const hasNext = records.length > PAGE_SIZE;
+  const pageRecords = hasNext ? records.slice(0, PAGE_SIZE) : records;
+  const items = buildGalleryItems(pageRecords);
 
-  return <FrontGallery items={items} />;
+  return (
+    <GalleryInfinite
+      initialItems={items}
+      initialPage={1}
+      pageSize={PAGE_SIZE}
+      hasNext={hasNext}
+    />
+  );
 }
