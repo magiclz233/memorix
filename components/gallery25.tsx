@@ -35,6 +35,8 @@ type Gallery25Props = {
   className?: string;
 };
 
+type ViewMode = 'fit' | 'crop';
+
 const clampColumnCount = (value: number) => Math.min(10, Math.max(3, value));
 
 const readStoredBoolean = (key: string, fallback: boolean) => {
@@ -52,6 +54,13 @@ const readStoredNumber = (key: string, fallback: number) => {
   const parsed = Number(stored);
   if (Number.isNaN(parsed)) return fallback;
   return clampColumnCount(parsed);
+};
+
+const readStoredViewMode = (key: string, fallback: ViewMode) => {
+  if (typeof window === 'undefined') return fallback;
+  const stored = window.sessionStorage.getItem(key);
+  if (stored === 'fit' || stored === 'crop') return stored;
+  return fallback;
 };
 
 const createBalancedColumns = (
@@ -158,7 +167,11 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('gallery25-columns', 4),
   );
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    readStoredViewMode('gallery25-view-mode', 'fit'),
+  );
   const [ratioMap, setRatioMap] = useState<Record<string, number>>({});
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const displayColumnCount = Math.min(columnCount, Math.max(1, items.length));
   const gridSizes = `(max-width: 768px) 50vw, ${Math.round(
     (isFullBleed ? 100 : 80) / displayColumnCount,
@@ -178,7 +191,42 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   const selectedAspectRatio = selected
     ? getAspectRatioValue(selected, ratioMap)
     : 1;
-  const isLandscape = selectedAspectRatio >= 1.2;
+  const modalDimensions = useMemo(() => {
+    if (!selected || viewMode !== 'crop') return null;
+    if (!viewport.width || !viewport.height) return null;
+    const maxWidth = Math.min(viewport.width * 0.96, 1400);
+    const maxHeight = Math.min(viewport.height * 0.88, 900);
+    if (viewport.width < 768) {
+      return {
+        width: Math.round(maxWidth),
+        height: Math.round(maxHeight),
+      };
+    }
+    const padding = 64;
+    const gap = 24;
+    const detailsWidth = 320;
+    const ratio = selectedAspectRatio > 0 ? selectedAspectRatio : 1;
+    const availableWidth = Math.max(0, maxWidth - detailsWidth - gap - padding);
+    const availableHeight = Math.max(0, maxHeight - padding);
+    let imageWidth = availableHeight * ratio;
+    let imageHeight = availableHeight;
+    if (imageWidth > availableWidth) {
+      imageWidth = availableWidth;
+      imageHeight = imageWidth / ratio;
+    }
+    const modalWidth = Math.min(
+      maxWidth,
+      Math.max(720, imageWidth + detailsWidth + gap + padding),
+    );
+    const modalHeight = Math.min(
+      maxHeight,
+      Math.max(520, imageHeight + padding),
+    );
+    return {
+      width: Math.round(modalWidth),
+      height: Math.round(modalHeight),
+    };
+  }, [selected, selectedAspectRatio, viewMode, viewport.height, viewport.width]);
 
   useEffect(() => {
     window.localStorage.setItem('gallery25-full-bleed', String(isFullBleed));
@@ -187,6 +235,20 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   useEffect(() => {
     window.localStorage.setItem('gallery25-columns', String(columnCount));
   }, [columnCount]);
+
+  useEffect(() => {
+    window.sessionStorage.setItem('gallery25-view-mode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const update = () => {
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   useEffect(() => {
     if (!selected) return;
@@ -345,16 +407,57 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
               transition={{ duration: 0.2 }}
               role='dialog'
               aria-modal='true'
-              className='relative z-10 h-[85vh] w-[96vw] max-w-7xl rounded-3xl border border-border bg-card p-6 text-foreground shadow-2xl md:h-[88vh] md:p-8'
+              className={cn(
+                'relative z-10 flex w-[96vw] flex-col rounded-3xl border border-border bg-card p-6 text-foreground shadow-2xl md:p-8',
+                viewMode === 'crop'
+                  ? 'h-[85vh] transition-[width,height] duration-300 ease-out md:h-[88vh]'
+                  : 'h-[85vh] max-w-7xl md:h-[88vh]',
+              )}
+              style={
+                viewMode === 'crop' && modalDimensions
+                  ? {
+                      width: modalDimensions.width,
+                      height: modalDimensions.height,
+                    }
+                  : undefined
+              }
             >
-              <button
-                type='button'
-                onClick={() => setSelected(null)}
-                className='absolute right-4 top-4 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
-              >
-                关闭
-              </button>
-              <div className='grid h-full gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]'>
+              <div className='flex flex-wrap items-center justify-between gap-3 pb-4'>
+                <div className='inline-flex rounded-full border border-border bg-muted/60 p-1 text-xs text-muted-foreground'>
+                  <button
+                    type='button'
+                    onClick={() => setViewMode('fit')}
+                    className={cn(
+                      'rounded-full px-3 py-1 transition',
+                      viewMode === 'fit'
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'hover:text-foreground',
+                    )}
+                  >
+                    适配
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setViewMode('crop')}
+                    className={cn(
+                      'rounded-full px-3 py-1 transition',
+                      viewMode === 'crop'
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'hover:text-foreground',
+                    )}
+                  >
+                    裁切
+                  </button>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => setSelected(null)}
+                  className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
+                >
+                  关闭
+                </button>
+              </div>
+              <div className='grid min-h-0 flex-1 gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]'>
                 <div className='relative flex min-h-0 flex-col rounded-2xl bg-muted/60 p-3'>
                   <div
                     className='relative h-full w-full overflow-hidden rounded-xl bg-muted'
@@ -365,7 +468,9 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                       sizes='(max-width: 768px) 90vw, 60vw'
                       src={selected.src}
                       alt={selected.title}
-                      className={cn(isLandscape ? 'object-cover' : 'object-contain')}
+                      className={cn(
+                        viewMode === 'crop' ? 'object-cover' : 'object-contain',
+                      )}
                       onLoadingComplete={(image) => {
                         const ratioKey = getRatioKey(selected.id);
                         if (ratioMap[ratioKey]) return;
