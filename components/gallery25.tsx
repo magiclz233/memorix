@@ -4,30 +4,14 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
+import { spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
 
 type GalleryId = string | number;
 
-type GalleryItem = {
-  id: GalleryId;
-  src: string;
-  title: string;
+type GalleryItem = BaseGalleryItem & {
   resolution?: string | null;
-  width?: number | null;
-  height?: number | null;
-  description?: string | null;
-  camera?: string | null;
-  maker?: string | null;
-  lens?: string | null;
-  dateShot?: string | null;
-  exposure?: number | null;
-  aperture?: number | null;
-  iso?: number | null;
-  focalLength?: number | null;
-  whiteBalance?: string | null;
-  gpsLatitude?: number | null;
-  gpsLongitude?: number | null;
-  size?: number | null;
 };
 
 type Gallery25Props = {
@@ -36,6 +20,15 @@ type Gallery25Props = {
 };
 
 type ViewMode = 'fit' | 'crop';
+
+const filters = [
+  { value: 'all', label: '全部' },
+  { value: 'photo', label: '照片' },
+  { value: 'video', label: '视频' },
+  { value: 'timeline', label: '时间线' },
+] as const;
+
+type FilterValue = (typeof filters)[number]['value'];
 
 const clampColumnCount = (value: number) => Math.min(10, Math.max(3, value));
 
@@ -132,6 +125,16 @@ const formatCoordinate = (value?: number | null) => {
   return formatNumber(value, 6);
 };
 
+const resolveTimelineTimestamp = (item: GalleryItem) => {
+  const value = item.dateShot ?? item.createdAt;
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  if (Number.isNaN(parsed)) return 0;
+  return parsed;
+};
+
+const resolveItemType = (item: GalleryItem) => item.type ?? 'photo';
+
 const buildDetails = (item: GalleryItem) => {
   const cameraLabel =
     item.maker && item.camera ? `${item.maker} ${item.camera}` : item.camera ?? item.maker;
@@ -160,7 +163,7 @@ const buildDetails = (item: GalleryItem) => {
 };
 
 const Gallery25 = ({ items = [], className }: Gallery25Props) => {
-  const [selected, setSelected] = useState<GalleryItem | null>(null);
+  const [selectedId, setSelectedId] = useState<GalleryId | null>(null);
   const [isFullBleed, setIsFullBleed] = useState(() =>
     readStoredBoolean('gallery25-full-bleed', false),
   );
@@ -170,24 +173,48 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     readStoredViewMode('gallery25-view-mode', 'fit'),
   );
+  const [filter, setFilter] = useState<FilterValue>('all');
   const [ratioMap, setRatioMap] = useState<Record<string, number>>({});
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
-  const displayColumnCount = Math.min(columnCount, Math.max(1, items.length));
+  const timelineItems = useMemo(() => {
+    return items
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const timeA = resolveTimelineTimestamp(a.item);
+        const timeB = resolveTimelineTimestamp(b.item);
+        if (timeA === timeB) return a.index - b.index;
+        return timeB - timeA;
+      })
+      .map((entry) => entry.item);
+  }, [items]);
+  const visibleItems = useMemo(() => {
+    if (filter === 'timeline') return timelineItems;
+    if (filter === 'all') return items;
+    return items.filter((item) => resolveItemType(item) === filter);
+  }, [filter, items, timelineItems]);
+  const displayColumnCount = Math.min(
+    columnCount,
+    Math.max(1, visibleItems.length),
+  );
   const gridSizes = `(max-width: 768px) 50vw, ${Math.round(
     (isFullBleed ? 100 : 80) / displayColumnCount,
   )}vw`;
   const columns = useMemo(
-    () => createBalancedColumns(items, displayColumnCount, ratioMap),
-    [items, displayColumnCount, ratioMap],
+    () => createBalancedColumns(visibleItems, displayColumnCount, ratioMap),
+    [displayColumnCount, ratioMap, visibleItems],
   );
+  const selectedIndex = useMemo(() => {
+    if (!selectedId) return -1;
+    return visibleItems.findIndex((item) => item.id === selectedId);
+  }, [selectedId, visibleItems]);
+  const selected = useMemo(() => {
+    if (!selectedId) return null;
+    return visibleItems.find((item) => item.id === selectedId) ?? null;
+  }, [selectedId, visibleItems]);
   const selectedDetails = useMemo(
     () => (selected ? buildDetails(selected) : []),
     [selected],
   );
-  const selectedIndex = useMemo(() => {
-    if (!selected) return -1;
-    return items.findIndex((item) => item.id === selected.id);
-  }, [items, selected]);
   const selectedAspectRatio = selected
     ? getAspectRatioValue(selected, ratioMap)
     : 1;
@@ -254,52 +281,85 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     if (!selected) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setSelected(null);
+        setSelectedId(null);
         return;
       }
-      if (items.length < 2) return;
+      if (visibleItems.length < 2) return;
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
         const prevIndex =
-          selectedIndex <= 0 ? items.length - 1 : selectedIndex - 1;
-        setSelected(items[prevIndex]);
+          selectedIndex <= 0 ? visibleItems.length - 1 : selectedIndex - 1;
+        setSelectedId(visibleItems[prevIndex]?.id ?? null);
       }
       if (event.key === 'ArrowRight') {
         event.preventDefault();
         const nextIndex =
-          selectedIndex >= items.length - 1 ? 0 : selectedIndex + 1;
-        setSelected(items[nextIndex]);
+          selectedIndex >= visibleItems.length - 1 ? 0 : selectedIndex + 1;
+        setSelectedId(visibleItems[nextIndex]?.id ?? null);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [items, selected, selectedIndex]);
+  }, [selected, selectedIndex, visibleItems]);
 
-  const canNavigate = items.length > 1 && selectedIndex !== -1;
+  const canNavigate = visibleItems.length > 1 && selectedIndex !== -1;
   const handleNavigate = (direction: 'prev' | 'next') => {
     if (!canNavigate) return;
     const nextIndex =
       direction === 'prev'
         ? selectedIndex <= 0
-          ? items.length - 1
+          ? visibleItems.length - 1
           : selectedIndex - 1
-        : selectedIndex >= items.length - 1
+        : selectedIndex >= visibleItems.length - 1
           ? 0
           : selectedIndex + 1;
-    setSelected(items[nextIndex]);
+    setSelectedId(visibleItems[nextIndex]?.id ?? null);
   };
 
   return (
-    <section className={cn('py-32', className)}>
+    <section className={cn('pb-24', className)}>
       <div
         className={cn(
-          'relative space-y-4',
+          'relative space-y-8',
           isFullBleed ? 'w-full' : 'mx-auto max-w-6xl',
         )}
       >
-        <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground'>
-          <div className='flex flex-wrap items-center gap-4'>
-            <span>已加载 {items.length} 张照片</span>
+        <header className='front-fade-up space-y-4'>
+          <p className='text-xs uppercase tracking-[0.4em] text-zinc-500 dark:text-zinc-400'>
+            Gallery / Archive
+          </p>
+          <h1
+            className={cn(
+              spaceGrotesk.className,
+              'text-4xl font-semibold text-zinc-900 dark:text-white md:text-5xl',
+            )}
+          >
+            画廊
+          </h1>
+          <p className='max-w-2xl text-sm text-zinc-500 dark:text-zinc-400'>
+            以时间线与媒介切换浏览影像档案，探索每一次拍摄留下的光痕。
+          </p>
+        </header>
+        <div className='flex flex-wrap items-center justify-between gap-4'>
+          <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
+            {filters.map((tab) => (
+              <button
+                key={tab.value}
+                type='button'
+                onClick={() => setFilter(tab.value)}
+                className={cn(
+                  'rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] transition',
+                  filter === tab.value
+                    ? 'bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className='flex flex-wrap items-center justify-end gap-3 text-sm text-muted-foreground'>
+            <span>已显示 {visibleItems.length} / {items.length} 项</span>
             <label className='flex items-center gap-2 text-xs text-muted-foreground'>
               <span>每行</span>
               <input
@@ -316,14 +376,14 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
               />
               <span>{columnCount} 张</span>
             </label>
+            <button
+              type='button'
+              onClick={() => setIsFullBleed((prev) => !prev)}
+              className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
+            >
+              {isFullBleed ? '两边留白' : '铺满屏幕'}
+            </button>
           </div>
-          <button
-            type='button'
-            onClick={() => setIsFullBleed((prev) => !prev)}
-            className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
-          >
-            {isFullBleed ? '两边留白' : '铺满屏幕'}
-          </button>
         </div>
         <div className='flex gap-4'>
           {columns.map((columnItems, columnIndex) => {
@@ -341,7 +401,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                   >
                     <button
                       type='button'
-                      onClick={() => setSelected(item)}
+                      onClick={() => setSelectedId(item.id)}
                       className='block w-full text-left'
                     >
                       <div
@@ -396,7 +456,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
           >
             <button
               type='button'
-              onClick={() => setSelected(null)}
+              onClick={() => setSelectedId(null)}
               className='absolute inset-0'
               aria-label='关闭'
             />
@@ -451,7 +511,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                 </div>
                 <button
                   type='button'
-                  onClick={() => setSelected(null)}
+                  onClick={() => setSelectedId(null)}
                   className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
                 >
                   关闭
