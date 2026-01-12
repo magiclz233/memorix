@@ -2,6 +2,7 @@ import type { fetchPublishedMediaForGallery } from '@/app/lib/data';
 
 export type GalleryItem = {
   id: string;
+  type: 'photo' | 'video';
   src: string;
   title: string;
   description?: string | null;
@@ -19,6 +20,7 @@ export type GalleryItem = {
   height?: number | null;
   size?: number | null;
   dateShot?: string | null;
+  createdAt?: string | null;
 };
 
 type GalleryRecord = Awaited<
@@ -40,7 +42,8 @@ const normalizeDate = (value?: string | Date | null) => {
 export const buildGalleryItems = (records: GalleryRecord[]) =>
   records.reduce<GalleryItem[]>((acc, record) => {
     const title = record.title ?? record.path ?? '未命名';
-    const isVideo = normalizeType(record.mediaType, record.mimeType) === 'video';
+    const mediaType = normalizeType(record.mediaType, record.mimeType);
+    const isVideo = mediaType === 'video';
     const src =
       record.thumbUrl ||
       (!isVideo ? record.url : null) ||
@@ -49,6 +52,7 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
     const shotAt = record.dateShot ?? record.mtime;
     acc.push({
       id: String(record.id),
+      type: mediaType,
       src,
       title,
       description: record.description ?? null,
@@ -66,6 +70,7 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
       height: record.resolutionHeight ?? null,
       size: record.size ?? null,
       dateShot: normalizeDate(shotAt),
+      createdAt: normalizeDate(record.mtime),
     });
     return acc;
   }, []);
