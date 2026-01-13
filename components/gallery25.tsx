@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
 import { spaceGrotesk } from '@/app/ui/fonts';
@@ -163,10 +163,9 @@ const buildDetails = (item: GalleryItem) => {
 };
 
 const Gallery25 = ({ items = [], className }: Gallery25Props) => {
+  const initialFullBleed = readStoredBoolean('gallery25-full-bleed', false);
   const [selectedId, setSelectedId] = useState<GalleryId | null>(null);
-  const [isFullBleed, setIsFullBleed] = useState(() =>
-    readStoredBoolean('gallery25-full-bleed', false),
-  );
+  const [isFullBleed, setIsFullBleed] = useState(initialFullBleed);
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('gallery25-columns', 4),
   );
@@ -174,8 +173,12 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     readStoredViewMode('gallery25-view-mode', 'fit'),
   );
   const [filter, setFilter] = useState<FilterValue>('all');
+  const [isChromeVisible, setIsChromeVisible] = useState(!initialFullBleed);
   const [ratioMap, setRatioMap] = useState<Record<string, number>>({});
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const previousFullBleed = useRef(isFullBleed);
+  const lastScrollY = useRef(0);
   const timelineItems = useMemo(() => {
     return items
       .map((item, index) => ({ item, index }))
@@ -197,7 +200,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     Math.max(1, visibleItems.length),
   );
   const gridSizes = `(max-width: 768px) 50vw, ${Math.round(
-    (isFullBleed ? 100 : 80) / displayColumnCount,
+    (isFullBleed ? 100 : 88) / displayColumnCount,
   )}vw`;
   const columns = useMemo(
     () => createBalancedColumns(visibleItems, displayColumnCount, ratioMap),
@@ -255,6 +258,8 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     };
   }, [selected, selectedAspectRatio, viewMode, viewport.height, viewport.width]);
 
+  const chromeVisible = !isFullBleed || isChromeVisible;
+
   useEffect(() => {
     window.localStorage.setItem('gallery25-full-bleed', String(isFullBleed));
   }, [isFullBleed]);
@@ -276,6 +281,53 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let frame = 0;
+    if (!isFullBleed) {
+      setIsChromeVisible(true);
+      return;
+    }
+    lastScrollY.current = window.scrollY;
+    const onScroll = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const current = window.scrollY;
+        const delta = current - lastScrollY.current;
+        if (delta > 6) {
+          setIsChromeVisible(false);
+        } else if (delta < -6 && current <= 240) {
+          setIsChromeVisible(true);
+        }
+        lastScrollY.current = current;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [isFullBleed]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let timeout: number | undefined;
+    if (isFullBleed && !previousFullBleed.current) {
+      const node = gridRef.current;
+      if (node) {
+        timeout = window.setTimeout(() => {
+          node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+      }
+    }
+    previousFullBleed.current = isFullBleed;
+    return () => {
+      if (timeout) {
+        window.clearTimeout(timeout);
+      }
+    };
+  }, [isFullBleed]);
 
   useEffect(() => {
     if (!selected) return;
@@ -317,75 +369,93 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   };
 
   return (
-    <section className={cn('pb-24', className)}>
+    <section
+      className={cn(
+        'pb-24',
+        isFullBleed && 'relative left-1/2 right-1/2 w-screen -translate-x-1/2',
+        className,
+      )}
+    >
       <div
         className={cn(
           'relative space-y-8',
-          isFullBleed ? 'w-full' : 'mx-auto max-w-6xl',
+          isFullBleed ? 'w-full px-4 md:px-6' : 'w-full',
         )}
       >
-        <header className='front-fade-up space-y-4'>
-          <p className='text-xs uppercase tracking-[0.4em] text-zinc-500 dark:text-zinc-400'>
-            Gallery / Archive
-          </p>
-          <h1
-            className={cn(
-              spaceGrotesk.className,
-              'text-4xl font-semibold text-zinc-900 dark:text-white md:text-5xl',
-            )}
-          >
-            画廊
-          </h1>
-          <p className='max-w-2xl text-sm text-zinc-500 dark:text-zinc-400'>
-            以时间线与媒介切换浏览影像档案，探索每一次拍摄留下的光痕。
-          </p>
-        </header>
-        <div className='flex flex-wrap items-center justify-between gap-4'>
-          <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
-            {filters.map((tab) => (
-              <button
-                key={tab.value}
-                type='button'
-                onClick={() => setFilter(tab.value)}
+        {chromeVisible ? (
+          <>
+            <header className='front-fade-up space-y-4'>
+              <p className='text-xs uppercase tracking-[0.4em] text-zinc-600/80 dark:text-white/60'>
+                Gallery / Archive
+              </p>
+              <h1
                 className={cn(
-                  'rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] transition',
-                  filter === tab.value
-                    ? 'bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white'
-                    : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
+                  spaceGrotesk.className,
+                  'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-5xl',
                 )}
               >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className='flex flex-wrap items-center justify-end gap-3 text-sm text-muted-foreground'>
-            <span>已显示 {visibleItems.length} / {items.length} 项</span>
-            <label className='flex items-center gap-2 text-xs text-muted-foreground'>
-              <span>每行</span>
-              <input
-                type='range'
-                min={3}
-                max={10}
-                step={1}
-                value={columnCount}
-                onChange={(event) =>
-                  setColumnCount(clampColumnCount(Number(event.target.value)))
-                }
-                className='h-1 w-32 cursor-pointer accent-primary'
-                aria-label='每行显示数量'
-              />
-              <span>{columnCount} 张</span>
-            </label>
-            <button
-              type='button'
-              onClick={() => setIsFullBleed((prev) => !prev)}
-              className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
-            >
-              {isFullBleed ? '两边留白' : '铺满屏幕'}
-            </button>
-          </div>
-        </div>
-        <div className='flex gap-4'>
+                画廊
+              </h1>
+              <p className='max-w-2xl text-sm text-zinc-600/80 dark:text-white/60'>
+                以时间线与媒介切换浏览影像档案，探索每一次拍摄留下的光痕。
+              </p>
+            </header>
+            <div className='flex flex-wrap items-center justify-between gap-4'>
+              <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
+                {filters.map((tab) => (
+                  <button
+                    key={tab.value}
+                    type='button'
+                    onClick={() => setFilter(tab.value)}
+                    className={cn(
+                      'rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] transition',
+                      filter === tab.value
+                        ? 'bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white'
+                        : 'text-zinc-600/80 hover:text-zinc-900 dark:text-white/60 dark:hover:text-white',
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <div className='flex flex-wrap items-center justify-end gap-3 text-sm text-muted-foreground'>
+                <span>已显示 {visibleItems.length} / {items.length} 项</span>
+                <label className='flex items-center gap-2 text-xs text-muted-foreground'>
+                  <span>每行</span>
+                  <input
+                    type='range'
+                    min={3}
+                    max={10}
+                    step={1}
+                    value={columnCount}
+                    onChange={(event) =>
+                      setColumnCount(clampColumnCount(Number(event.target.value)))
+                    }
+                    className='h-1 w-32 cursor-pointer accent-primary'
+                    aria-label='每行显示数量'
+                  />
+                  <span>{columnCount} 张</span>
+                </label>
+                <button
+                  type='button'
+                  onClick={() => {
+                    const next = !isFullBleed;
+                    setIsFullBleed(next);
+                    if (next) {
+                      setIsChromeVisible(false);
+                      return;
+                    }
+                    setIsChromeVisible(true);
+                  }}
+                  className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
+                >
+                  {isFullBleed ? '两边留白' : '铺满屏幕'}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : null}
+        <div ref={gridRef} className='flex gap-4'>
           {columns.map((columnItems, columnIndex) => {
             const yOffset = columnIndex % 2 === 0 ? 40 : -40;
 
@@ -431,7 +501,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                             {item.title}
                           </p>
                           {item.resolution || (item.width && item.height) ? (
-                            <p className='text-xs text-white/70'>
+                            <p className='text-xs text-white/60'>
                               {item.resolution ?? `${item.width}×${item.height}`}
                             </p>
                           ) : null}
