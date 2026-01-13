@@ -608,7 +608,8 @@ export async function fetchPublishedMediaForGallery(
       .where(
         and(eq(files.isPublished, true), inArray(files.mediaType, ['image', 'video'])),
       )
-      .orderBy(desc(files.mtime));
+      .orderBy(desc(files.mtime))
+      .$dynamic();
     if (typeof options.limit === 'number') {
       query = query.limit(options.limit);
     }
