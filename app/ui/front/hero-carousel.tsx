@@ -50,7 +50,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
             <p className='max-w-sm text-sm text-white/75'>{item.description}</p>
           </div>
           <div className='relative z-10 flex flex-wrap items-center justify-between gap-4'>
-            <div className='text-sm text-white/70'>
+            <div className='text-sm text-white/60'>
               {item.count} 项内容 · {item.tags?.join(' / ')}
             </div>
             <Button
