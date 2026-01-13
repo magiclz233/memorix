@@ -59,7 +59,7 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
         <div className='space-y-3'>
           <h3 className='text-lg font-semibold'>{item.title}</h3>
           {tags.length ? (
-            <div className='flex flex-wrap gap-2 text-[11px] text-white/70'>
+            <div className='flex flex-wrap gap-2 text-[11px] text-white/60'>
               {tags.map((tag) => (
                 <span
                   key={tag}
