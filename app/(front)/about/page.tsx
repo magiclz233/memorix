@@ -54,18 +54,18 @@ export default function Page() {
     <div className='space-y-20'>
       <section className='front-fade-up grid gap-12 lg:grid-cols-[0.6fr_0.4fr] lg:items-start'>
         <div className='space-y-6'>
-          <p className='text-xs uppercase tracking-[0.4em] text-zinc-500 dark:text-zinc-400'>
+          <p className='text-xs uppercase tracking-[0.4em] text-zinc-600/80 dark:text-white/60'>
             About / Lumina
           </p>
           <h1
             className={cn(
               lusitana.className,
-              'text-4xl font-semibold text-zinc-900 dark:text-white md:text-6xl'
+              'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-6xl'
             )}
           >
             Lumina Studio
           </h1>
-          <p className='max-w-xl text-base text-zinc-500 dark:text-zinc-400'>
+          <p className='max-w-xl text-base text-zinc-600/80 dark:text-white/60'>
             以极简排版承载高密度影像叙事，专注于光影与情绪的延展。在静态与动态之间，寻找更有呼吸感的视觉语言。
           </p>
         </div>
@@ -74,12 +74,12 @@ export default function Page() {
             <h2
               className={cn(
                 spaceGrotesk.className,
-                'text-lg font-semibold text-zinc-900 dark:text-white'
+                'text-lg font-semibold text-zinc-800/90 dark:text-white/85'
               )}
             >
               工作室宣言
             </h2>
-            <p className='mt-3 text-sm text-zinc-500 dark:text-zinc-400'>
+            <p className='mt-3 text-sm text-zinc-600/80 dark:text-white/60'>
               我们将每一次拍摄视为一次光线实验，通过影像记录不可复制的高光与阴影，并整理成持续更新的视觉档案。
             </p>
           </div>
@@ -87,9 +87,9 @@ export default function Page() {
             {capabilities.map((item) => (
               <div
                 key={item.title}
-                className='rounded-2xl border border-zinc-200 bg-white/70 p-5 text-sm text-zinc-500 shadow-lg shadow-zinc-200/40 transition duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400 dark:shadow-black/40'
+                className='rounded-2xl border border-zinc-200 bg-white/70 p-5 text-sm text-zinc-600/80 shadow-lg shadow-zinc-200/40 transition duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-white/60 dark:shadow-black/40'
               >
-                <h3 className='text-base font-semibold text-zinc-900 dark:text-white'>
+                <h3 className='text-base font-semibold text-zinc-800/90 dark:text-white/85'>
                   {item.title}
                 </h3>
                 <p className='mt-2'>{item.description}</p>
@@ -101,18 +101,18 @@ export default function Page() {
 
       <section className='front-fade-up space-y-6'>
         <div className='space-y-3'>
-          <p className='text-xs uppercase tracking-[0.4em] text-zinc-500 dark:text-zinc-400'>
+          <p className='text-xs uppercase tracking-[0.4em] text-zinc-600/80 dark:text-white/60'>
             Equipment / Bento
           </p>
           <h2
             className={cn(
               lusitana.className,
-              'text-3xl font-semibold text-zinc-900 dark:text-white md:text-4xl'
+              'text-3xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-4xl'
             )}
           >
             设备清单
           </h2>
-          <p className='max-w-2xl text-sm text-zinc-500 dark:text-zinc-400'>
+          <p className='max-w-2xl text-sm text-zinc-600/80 dark:text-white/60'>
             以轻量化配置为主，保证现场机动性与光影塑形的稳定输出。
           </p>
         </div>
@@ -121,11 +121,11 @@ export default function Page() {
             <div
               key={item.title}
               className={cn(
-                'rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400',
+                'rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600/80 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-white/60',
                 item.size === 'wide' && 'md:col-span-2'
               )}
             >
-              <h3 className='text-base font-semibold text-zinc-900 dark:text-white'>
+              <h3 className='text-base font-semibold text-zinc-800/90 dark:text-white/85'>
                 {item.title}
               </h3>
               <p className='mt-2'>{item.description}</p>
