@@ -27,7 +27,7 @@ export function SectionHeader({
           {title}
         </h2>
         {description ? (
-          <p className='max-w-2xl text-sm text-zinc-500 dark:text-zinc-400'>
+          <p className='max-w-2xl text-sm text-zinc-600/80 dark:text-white/60'>
             {description}
           </p>
         ) : null}
