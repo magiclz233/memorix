@@ -27,19 +27,19 @@ function PhotoCollectionCard({ collection }: CollectionCardProps) {
         />
         <div className='relative z-10 flex h-full flex-col justify-between gap-6'>
           <div className='space-y-3'>
-            <span className='inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-zinc-600 dark:border-white/10 dark:bg-black/40 dark:text-zinc-200'>
+            <span className='inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:border-white/10 dark:bg-black/40 dark:text-white/60'>
               照片集
             </span>
             <div>
               <h3 className='text-xl font-semibold text-zinc-900 dark:text-white'>
                 {collection.title}
               </h3>
-              <p className='mt-2 text-sm text-zinc-500 dark:text-zinc-400'>
+              <p className='mt-2 text-sm text-zinc-600/80 dark:text-white/60'>
                 {collection.description}
               </p>
             </div>
           </div>
-          <div className='flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-500 dark:text-zinc-400'>
+          <div className='flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600/80 dark:text-white/60'>
             <span>{collection.count} 项内容</span>
             <div className='flex flex-wrap gap-2'>
               {(collection.tags ?? []).map((tag) => (
@@ -73,11 +73,11 @@ function VideoCollectionCard({ collection }: CollectionCardProps) {
       <div className='relative z-10 space-y-3 border-t border-white/10 bg-white/90 p-5 text-zinc-900 dark:border-white/5 dark:bg-black/90 dark:text-white'>
         <div>
           <h3 className='text-lg font-semibold'>{collection.title}</h3>
-          <p className='mt-2 text-sm text-zinc-500 dark:text-zinc-400'>
+          <p className='mt-2 text-sm text-zinc-600/80 dark:text-white/60'>
             {collection.description}
           </p>
         </div>
-        <div className='flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-500 dark:text-zinc-400'>
+        <div className='flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600/80 dark:text-white/60'>
           <span>{collection.count} 项内容</span>
           <div className='flex flex-wrap gap-2'>
             {(collection.tags ?? []).map((tag) => (
