@@ -1,4 +1,8 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { featuredCollections } from '@/app/lib/front-data';
 import { spaceGrotesk } from '@/app/ui/fonts';
 import { SpotlightCard } from '@/app/ui/front/spotlight-card';
@@ -6,40 +10,274 @@ import { SectionHeader } from '@/app/ui/front/section-header';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+type HeroTone = 'light' | 'dark';
+
+const HERO_IMAGES = {
+  desktop: [
+    '/hero-desktop.png',
+    '/hero1.jpg',
+    '/hero2.jpg',
+    '/hero3.jpg',
+    '/hero4.jpg',
+  ],
+  mobile: [
+    '/hero-mobile.png',
+    '/hero1.jpg',
+    '/hero2.jpg',
+    '/hero3.jpg',
+    '/hero4.jpg',
+  ],
+};
+
+const resolveHeroTone = (
+  image: HTMLImageElement,
+  heroRect: DOMRect,
+  textRect: DOMRect,
+): HeroTone => {
+  const canvas = document.createElement('canvas');
+  const scaleFactor = Math.min(1, 1200 / Math.max(1, heroRect.width));
+  const canvasWidth = Math.max(1, Math.round(heroRect.width * scaleFactor));
+  const canvasHeight = Math.max(1, Math.round(heroRect.height * scaleFactor));
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return 'light';
+
+  const coverScale = Math.max(
+    canvasWidth / image.naturalWidth,
+    canvasHeight / image.naturalHeight,
+  );
+  const drawWidth = image.naturalWidth * coverScale;
+  const drawHeight = image.naturalHeight * coverScale;
+  const offsetX = (canvasWidth - drawWidth) / 2;
+  const offsetY = (canvasHeight - drawHeight) / 2;
+  ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+
+  const padding = 12 * scaleFactor;
+  const regionX = Math.max(
+    0,
+    Math.round((textRect.left - heroRect.left) * scaleFactor - padding),
+  );
+  const regionY = Math.max(
+    0,
+    Math.round((textRect.top - heroRect.top) * scaleFactor - padding),
+  );
+  const regionWidth = Math.min(
+    canvasWidth - regionX,
+    Math.round(textRect.width * scaleFactor + padding * 2),
+  );
+  const regionHeight = Math.min(
+    canvasHeight - regionY,
+    Math.round(textRect.height * scaleFactor + padding * 2),
+  );
+  if (regionWidth <= 0 || regionHeight <= 0) return 'light';
+
+  const step = Math.max(
+    1,
+    Math.floor(Math.min(regionWidth, regionHeight) / 30),
+  );
+  const sampleLuminance = (data: Uint8ClampedArray) => {
+    let total = 0;
+    let count = 0;
+    for (let y = 0; y < regionHeight; y += step) {
+      for (let x = 0; x < regionWidth; x += step) {
+        const index = (y * regionWidth + x) * 4;
+        const r = data[index];
+        const g = data[index + 1];
+        const b = data[index + 2];
+        const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        total += luminance;
+        count += 1;
+      }
+    }
+    return total / Math.max(1, count);
+  };
+
+  const originalData = ctx.getImageData(
+    regionX,
+    regionY,
+    regionWidth,
+    regionHeight,
+  ).data;
+  const originalAverage = sampleLuminance(originalData);
+  if (originalAverage > 210) return 'dark';
+
+  const gradientToTop = ctx.createLinearGradient(0, canvasHeight, 0, 0);
+  gradientToTop.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
+  gradientToTop.addColorStop(0.5, 'rgba(0, 0, 0, 0.35)');
+  gradientToTop.addColorStop(1, 'rgba(0, 0, 0, 0.05)');
+  ctx.fillStyle = gradientToTop;
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  const gradientToBottom = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+  gradientToBottom.addColorStop(0, 'rgba(0, 0, 0, 0.45)');
+  gradientToBottom.addColorStop(0.6, 'rgba(0, 0, 0, 0)');
+  gradientToBottom.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = gradientToBottom;
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  const overlayData = ctx.getImageData(
+    regionX,
+    regionY,
+    regionWidth,
+    regionHeight,
+  ).data;
+  const overlayAverage = sampleLuminance(overlayData);
+  const weightedAverage = originalAverage * 0.65 + overlayAverage * 0.35;
+  return weightedAverage < 155 ? 'light' : 'dark';
+};
+
 export function FrontHome() {
   const featured = featuredCollections.slice(0, 3);
+  const heroRef = useRef<HTMLElement | null>(null);
+  const heroTextRef = useRef<HTMLDivElement | null>(null);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [heroTone, setHeroTone] = useState<HeroTone>('light');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const heroImages = useMemo(() => {
+    if (viewportSize.width > 0 && viewportSize.width < 640) {
+      return HERO_IMAGES.mobile;
+    }
+    return HERO_IMAGES.desktop;
+  }, [viewportSize.width]);
+  const safeIndex = heroImages.length ? activeIndex % heroImages.length : 0;
+  const heroImageSrc = heroImages[safeIndex] ?? heroImages[0];
+  const isHeroLight = heroTone === 'light';
+  const heroTitleClass = isHeroLight ? 'text-white/85' : 'text-zinc-900/80';
+  const heroLabelClass = isHeroLight ? 'text-white/60' : 'text-zinc-700/80';
+  const heroBodyClass = isHeroLight ? 'text-white/60' : 'text-zinc-800/85';
+  const heroButtonTextClass = isHeroLight
+    ? 'text-white/80 hover:text-white'
+    : 'text-zinc-800/80 hover:text-zinc-900';
+  const heroPrimaryButtonClass = cn(
+    'rounded-full transition',
+    heroButtonTextClass,
+    isHeroLight
+      ? 'border border-white/40 bg-white/18 shadow-[0_6px_16px_rgba(0,0,0,0.14)] hover:bg-white/26'
+      : 'border border-zinc-300/70 bg-white/52 text-zinc-800/85 shadow-[0_6px_16px_rgba(0,0,0,0.1)] hover:bg-white/52 hover:text-zinc-800/85',
+  );
+  const heroSecondaryButtonClass = cn(
+    'rounded-full transition',
+    heroButtonTextClass,
+    isHeroLight
+      ? 'border border-white/25 bg-white/8 hover:bg-white/12'
+      : 'border border-zinc-300/45 bg-white/52 hover:bg-white/62',
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const updateSize = () => {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  useEffect(() => {
+    if (!heroRef.current || !heroTextRef.current) return;
+    if (!heroImageSrc) return;
+    let cancelled = false;
+    const image = new Image();
+    image.src = heroImageSrc;
+    image.onload = () => {
+      if (cancelled) return;
+      const heroRect = heroRef.current?.getBoundingClientRect();
+      const textRect = heroTextRef.current?.getBoundingClientRect();
+      if (!heroRect || !textRect) return;
+      const nextTone = resolveHeroTone(image, heroRect, textRect);
+      setHeroTone(nextTone);
+    };
+    return () => {
+      cancelled = true;
+    };
+  }, [heroImageSrc, viewportSize]);
+
+  useEffect(() => {
+    if (heroImages.length <= 1) return;
+    const timer = window.setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % heroImages.length);
+    }, 6500);
+    return () => window.clearInterval(timer);
+  }, [heroImages.length]);
 
   return (
     <div className='space-y-20 lg:space-y-24'>
-      <section className='front-fade-up relative h-[85vh] overflow-hidden rounded-[2.5rem] border border-zinc-200 bg-white/60 shadow-lg shadow-zinc-200/50 dark:border-white/10 dark:bg-zinc-900/40 dark:shadow-black/50'>
-        <div className="absolute inset-0 bg-[url('/hero-mobile.png')] bg-cover bg-center sm:bg-[url('/hero-desktop.png')] md:bg-fixed" />
-        <div className='absolute inset-0 bg-gradient-to-t from-white/95 via-white/40 to-transparent dark:from-black/90 dark:via-black/40' />
-        <div className='relative z-10 flex h-full flex-col justify-end gap-6 p-8 md:p-12'>
-          <p className='text-xs uppercase tracking-[0.4em] text-zinc-500 dark:text-zinc-400'>
+      <section
+        ref={heroRef}
+        className='front-fade-up group relative -mt-24 min-h-[calc(100svh+6rem)] w-screen -ml-[calc(50vw-50%)] overflow-hidden bg-black'
+      >
+        {heroImages.map((src, index) => (
+          <div
+            key={src}
+            className={cn(
+              'absolute inset-0 bg-cover bg-center transition-opacity duration-[1200ms] md:bg-fixed',
+              index === safeIndex ? 'opacity-100' : 'opacity-0',
+            )}
+            style={{ backgroundImage: `url(${src})` }}
+          />
+        ))}
+        <div className='absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/5' />
+        <div className='absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent' />
+        <div className='pointer-events-none absolute inset-0 z-10'>
+          <div className='group/edge-left pointer-events-auto absolute inset-y-0 left-0 flex w-[20%] min-w-[72px] items-center justify-start px-4'>
+            <button
+              type='button'
+              onClick={() =>
+                setActiveIndex((prev) =>
+                  (prev - 1 + heroImages.length) % heroImages.length,
+                )
+              }
+              className='inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white opacity-0 backdrop-blur transition group-hover/edge-left:opacity-100'
+              aria-label='上一张'
+            >
+              <ChevronLeft className='h-5 w-5' />
+            </button>
+          </div>
+          <div className='group/edge-right pointer-events-auto absolute inset-y-0 right-0 flex w-[20%] min-w-[72px] items-center justify-end px-4'>
+            <button
+              type='button'
+              onClick={() =>
+                setActiveIndex((prev) => (prev + 1) % heroImages.length)
+              }
+              className='inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white opacity-0 backdrop-blur transition group-hover/edge-right:opacity-100'
+              aria-label='下一张'
+            >
+              <ChevronRight className='h-5 w-5' />
+            </button>
+          </div>
+        </div>
+        <div
+          ref={heroTextRef}
+          className='relative z-20 flex h-full flex-col justify-end gap-6 px-8 pb-12 pt-28 md:px-16 md:pb-16'
+        >
+          <p className={cn('text-xs uppercase tracking-[0.4em]', heroLabelClass)}>
             Lumina / Vision
           </p>
           <h1
             className={cn(
               spaceGrotesk.className,
-              'text-4xl font-semibold text-zinc-900 dark:mix-blend-overlay dark:text-white md:text-6xl lg:text-7xl'
+              'text-4xl font-semibold md:text-6xl lg:text-7xl',
+              heroTitleClass,
             )}
           >
             LUMINA VISION
           </h1>
-          <p className='max-w-xl text-sm text-zinc-500 dark:text-zinc-400 md:text-base'>
+          <p className={cn('max-w-xl text-sm md:text-base', heroBodyClass)}>
             将沉浸式光影与极简排版融合成统一视觉语言，让每一帧影像都成为可收藏的光之记忆。
           </p>
           <div className='flex flex-wrap gap-3'>
             <Button
               asChild
-              className='rounded-full bg-zinc-900 text-white hover:bg-zinc-900/90 dark:bg-white dark:text-zinc-900'
+              variant='ghost'
+              className={heroPrimaryButtonClass}
             >
               <Link href='/gallery'>进入画廊</Link>
             </Button>
             <Button
               asChild
-              variant='outline'
-              className='rounded-full border-zinc-200 bg-white/80 text-zinc-700 hover:bg-white dark:border-white/10 dark:bg-black/60 dark:text-white'
+              variant='ghost'
+              className={heroSecondaryButtonClass}
             >
               <Link href='/photo-collections'>浏览图集</Link>
             </Button>
@@ -74,17 +312,17 @@ export function FrontHome() {
                     )}
                   />
                   <div className='relative z-10 space-y-4'>
-                    <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400'>
+                    <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
                       {collection.type === 'photo' ? '精选图集' : '精选视频集'}
                     </span>
                     <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
                       {collection.title}
                     </h3>
-                    <p className='text-sm text-zinc-500 dark:text-zinc-400'>
+                    <p className='text-sm text-zinc-600/80 dark:text-white/60'>
                       {collection.description}
                     </p>
                   </div>
-                  <div className='relative z-10 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400'>
+                  <div className='relative z-10 flex items-center justify-between text-xs text-zinc-600/80 dark:text-white/60'>
                     <span>{collection.count} 项内容</span>
                     <span className='text-indigo-600 dark:text-indigo-400'>
                       {(collection.tags ?? []).join(' / ')}

@@ -12,8 +12,8 @@ const footerLinks = [
 
 export function FrontFooter() {
   return (
-    <footer className='relative z-10 mt-16 border-t border-zinc-200 px-6 py-10 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400'>
-      <div className='mx-auto flex w-[80vw] max-w-none flex-col gap-6 md:flex-row md:items-center md:justify-between'>
+    <footer className='relative z-10 mt-16 border-t border-zinc-200 px-6 py-10 text-sm text-zinc-600/80 dark:border-zinc-800 dark:text-white/60'>
+      <div className='mx-auto flex w-[88vw] max-w-none flex-col gap-6 md:flex-row md:items-center md:justify-between'>
         <div className='space-y-2'>
           <p className={cn(spaceGrotesk.className, 'text-base text-zinc-900 dark:text-white')}>
             Lumina Archive

@@ -14,7 +14,7 @@ export function FrontShell({ children }: FrontShellProps) {
       <div className='relative z-10 flex min-h-screen flex-col'>
         <FloatingNav />
         <main className='flex-1'>
-          <div className='mx-auto w-[80vw] max-w-none px-0 pb-16 pt-24'>
+          <div className='mx-auto w-[88vw] max-w-none px-0 pb-16 pt-24'>
             {children}
           </div>
         </main>
