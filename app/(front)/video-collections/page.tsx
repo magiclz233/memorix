@@ -7,18 +7,18 @@ export default function Page() {
   return (
     <div className='space-y-12'>
       <header className='front-fade-up space-y-4'>
-        <p className='text-xs uppercase tracking-[0.4em] text-zinc-500 dark:text-zinc-400'>
+        <p className='text-xs uppercase tracking-[0.4em] text-zinc-600/80 dark:text-white/60'>
           Collections / Video
         </p>
         <h1
           className={cn(
             spaceGrotesk.className,
-            'text-4xl font-semibold text-zinc-900 dark:text-white md:text-5xl'
+            'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-5xl'
           )}
         >
           视频作品集
         </h1>
-        <p className='max-w-2xl text-sm text-zinc-500 dark:text-zinc-400'>
+        <p className='max-w-2xl text-sm text-zinc-600/80 dark:text-white/60'>
           以动态影像记录节奏、音乐与空间的互动，呈现不同主题的叙事线。
         </p>
       </header>
