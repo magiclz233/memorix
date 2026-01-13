@@ -47,7 +47,7 @@ export function GalleryFilter({ items }: GalleryFilterProps) {
               'rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] transition',
               filter === tab.value
                 ? 'bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white'
-                : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
+                : 'text-zinc-600/80 hover:text-zinc-900 dark:text-white/60 dark:hover:text-white'
             )}
           >
             {tab.label}
