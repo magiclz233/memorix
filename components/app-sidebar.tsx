@@ -41,7 +41,7 @@ const navItems = [
 const ADMIN_USER = {
   name: '管理员',
   email: 'admin@memorix.dev',
-  avatar: '/customers/amy-burns.png',
+  avatar: '/hero1.jpg',
 };
 
 export function AdminSidebar({
