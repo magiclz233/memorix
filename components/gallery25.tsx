@@ -283,12 +283,8 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !isFullBleed) return;
     let frame = 0;
-    if (!isFullBleed) {
-      setIsChromeVisible(true);
-      return;
-    }
     lastScrollY.current = window.scrollY;
     const onScroll = () => {
       window.cancelAnimationFrame(frame);
