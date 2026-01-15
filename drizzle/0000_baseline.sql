@@ -8,18 +8,20 @@ END
 $$;
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "users" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"email" text NOT NULL,
-	"password" text NOT NULL,
 	"role" varchar(50) DEFAULT 'user',
 	"image_url" varchar(255),
+	"email_verified" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "user_storages" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" integer NOT NULL,
 	"type" varchar(50) NOT NULL,
 	"config" jsonb NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -68,7 +70,7 @@ CREATE TABLE IF NOT EXISTS "photo_metadata" (
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "user_settings" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" integer NOT NULL,
 	"key" varchar(100) NOT NULL,
 	"value" jsonb NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -76,7 +78,7 @@ CREATE TABLE IF NOT EXISTS "user_settings" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "storage_configs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"type" varchar(16) NOT NULL,
 	"config" jsonb NOT NULL,
@@ -84,7 +86,7 @@ CREATE TABLE IF NOT EXISTS "storage_configs" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "photo_collections" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" serial PRIMARY KEY NOT NULL,
 	"title" varchar(255) NOT NULL,
 	"description" text,
 	"cover_image" text,
@@ -92,14 +94,14 @@ CREATE TABLE IF NOT EXISTS "photo_collections" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "collection_items" (
-	"collection_id" uuid NOT NULL,
+	"collection_id" integer NOT NULL,
 	"file_id" integer NOT NULL,
 	"sort_order" integer NOT NULL,
 	CONSTRAINT "collection_items_collection_id_file_id_pk" PRIMARY KEY("collection_id","file_id")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "video_series" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" serial PRIMARY KEY NOT NULL,
 	"title" varchar(255) NOT NULL,
 	"description" text,
 	"cover_image" text,
@@ -108,27 +110,107 @@ CREATE TABLE IF NOT EXISTS "video_series" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "video_series_items" (
-	"series_id" uuid NOT NULL,
+	"series_id" integer NOT NULL,
 	"file_id" integer NOT NULL,
 	"sort_order" integer NOT NULL,
 	CONSTRAINT "video_series_items_series_id_file_id_pk" PRIMARY KEY("series_id","file_id")
 );
 --> statement-breakpoint
-ALTER TABLE "user_storages" ADD CONSTRAINT "user_storages_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+CREATE TABLE IF NOT EXISTS "session" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" integer NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"token" text NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "session_token_unique" UNIQUE("token")
+);
 --> statement-breakpoint
-ALTER TABLE "files" ADD CONSTRAINT "files_user_storage_id_user_storages_id_fk" FOREIGN KEY ("user_storage_id") REFERENCES "public"."user_storages"("id") ON DELETE cascade ON UPDATE no action;
+COMMENT ON TABLE "session" IS 'Better Auth 会话表';
 --> statement-breakpoint
-ALTER TABLE "photo_metadata" ADD CONSTRAINT "photo_metadata_file_id_files_id_fk" FOREIGN KEY ("file_id") REFERENCES "public"."files"("id") ON DELETE cascade ON UPDATE no action;
+COMMENT ON COLUMN "session"."id" IS '会话 ID';
 --> statement-breakpoint
-ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+COMMENT ON COLUMN "session"."user_id" IS '关联用户 ID';
 --> statement-breakpoint
-ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_collection_id_photo_collections_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."photo_collections"("id") ON DELETE cascade ON UPDATE no action;
+COMMENT ON COLUMN "session"."expires_at" IS '会话过期时间';
+COMMENT ON COLUMN "session"."token" IS '会话令牌';
 --> statement-breakpoint
-ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_file_id_files_id_fk" FOREIGN KEY ("file_id") REFERENCES "public"."files"("id") ON DELETE cascade ON UPDATE no action;
+COMMENT ON COLUMN "session"."ip_address" IS '访问 IP';
 --> statement-breakpoint
-ALTER TABLE "video_series_items" ADD CONSTRAINT "video_series_items_series_id_video_series_id_fk" FOREIGN KEY ("series_id") REFERENCES "public"."video_series"("id") ON DELETE cascade ON UPDATE no action;
+COMMENT ON COLUMN "session"."user_agent" IS '用户代理';
 --> statement-breakpoint
-ALTER TABLE "video_series_items" ADD CONSTRAINT "video_series_items_file_id_files_id_fk" FOREIGN KEY ("file_id") REFERENCES "public"."files"("id") ON DELETE cascade ON UPDATE no action;
+COMMENT ON COLUMN "session"."created_at" IS '创建时间';
+--> statement-breakpoint
+COMMENT ON COLUMN "session"."updated_at" IS '更新时间';
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "account" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" integer NOT NULL,
+	"account_id" text NOT NULL,
+	"provider_id" text NOT NULL,
+	"access_token" text,
+	"refresh_token" text,
+	"access_token_expires_at" timestamp,
+	"refresh_token_expires_at" timestamp,
+	"scope" text,
+	"id_token" text,
+	"password" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+COMMENT ON TABLE "account" IS 'Better Auth 账号表';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."id" IS '账号记录 ID';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."user_id" IS '关联用户 ID';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."account_id" IS '供应商账号 ID';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."provider_id" IS '供应商标识';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."access_token" IS 'OAuth access_token';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."refresh_token" IS 'OAuth refresh_token';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."access_token_expires_at" IS 'access_token 过期时间';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."refresh_token_expires_at" IS 'refresh_token 过期时间';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."scope" IS 'OAuth scope';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."id_token" IS 'OpenID id_token';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."password" IS '邮箱密码登录的哈希密码';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."created_at" IS '创建时间';
+--> statement-breakpoint
+COMMENT ON COLUMN "account"."updated_at" IS '更新时间';
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "verification" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"identifier" text NOT NULL,
+	"value" text NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+COMMENT ON TABLE "verification" IS 'Better Auth 验证表';
+--> statement-breakpoint
+COMMENT ON COLUMN "verification"."id" IS '验证记录 ID';
+--> statement-breakpoint
+COMMENT ON COLUMN "verification"."identifier" IS '标识（如邮箱）';
+--> statement-breakpoint
+COMMENT ON COLUMN "verification"."value" IS '验证码/令牌';
+--> statement-breakpoint
+COMMENT ON COLUMN "verification"."expires_at" IS '过期时间';
+--> statement-breakpoint
+COMMENT ON COLUMN "verification"."created_at" IS '创建时间';
+--> statement-breakpoint
+COMMENT ON COLUMN "verification"."updated_at" IS '更新时间';
 --> statement-breakpoint
 CREATE UNIQUE INDEX "files_storage_path_unique" ON "files" USING btree ("user_storage_id","path");
 --> statement-breakpoint
