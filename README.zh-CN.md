@@ -8,8 +8,8 @@
 
 - 前端展示：Hero、照片墙、画廊、作品集
 - 管理端 dashboard：内容与业务数据管理
-- NextAuth v5：Credentials（邮箱/密码）+ GitHub OAuth 登录
-- `proxy.ts` 路由保护：未登录访问 `/dashboard/**` 自动跳转 `/login`
+- Better Auth：邮箱/密码 + GitHub OAuth 登录
+- `proxy.ts` 路由保护：仅管理员可访问 `/dashboard/**`，前台页面对未登录用户开放
 - Server Actions + Postgres（Drizzle ORM）用于服务端数据访问
 
 ## 技术栈
@@ -17,7 +17,7 @@
 - Next.js 16（App Router + Turbopack）
 - React + TypeScript
 - Tailwind CSS
-- NextAuth（v5 beta）
+- Better Auth
 - Postgres（`postgres` client）
 - Zod（表单校验）
 
@@ -31,16 +31,17 @@ pnpm install
 
 ### 2）配置环境变量
 
-推荐使用 `.env.local`（不要提交到仓库）。本项目在服务端读取 `POSTGRES_URL` 连接数据库；NextAuth 需要 `AUTH_SECRET`；GitHub 登录需要 `AUTH_GITHUB_ID/AUTH_GITHUB_SECRET`。
+推荐使用 `.env.local`（不要提交到仓库）。本项目在服务端读取 `POSTGRES_URL` 连接数据库；Better Auth 需要 `BETTER_AUTH_SECRET` 与 `BETTER_AUTH_URL`；GitHub 登录需要 `GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET`。
 
 ```bash
 POSTGRES_URL=postgres://USER:PASSWORD@HOST:PORT/DB
-AUTH_SECRET=your-secret
-AUTH_GITHUB_ID=your-github-oauth-client-id
-AUTH_GITHUB_SECRET=your-github-oauth-client-secret
+BETTER_AUTH_SECRET=your-secret
+BETTER_AUTH_URL=http://localhost:3000
+GITHUB_CLIENT_ID=your-github-oauth-client-id
+GITHUB_CLIENT_SECRET=your-github-oauth-client-secret
 ```
 
-生成 `AUTH_SECRET`（示例）：
+生成 `BETTER_AUTH_SECRET`（示例）：
 
 ```bash
 openssl rand -base64 32
@@ -76,7 +77,7 @@ Invoke-WebRequest http://localhost:3000/seed
 
 预置数据写入后，可以使用默认账号登录：
 
-- 邮箱：`user@nextmail.com`
+- 邮箱：`admin@memorix.com`
 - 密码：`123456`
 
 ## 常用路由

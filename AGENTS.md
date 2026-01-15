@@ -4,14 +4,14 @@
 - Next.js App Router 入口在 `app/layout.tsx` 与 `app/page.tsx`；前端展示页面位于 `app` 下（Hero、照片墙、画廊、作品集等路由），管理端路由集中于 `app/dashboard`，局部布局在 `app/dashboard/layout.tsx`。
 - 共享服务器逻辑在 `app/lib/`：`actions.ts`（服务器动作）、`data.ts`（查询）、`definitions.ts`（类型）、`utils.ts` 与 `placeholder-data.ts`（工具/示例数据）。
 - UI 组件在 `app/ui/**`，按功能拆分；全局样式 `app/ui/global.css`，字体 `app/ui/fonts.ts`，通用组件如 `acme-logo.tsx`、`button.tsx`。静态资源在 `public/`。
-- API/脚本路由：`app/seed/route.ts`（数据库预置）、`app/query/route.ts`（查询示例）。配置文件：`next.config.ts`、`tailwind.config.ts`、`eslint.config.mjs`、`tsconfig.json`、`auth.config.ts` 等。
+- API/脚本路由：`app/seed/route.ts`（数据库预置）、`app/query/route.ts`（查询示例）。配置文件：`next.config.ts`、`tailwind.config.ts`、`eslint.config.mjs`、`tsconfig.json`、`auth.ts` 等。
 
 ## 构建、测试与开发命令
 - `pnpm install` 安装依赖（以 `pnpm-lock.yaml` 为准）。
 - `pnpm dev` 启动本地开发（Turbopack，http://localhost:3000）。
 - `pnpm build` 生成生产包；`pnpm start` 以生产模式运行。
 - `pnpm lint` 运行 ESLint（Next.js core-web-vitals 规则）。
-- 预置数据：配置好环境变量后执行 `curl http://localhost:3000/seed`；`/query` 可用于调试查询。
+- 预置数据：配置好环境变量后执行 `curl http://localhost:3000/seed`。
 
 ## 代码风格与命名规范
 - TypeScript + React，默认 Server Component，需客户端交互时添加 `"use client"`。
@@ -27,7 +27,7 @@
 - PR 包含变更摘要、影响的路由/组件、数据库或认证影响；UI 变更附截图/GIF，并列出已执行的检查（lint、build、seed 等）。
 
 ## 安全与配置
-- 秘密信息仅存于 `.env.local`，勿入库；部署时为 `AUTH_SECRET` 使用 `openssl rand -base64 32` 重新生成。
+- 秘密信息仅存于 `.env.local`，勿入库；部署时为 `BETTER_AUTH_SECRET` 使用 `openssl rand -base64 32` 重新生成。
 - Postgres 连接保持 SSL（`POSTGRES_URL`/`DATABASE_URL`）；避免在日志输出凭据。
 
 ## 语言与注释

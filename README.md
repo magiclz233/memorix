@@ -8,8 +8,8 @@ Memorix is a gallery project built with the Next.js App Router. It includes a pu
 
 - Public site: hero landing, photo wall, gallery, portfolio
 - Admin dashboard: content and business data management
-- NextAuth v5: Credentials (email/password) + GitHub OAuth sign-in
-- Route protection via `proxy.ts`: unauthenticated users are redirected to `/login`
+- Better Auth: Email/password + GitHub OAuth sign-in
+- Route protection via `proxy.ts`: admin-only `/dashboard`, public front pages
 - Server Actions + Postgres (Drizzle ORM) for server-side data access
 
 ## Tech Stack
@@ -17,7 +17,7 @@ Memorix is a gallery project built with the Next.js App Router. It includes a pu
 - Next.js 16 (App Router + Turbopack)
 - React + TypeScript
 - Tailwind CSS
-- NextAuth (v5 beta)
+- Better Auth
 - Postgres (`postgres` client)
 - Zod (validation)
 
@@ -31,13 +31,14 @@ pnpm install
 
 ### 2) Environment Variables
 
-Prefer `.env.local` (do not commit it). This project reads `POSTGRES_URL` for Postgres access. NextAuth needs `AUTH_SECRET`, and GitHub sign-in needs `AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET`.
+Prefer `.env.local` (do not commit it). This project reads `POSTGRES_URL` for Postgres access. Better Auth needs `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`, and GitHub sign-in needs `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`.
 
 ```bash
 POSTGRES_URL=postgres://USER:PASSWORD@HOST:PORT/DB
-AUTH_SECRET=your-secret
-AUTH_GITHUB_ID=your-github-oauth-client-id
-AUTH_GITHUB_SECRET=your-github-oauth-client-secret
+BETTER_AUTH_SECRET=your-secret
+BETTER_AUTH_URL=http://localhost:3000
+GITHUB_CLIENT_ID=your-github-oauth-client-id
+GITHUB_CLIENT_SECRET=your-github-oauth-client-secret
 ```
 
 ### 3) Seed Database (Dev Only)
@@ -54,7 +55,7 @@ Run migrations first (creates/updates tables via Drizzle migrations):
 pnpm drizzle-kit migrate
 ```
 
-Then seed the database (inserts placeholder data):
+Then seed the database (inserts placeholder data and the default admin):
 
 ```bash
 curl http://localhost:3000/seed
@@ -68,9 +69,9 @@ Invoke-WebRequest http://localhost:3000/seed
 
 ### 4) Login
 
-After seeding, you can sign in with the default credentials:
+After seeding, you can sign in with the default admin:
 
-- Email: `user@nextmail.com`
+- Email: `admin@memorix.com`
 - Password: `123456`
 
 ## Routes
