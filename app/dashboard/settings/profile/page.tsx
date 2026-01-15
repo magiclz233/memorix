@@ -28,7 +28,7 @@ export default function Page() {
               <Label className="text-zinc-800 dark:text-zinc-100">邮箱</Label>
               <Input
                 type="email"
-                placeholder="admin@memorix.dev"
+                placeholder="admin@memorix.com"
                 className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
               />
             </div>

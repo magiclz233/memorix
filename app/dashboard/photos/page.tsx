@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { fetchHeroPhotoIdsByUser, fetchStorageFiles, fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
 import { StorageConfigForm } from '@/app/ui/photos/storage-config';
@@ -16,7 +17,9 @@ type PageProps = {
 };
 
 export default async function Page({ searchParams }: PageProps) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   const email = session?.user?.email ?? null;
 
   if (!email) {

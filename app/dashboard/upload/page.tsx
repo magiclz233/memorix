@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
 import { UploadCenter } from '@/app/ui/admin/upload-center';
@@ -44,7 +45,9 @@ const buildStorageOption = (storage: {
 };
 
 export default async function Page() {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   const email = session?.user?.email ?? null;
 
   if (!email) {

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { fetchDashboardOverview, fetchUserByEmail } from '@/app/lib/data';
 
@@ -17,7 +18,9 @@ const StatCard = ({ label, value, description }: StatCardProps) => (
 );
 
 export default async function Page() {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   const email = session?.user?.email ?? null;
 
   if (!email) {

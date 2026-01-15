@@ -9,6 +9,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
+import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { deleteUserStorage, scanStorage, setUserStorageDisabled } from '@/app/lib/actions';
 import { fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
@@ -72,7 +73,9 @@ const renderStorageDetail = (type: string, config: StorageConfig) => {
 };
 
 export default async function Page({ searchParams }: PageProps) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   const email = session?.user?.email ?? null;
 
   if (!email) {
