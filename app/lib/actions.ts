@@ -1,14 +1,16 @@
 'use server';
 
-import { z } from "zod";
+import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { auth, signIn, signOut } from '@/auth';
-import { AuthError } from "next-auth";
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { APIError } from 'better-auth/api';
+import { auth } from '@/auth';
 import { and, eq, inArray } from 'drizzle-orm';
-import bcrypt from 'bcryptjs';
 import { db } from './drizzle'; // 引入 db
 import { files, userSettings, userStorages, users } from './schema'; // 引入表定义
 import { runStorageScan } from './storage-scan';
+import { ApiError } from 'next/dist/server/api-utils';
 
 export type SignupState = {
   errors?: {
@@ -37,19 +39,37 @@ export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
 ) {
+  const email = formData.get('email');
+  const password = formData.get('password');
+  const redirectTo = formData.get('redirectTo');
+  const trimmedRedirectTo =
+    typeof redirectTo === 'string' ? redirectTo.trim() : '';
+  const safeRedirectTo =
+    trimmedRedirectTo.startsWith('/') ? trimmedRedirectTo : '/gallery';
+
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return 'Invalid credentials.';
+  }
+
   try {
-    await signIn("credentials", formData);
+    await auth.api.signInEmail({
+      body: {
+        email: email.trim(),
+        password,
+      },
+      headers: await headers(),
+    });
   } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case "CredentialsSignin":
-          return "Invalid credentials.";
-        default:
-          return "Something went wrong.";
+    if (error instanceof APIError) {
+      if (error.status === 401) {
+        return 'Invalid credentials.';
       }
+      return error.message || 'Something went wrong.';
     }
     throw error;
   }
+
+  redirect(safeRedirectTo);
 }
 
 export async function signup(
@@ -86,8 +106,14 @@ export async function signup(
       };
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await db.insert(users).values({ name, email, password: hashedPassword });
+    await auth.api.signUpEmail({
+      body: {
+        name,
+        email,
+        password,
+      },
+      headers: await headers(),
+    });
     return { success: true, message: null, errors: {} };
   } catch (error) {
     console.error('注册失败：', error);
@@ -96,11 +122,16 @@ export async function signup(
 }
 
 export async function signOutAction() {
-  await signOut({ redirectTo: '/' });
+  await auth.api.signOut({
+    headers: await headers(),
+  });
+  redirect('/');
 }
 
 async function requireUser() {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   const email = session?.user?.email;
   if (!email) {
     throw new Error('未登录或缺少用户信息。');
@@ -112,6 +143,58 @@ async function requireUser() {
     throw new Error('用户不存在。');
   }
   return user;
+}
+
+async function requireAdminUser() {
+  const user = await requireUser();
+  if (user.role !== 'admin') {
+    throw new Error('Forbidden');
+  }
+  return user;
+}
+
+const UserRoleSchema = z.object({
+  userId: z.coerce.number().int().positive(),
+  role: z.enum(['admin', 'user']),
+});
+
+export async function setUserRole(formData: FormData) {
+  const admin = await requireAdminUser();
+  const parsed = UserRoleSchema.safeParse({
+    userId: formData.get('userId'),
+    role: formData.get('role'),
+  });
+
+  if (!parsed.success) {
+    return { success: false, message: '无效的用户角色参数。' };
+  }
+
+  const { userId, role } = parsed.data;
+  if (admin.id === userId && role !== 'admin') {
+    return { success: false, message: '不能将自己设置为普通用户。' };
+  }
+
+  const target = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!target) {
+    return { success: false, message: '用户不存在。' };
+  }
+
+  if (target.role === role) {
+    return { success: true, message: '用户角色未改变。' };
+  }
+
+  await db
+    .update(users)
+    .set({ role, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+  revalidatePath('/dashboard/settings/users');
+  return {
+    success: true,
+    message: role === 'admin' ? '用户角色已设置为管理员。' : '用户角色已设置为普通用户。',
+  };
 }
 
 const StorageConfigSchema = z.object({
@@ -136,7 +219,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
     return { success: false, message: '配置参数不完整。' };
   }
 
-  const user = await requireUser();
+  const user = await requireAdminUser();
   const data = parsed.data;
   const existingStorage = data.id
     ? await db.query.userStorages.findFirst({
@@ -213,7 +296,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
 }
 
 export async function setUserStorageDisabled(storageId: number, isDisabled: boolean) {
-  const user = await requireUser();
+  const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
@@ -241,7 +324,7 @@ export async function setUserStorageDisabled(storageId: number, isDisabled: bool
 }
 
 export async function deleteUserStorage(storageId: number) {
-  const user = await requireUser();
+  const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
@@ -260,7 +343,7 @@ export async function deleteUserStorage(storageId: number) {
 }
 
 export async function scanStorage(storageId: number) {
-  const user = await requireUser();
+  const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
@@ -315,16 +398,8 @@ export async function scanStorage(storageId: number) {
   }
 }
 
-export async function signInWithGitHub(formData: FormData) {
-  const redirectTo = formData.get('redirectTo');
-  const trimmedRedirectTo =
-    typeof redirectTo === 'string' ? redirectTo.trim() : '';
-  const safeRedirectTo = trimmedRedirectTo.length > 0 ? trimmedRedirectTo : '/gallery';
-  await signIn('github', { redirectTo: safeRedirectTo });
-}
-
 export async function setFilesPublished(fileIds: number[], isPublished: boolean) {
-  const user = await requireUser();
+  const user = await requireAdminUser();
 
   const storageIds = await db
     .select({ id: userStorages.id })
@@ -371,7 +446,7 @@ const normalizeIdList = (value: unknown) => {
 };
 
 export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
-  const user = await requireUser();
+  const user = await requireAdminUser();
 
   const storageIds = await db
     .select({ id: userStorages.id })
@@ -446,7 +521,7 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
 }
 
 export async function setStoragePublished(storageId: number, isPublished: boolean) {
-  const user = await requireUser();
+  const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });

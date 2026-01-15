@@ -10,7 +10,7 @@ import {
 } from './schema';
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 
-export async function fetchDashboardOverview(userId: string) {
+export async function fetchDashboardOverview(userId: number) {
   const storageCountPromise = db
     .select({ count: count() })
     .from(userStorages)
@@ -60,7 +60,21 @@ export async function fetchUserByEmail(email: string) {
   return user ?? null;
 }
 
-export async function fetchUserStorages(userId: string) {
+export async function fetchUsers() {
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt));
+}
+
+export async function fetchUserStorages(userId: number) {
   return db
     .select({
       id: userStorages.id,
@@ -93,7 +107,7 @@ export async function fetchStorageFiles(storageId: number) {
     .orderBy(desc(files.mtime));
 }
 
-export async function fetchPublishedPhotos(userId: string) {
+export async function fetchPublishedPhotos(userId: number) {
   const records = await db
     .select({
       id: files.id,
@@ -220,7 +234,7 @@ const warnHeroSettingsFallback = (error: unknown) => {
   console.warn(`读取 Hero 配置失败，已降级为默认图片。${detail ? ` ${detail}` : ''}`);
 };
 
-export async function fetchHeroPhotoIdsByUser(userId: string) {
+export async function fetchHeroPhotoIdsByUser(userId: number) {
   try {
     const record = await db
       .select({ value: userSettings.value })
@@ -238,7 +252,7 @@ export async function fetchHeroPhotoIdsByUser(userId: string) {
   }
 }
 
-const fetchHeroPhotoIdsForHome = async (userId?: string) => {
+const fetchHeroPhotoIdsForHome = async (userId?: number) => {
   try {
     if (userId) {
       return fetchHeroPhotoIdsByUser(userId);
@@ -260,7 +274,7 @@ const fetchHeroPhotoIdsForHome = async (userId?: string) => {
   }
 };
 
-export async function fetchHeroPhotosForHome(options?: { userId?: string; limit?: number }) {
+export async function fetchHeroPhotosForHome(options?: { userId?: number; limit?: number }) {
   const limit = options?.limit ?? 12;
   const heroIds = await fetchHeroPhotoIdsForHome(options?.userId);
   if (heroIds.length === 0) return [];
@@ -380,3 +394,4 @@ export async function fetchPublishedPhotosForHome(limit = 12) {
     )
     .map(({ storageConfig, ...rest }) => rest);
 }
+
