@@ -9,7 +9,7 @@ import {
   LogOut,
   Settings,
   UploadCloud,
-  User,
+  Users,
 } from 'lucide-react';
 
 import { signOutAction } from '@/app/lib/actions';
@@ -35,12 +35,12 @@ const navItems = [
   { title: '上传中心', url: '/dashboard/upload', icon: UploadCloud },
   { title: '存储配置', url: '/dashboard/storage', icon: HardDrive },
   { title: '系统设置', url: '/dashboard/settings/system', icon: Settings },
-  { title: '用户设置', url: '/dashboard/settings/profile', icon: User },
+  { title: '用户管理', url: '/dashboard/settings/users', icon: Users },
 ];
 
 const ADMIN_USER = {
   name: '管理员',
-  email: 'admin@memorix.dev',
+  email: 'admin@memorix.com',
   avatar: '/hero1.jpg',
 };
 
