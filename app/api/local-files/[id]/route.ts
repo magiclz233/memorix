@@ -2,6 +2,7 @@ import path from 'path';
 import { createReadStream, promises as fs } from 'fs';
 import { Readable } from 'stream';
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { db } from '@/app/lib/drizzle';
 import { files, userStorages, users } from '@/app/lib/schema';
@@ -39,7 +40,9 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   if (!item.isPublished) {
-    const session = await auth();
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
     const email = session?.user?.email;
     if (!email) {
       return NextResponse.json({ message: '文件未发布。' }, { status: 403 });

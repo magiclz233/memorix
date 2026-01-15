@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/app/lib/drizzle';
@@ -40,10 +41,17 @@ export async function GET(request: Request) {
           return;
         }
 
-        const session = await auth();
+        const session = await auth.api.getSession({
+          headers: await headers(),
+        });
         const email = session?.user?.email;
         if (!email) {
           sendError('未登录或缺少用户信息。');
+          return;
+        }
+
+        if (session?.user?.role !== 'admin') {
+          sendError('Forbidden');
           return;
         }
 
