@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
+import { BlurImage } from '@/app/ui/gallery/blur-image';
 import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
 import { spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
@@ -474,12 +474,13 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                         className='relative w-full'
                         style={{ aspectRatio: getAspectRatioValue(item, ratioMap) }}
                       >
-                        <Image
+                        <BlurImage
                           fill
                           sizes={gridSizes}
                           className='object-cover transition duration-300 group-hover:scale-105'
                           src={item.src}
                           alt={item.title}
+                          blurHash={item.blurHash}
                           onLoadingComplete={(image) => {
                             const ratioKey = getRatioKey(item.id);
                             if (ratioMap[ratioKey]) return;
@@ -589,11 +590,12 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                     className='relative h-full w-full overflow-hidden rounded-xl bg-muted'
                     style={{ aspectRatio: getAspectRatioValue(selected, ratioMap) }}
                   >
-                    <Image
+                    <BlurImage
                       fill
                       sizes='(max-width: 768px) 90vw, 60vw'
                       src={selected.src}
                       alt={selected.title}
+                      blurHash={selected.blurHash}
                       className={cn(
                         viewMode === 'crop' ? 'object-cover' : 'object-contain',
                       )}
