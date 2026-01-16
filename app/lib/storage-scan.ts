@@ -1,7 +1,9 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, inArray, and } from 'drizzle-orm';
 import { db } from './drizzle';
 import { files, photoMetadata } from './schema';
 import { readPhotoMetadata, scanImageFiles, type ScanWalkEvent } from './storage';
+import sharp from 'sharp';
+import { encode } from 'blurhash';
 
 export type StorageScanLogLevel = 'info' | 'warn' | 'error';
 
@@ -23,6 +25,21 @@ type StorageScanOptions = {
   onLog?: (entry: StorageScanLog) => void;
   onProgress?: (progress: StorageScanProgress) => void;
 };
+
+async function generateBlurHash(path: string): Promise<string | null> {
+  try {
+    const { data, info } = await sharp(path)
+      .raw()
+      .ensureAlpha()
+      .resize(32, 32, { fit: 'inside' })
+      .toBuffer({ resolveWithObject: true });
+    
+    return encode(new Uint8ClampedArray(data), info.width, info.height, 4, 4);
+  } catch (error) {
+    // console.error(`Failed to generate blurhash for ${path}:`, error);
+    return null;
+  }
+}
 
 export async function runStorageScan({
   storageId,
@@ -63,10 +80,36 @@ export async function runStorageScan({
   let processed = 0;
 
   await db.transaction(async (tx) => {
-    await tx.delete(files).where(eq(files.userStorageId, storageId));
-    log('info', '旧记录已清空。');
+    // 1. 获取数据库中当前存储的所有文件路径
+    const existingFiles = await tx
+      .select({ path: files.path })
+      .from(files)
+      .where(eq(files.userStorageId, storageId));
+    
+    const existingPathSet = new Set(existingFiles.map((f) => f.path));
+    const scannedPathSet = new Set(fileList.map((f) => f.relativePath));
 
+    // 2. 找出需要删除的文件（数据库中有，但扫描结果中没有）
+    const pathsToDelete = existingFiles
+      .filter((f) => !scannedPathSet.has(f.path))
+      .map((f) => f.path);
+
+    if (pathsToDelete.length > 0) {
+      // 分批删除，避免参数过多
+      const batchSize = 1000;
+      for (let i = 0; i < pathsToDelete.length; i += batchSize) {
+        const batch = pathsToDelete.slice(i, i + batchSize);
+        await tx
+          .delete(files)
+          .where(and(eq(files.userStorageId, storageId), inArray(files.path, batch)));
+      }
+      log('info', `已清理 ${pathsToDelete.length} 个丢失的文件记录。`);
+    }
+
+    // 3. 更新或插入文件
     for (const file of fileList) {
+      const blurHash = await generateBlurHash(file.absolutePath);
+
       const [saved] = await tx
         .insert(files)
         .values({
@@ -78,6 +121,7 @@ export async function runStorageScan({
           mtime: file.mtime,
           userStorageId: storageId,
           mediaType: 'image',
+          blurHash: blurHash,
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
@@ -88,6 +132,7 @@ export async function runStorageScan({
             mimeType: file.mimeType,
             mtime: file.mtime,
             sourceType: storageType,
+            blurHash: blurHash,
             updatedAt: new Date(),
           },
         })
