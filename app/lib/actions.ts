@@ -8,7 +8,17 @@ import { APIError } from 'better-auth/api';
 import { auth } from '@/auth';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from './drizzle'; // 引入 db
-import { files, userSettings, userStorages, users } from './schema'; // 引入表定义
+import {
+  collectionItems,
+  files,
+  photoCollections,
+  photoMetadata,
+  userSettings,
+  userStorages,
+  users,
+  videoSeries,
+  videoSeriesItems,
+} from './schema'; // 引入表定义
 import { runStorageScan } from './storage-scan';
 import { ApiError } from 'next/dist/server/api-utils';
 
@@ -323,6 +333,55 @@ export async function setUserStorageDisabled(storageId: number, isDisabled: bool
   };
 }
 
+export async function checkStorageDependencies(storageId: number) {
+  const user = await requireAdminUser();
+  const storage = await db.query.userStorages.findFirst({
+    where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
+  });
+
+  if (!storage) {
+    return { success: false, message: '存储配置不存在。' };
+  }
+
+  const storageFiles = await db
+    .select({ id: files.id })
+    .from(files)
+    .where(eq(files.userStorageId, storageId));
+
+  const fileIds = storageFiles.map((f) => f.id);
+
+  if (fileIds.length === 0) {
+    return { success: true, dependencies: [] };
+  }
+
+  const relatedCollections = await db
+    .select({ title: photoCollections.title })
+    .from(photoCollections)
+    .innerJoin(
+      collectionItems,
+      eq(photoCollections.id, collectionItems.collectionId),
+    )
+    .where(inArray(collectionItems.fileId, fileIds))
+    .groupBy(photoCollections.id, photoCollections.title);
+
+  const relatedSeries = await db
+    .select({ title: videoSeries.title })
+    .from(videoSeries)
+    .innerJoin(
+      videoSeriesItems,
+      eq(videoSeries.id, videoSeriesItems.seriesId),
+    )
+    .where(inArray(videoSeriesItems.fileId, fileIds))
+    .groupBy(videoSeries.id, videoSeries.title);
+
+  const dependencies = [
+    ...relatedCollections.map((c) => `图片集: ${c.title}`),
+    ...relatedSeries.map((s) => `视频集: ${s.title}`),
+  ];
+
+  return { success: true, dependencies };
+}
+
 export async function deleteUserStorage(storageId: number) {
   const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
@@ -333,13 +392,60 @@ export async function deleteUserStorage(storageId: number) {
     return { success: false, message: '存储配置不存在。' };
   }
 
-  await db
-    .delete(userStorages)
-    .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
+  await db.transaction(async (tx) => {
+    const fileList = await tx
+      .select({ id: files.id })
+      .from(files)
+      .where(eq(files.userStorageId, storageId));
+
+    const fileIds = fileList.map((f) => f.id);
+
+    if (fileIds.length > 0) {
+      await tx
+        .delete(collectionItems)
+        .where(inArray(collectionItems.fileId, fileIds));
+      await tx
+        .delete(videoSeriesItems)
+        .where(inArray(videoSeriesItems.fileId, fileIds));
+      await tx
+        .delete(photoMetadata)
+        .where(inArray(photoMetadata.fileId, fileIds));
+      await tx.delete(files).where(eq(files.userStorageId, storageId));
+    }
+
+    await tx
+      .delete(userStorages)
+      .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
+  });
 
   revalidatePath('/dashboard/photos');
   revalidatePath('/gallery');
-  return { success: true, message: '存储配置已删除。' };
+  return { success: true, message: '存储配置及相关文件已删除。' };
+}
+
+export async function setStoragePublished(storageId: number, isPublished: boolean) {
+  const user = await requireAdminUser();
+  const storage = await db.query.userStorages.findFirst({
+    where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
+  });
+
+  if (!storage) {
+    return { success: false, message: '存储配置不存在。' };
+  }
+
+  await db
+    .update(files)
+    .set({ isPublished, updatedAt: new Date() })
+    .where(eq(files.userStorageId, storageId));
+
+  revalidatePath('/dashboard/photos');
+  revalidatePath('/gallery');
+  return {
+    success: true,
+    message: isPublished
+      ? '已发布该数据源下的所有图片。'
+      : '已隐藏该数据源下的所有图片。',
+  };
 }
 
 export async function scanStorage(storageId: number) {
@@ -520,22 +626,4 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
   };
 }
 
-export async function setStoragePublished(storageId: number, isPublished: boolean) {
-  const user = await requireAdminUser();
-  const storage = await db.query.userStorages.findFirst({
-    where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
-  });
 
-  if (!storage) {
-    return { success: false, message: '存储配置不存在。' };
-  }
-
-  await db
-    .update(files)
-    .set({ isPublished, updatedAt: new Date() })
-    .where(eq(files.userStorageId, storageId));
-
-  revalidatePath('/dashboard/photos');
-  revalidatePath('/gallery');
-  return { success: true, message: '已批量更新图库展示状态。' };
-}
