@@ -98,6 +98,7 @@ export async function fetchStorageFiles(storageId: number) {
       mimeType: files.mimeType,
       mtime: files.mtime,
       isPublished: files.isPublished,
+      blurHash: files.blurHash,
       resolutionWidth: photoMetadata.resolutionWidth,
       resolutionHeight: photoMetadata.resolutionHeight,
     })
@@ -324,6 +325,7 @@ export async function fetchPublishedMediaForGallery(
         url: files.url,
         thumbUrl: files.thumbUrl,
         mtime: files.mtime,
+        blurHash: files.blurHash,
         resolutionWidth: photoMetadata.resolutionWidth,
         resolutionHeight: photoMetadata.resolutionHeight,
         description: photoMetadata.description,
