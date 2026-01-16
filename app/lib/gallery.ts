@@ -21,6 +21,7 @@ export type GalleryItem = {
   size?: number | null;
   dateShot?: string | null;
   createdAt?: string | null;
+  blurHash?: string | null;
 };
 
 type GalleryRecord = Awaited<
@@ -71,6 +72,7 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
       size: record.size ?? null,
       dateShot: normalizeDate(shotAt),
       createdAt: normalizeDate(record.mtime),
+      blurHash: record.blurHash ?? null,
     });
     return acc;
   }, []);
