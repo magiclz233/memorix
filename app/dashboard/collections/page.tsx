@@ -103,24 +103,24 @@ export default function Page() {
           {photoCollections.map((collection) => (
             <div
               key={collection.id}
-              className="rounded-2xl border border-zinc-200 bg-white/80 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60"
+              className="group relative flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white/80 p-4 shadow-sm transition-all hover:shadow-md dark:border-white/10 dark:bg-zinc-900/50 dark:backdrop-blur-md"
             >
-              <div className="overflow-hidden rounded-xl">
+              <div className="overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800/50">
                 <img
                   src={collection.cover}
                   alt={collection.title}
-                  className="h-40 w-full object-cover"
+                  className="h-40 w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
                 />
               </div>
               <div className="mt-4 space-y-2">
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                   {collection.title}
                 </h3>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  包含 {collection.count} 张图片
+                  包含 <span className="font-mono">{collection.count}</span> 张图片
                 </p>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="w-full">
                   管理图集
                 </Button>
               </div>
@@ -132,25 +132,25 @@ export default function Page() {
           {videoSeries.map((series) => (
             <div
               key={series.id}
-              className="flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200 bg-white/80 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60"
+              className="flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200 bg-white/80 p-4 shadow-sm transition-all hover:shadow-md dark:border-white/10 dark:bg-zinc-900/50 dark:backdrop-blur-md"
             >
               <div className="flex items-center gap-3">
                 <GripVertical className="h-5 w-5 text-zinc-400" />
-                <div className="h-16 w-24 overflow-hidden rounded-xl">
+                <div className="h-16 w-24 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800/50">
                   <img
                     src={series.cover}
                     alt={series.title}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
                     loading="lazy"
                   />
                 </div>
               </div>
               <div className="min-w-[200px] flex-1 space-y-1">
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                   {series.title}
                 </h3>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  {series.episodes} 集 · {series.status}
+                  <span className="font-mono">{series.episodes}</span> 集 · {series.status}
                 </p>
               </div>
               <Button variant="outline" size="sm">
