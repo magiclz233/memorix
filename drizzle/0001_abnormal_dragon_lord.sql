@@ -1,0 +1,1 @@
+ALTER TABLE "files" ADD COLUMN "blur_hash" varchar(64);
