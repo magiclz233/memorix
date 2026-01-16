@@ -62,6 +62,7 @@ export const files = pgTable('files', {
   userStorageId: integer('user_storage_id').notNull(),
   // 媒体类型：'image'、'audio'、'video' 等
   mediaType: varchar('media_type', { length: 50 }).notNull(),
+  blurHash: varchar('blur_hash', { length: 64 }),
   // 是否在图库展示
   isPublished: boolean('is_published').notNull().default(false),
 }, (table) => ({
