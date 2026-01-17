@@ -5,6 +5,6 @@ export default defineConfig({
   out: "./drizzle", // 迁移文件输出目录
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.POSTGRES_URL!,
+    url: process.env.POSTGRES_URL_UNPOOLED || process.env.POSTGRES_URL!,
   },
 });
