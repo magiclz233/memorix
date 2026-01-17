@@ -1,32 +1,11 @@
-import { fetchPublishedMediaForGallery } from '@/app/lib/data';
-import { buildGalleryItems } from '@/app/lib/gallery';
-import { GalleryInfinite } from '@/app/ui/front/gallery-infinite';
-import { getFallbackItems } from '@/app/lib/front-data';
+import { Suspense } from 'react';
+import { GalleryContent } from '@/app/ui/front/gallery-content';
+import { GallerySkeleton } from '@/app/ui/front/gallery-skeleton';
 
-const PAGE_SIZE = 12;
-
-export default async function Page() {
-  const records = await fetchPublishedMediaForGallery({
-    limit: PAGE_SIZE + 1,
-    offset: 0,
-  });
-  
-  const hasRecords = records.length > 0;
-  const hasNext = records.length > PAGE_SIZE;
-  const pageRecords = hasNext ? records.slice(0, PAGE_SIZE) : records;
-  
-  let items = buildGalleryItems(pageRecords);
-
-  if (!hasRecords) {
-    items = getFallbackItems();
-  }
-
+export default function Page() {
   return (
-    <GalleryInfinite
-      initialItems={items}
-      initialPage={1}
-      pageSize={PAGE_SIZE}
-      hasNext={hasNext}
-    />
+    <Suspense fallback={<GallerySkeleton />}>
+      <GalleryContent />
+    </Suspense>
   );
 }
