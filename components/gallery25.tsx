@@ -5,8 +5,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
-import { spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
+import { GalleryHeader } from '@/app/ui/front/gallery-header';
 
 type GalleryId = string | number;
 
@@ -380,22 +380,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
       >
         {chromeVisible ? (
           <>
-            <header className='front-fade-up space-y-4'>
-              <p className='text-xs uppercase tracking-[0.4em] text-zinc-600/80 dark:text-white/60'>
-                Gallery / Archive
-              </p>
-              <h1
-                className={cn(
-                  spaceGrotesk.className,
-                  'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-5xl',
-                )}
-              >
-                画廊
-              </h1>
-              <p className='max-w-2xl text-sm text-zinc-600/80 dark:text-white/60'>
-                以时间线与媒介切换浏览影像档案，探索每一次拍摄留下的光痕。
-              </p>
-            </header>
+            <GalleryHeader />
             <div className='flex flex-wrap items-center justify-between gap-4'>
               <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
                 {filters.map((tab) => (
