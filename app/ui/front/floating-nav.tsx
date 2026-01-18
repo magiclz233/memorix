@@ -1,11 +1,19 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { UserCircle } from 'lucide-react';
+import { LogIn, ShieldCheck, UserCircle } from 'lucide-react';
 import { spaceGrotesk } from '@/app/ui/fonts';
 import { ModeToggle } from '@/components/theme-toggle';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { authClient } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -19,6 +27,75 @@ const navItems = [
 export function FloatingNav() {
   const pathname = usePathname();
   const isHome = pathname === '/';
+  const loginHref = pathname
+    ? `/login?callbackUrl=${encodeURIComponent(pathname)}`
+    : '/login';
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
+  const displayName = user?.name || user?.email || '已登录';
+  const email = user?.email ?? null;
+  const avatarUrl = user?.image ?? null;
+  const avatarFallback = displayName.trim().slice(0, 1);
+  const isAdmin =
+    (user as { role?: string } | null | undefined)?.role === 'admin';
+  const accountButtonClass = cn(
+    'h-9 w-9 rounded-full border shadow-sm backdrop-blur-xl transition-colors',
+    isHome
+      ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+      : 'border-zinc-200/70 bg-white/80 text-zinc-700 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
+  );
+  const accountPanelClass = cn(
+    'w-64 rounded-xl border p-4 shadow-xl backdrop-blur-xl',
+    isHome
+      ? 'border-white/20 bg-black/70 text-white'
+      : 'border-zinc-200/80 bg-white/95 text-zinc-900 dark:border-white/15 dark:bg-zinc-950/80 dark:text-white',
+  );
+  const accountMutedTextClass = isHome
+    ? 'text-white/60'
+    : 'text-zinc-600 dark:text-white/60';
+  const accountSubtleTextClass = isHome
+    ? 'text-white/45'
+    : 'text-zinc-500 dark:text-white/50';
+  const accountBadgeClass = cn(
+    'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.25em]',
+    isHome
+      ? 'border-white/20 text-white/70'
+      : 'border-zinc-200 text-zinc-600 dark:border-white/15 dark:text-white/60',
+  );
+  const loginButtonClass = cn(
+    'h-9 w-full rounded-full text-xs uppercase tracking-[0.2em]',
+    isHome
+      ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+      : 'border-zinc-200/80 bg-white text-zinc-700 hover:bg-white dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
+  );
+
+  const clearAccountCloseTimer = () => {
+    if (!accountCloseTimerRef.current) return;
+    clearTimeout(accountCloseTimerRef.current);
+    accountCloseTimerRef.current = null;
+  };
+
+  const handleAccountOpen = () => {
+    clearAccountCloseTimer();
+    setAccountOpen(true);
+  };
+
+  const handleAccountClose = () => {
+    clearAccountCloseTimer();
+    accountCloseTimerRef.current = setTimeout(() => {
+      setAccountOpen(false);
+    }, 120);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearAccountCloseTimer();
+    };
+  }, []);
 
   return (
     <div className='fixed inset-x-0 top-0 z-50 pointer-events-none'>
@@ -73,36 +150,132 @@ export function FloatingNav() {
                 : 'border-zinc-200/70 bg-white/80 text-zinc-800 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
             )}
           />
-          <Button
-            asChild
-            variant='outline'
-            className={cn(
-              'hidden rounded-full text-xs uppercase tracking-[0.2em] shadow-sm sm:inline-flex',
-              isHome
-                ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
-                : 'border-zinc-200/70 bg-white/80 text-zinc-700 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
-            )}
-          >
-            <Link href='/login' className='flex items-center gap-2 px-3'>
-              <UserCircle className='h-4 w-4' />
-              登录
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant='outline'
-            size='icon'
-            className={cn(
-              'h-9 w-9 rounded-full shadow-sm sm:hidden',
-              isHome
-                ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
-                : 'border-zinc-200/70 bg-white/80 text-zinc-700 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
-            )}
-          >
-            <Link href='/login' aria-label='登录'>
-              <UserCircle className='h-4 w-4' />
-            </Link>
-          </Button>
+          <DropdownMenu open={accountOpen} onOpenChange={setAccountOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='outline'
+                size='icon'
+                className={accountButtonClass}
+                aria-label={user ? '用户信息' : '登录'}
+                onMouseEnter={handleAccountOpen}
+                onMouseLeave={handleAccountClose}
+              >
+                {user ? (
+                  <Avatar className='h-7 w-7'>
+                    {avatarUrl ? (
+                      <AvatarImage src={avatarUrl} alt={displayName} />
+                    ) : null}
+                    <AvatarFallback
+                      className={cn(
+                        'text-xs font-semibold',
+                        isHome
+                          ? 'bg-white/15 text-white'
+                          : 'bg-zinc-100 text-zinc-700 dark:bg-white/10 dark:text-white',
+                      )}
+                    >
+                      {avatarFallback}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <UserCircle className='h-4 w-4' />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align='end'
+              className={cn(accountPanelClass, 'p-4')}
+              onMouseEnter={handleAccountOpen}
+              onMouseLeave={handleAccountClose}
+            >
+              {user ? (
+                <div className='space-y-4'>
+                  <div className='flex items-center gap-3'>
+                    <Avatar className='h-10 w-10 border border-white/10'>
+                      {avatarUrl ? (
+                        <AvatarImage src={avatarUrl} alt={displayName} />
+                      ) : null}
+                      <AvatarFallback
+                        className={cn(
+                          'text-sm font-semibold',
+                          isHome
+                            ? 'bg-white/15 text-white'
+                            : 'bg-zinc-100 text-zinc-700 dark:bg-white/10 dark:text-white',
+                        )}
+                      >
+                        {avatarFallback}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className='space-y-1'>
+                      <p className='text-sm font-semibold'>{displayName}</p>
+                      {email ? (
+                        <p className={cn('text-xs', accountMutedTextClass)}>
+                          {email}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <span className={accountBadgeClass}>已登录</span>
+                    <span
+                      className={cn(
+                        'text-[11px] uppercase tracking-[0.2em]',
+                        accountSubtleTextClass,
+                      )}
+                    >
+                      欢迎回来
+                    </span>
+                  </div>
+                  {isAdmin ? (
+                    <Button
+                      asChild
+                      variant='outline'
+                      className={loginButtonClass}
+                    >
+                      <Link
+                        href='/dashboard'
+                        className='flex items-center justify-center gap-2'
+                      >
+                        <ShieldCheck className='h-4 w-4' />
+                        管理端
+                      </Link>
+                    </Button>
+                  ) : null}
+                </div>
+              ) : (
+                <div className='space-y-3'>
+                  <div className='space-y-1'>
+                    <p
+                      className={cn(
+                        'text-[11px] uppercase tracking-[0.35em]',
+                        accountSubtleTextClass,
+                      )}
+                    >
+                      账户
+                    </p>
+                    <p className='text-sm font-semibold'>
+                      登录以同步你的影像偏好
+                    </p>
+                    <p className={cn('text-xs', accountMutedTextClass)}>
+                      收藏图集、保存播放记录、管理作品发布。
+                    </p>
+                  </div>
+                  <Button
+                    asChild
+                    variant='outline'
+                    className={loginButtonClass}
+                  >
+                    <Link
+                      href={loginHref}
+                      className='flex items-center justify-center gap-2'
+                    >
+                      <LogIn className='h-4 w-4' />
+                      登录
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
