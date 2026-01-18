@@ -1,12 +1,13 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
-import { useActionState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link';
+import { useActionState, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 
-import { signup, type SignupState } from '@/app/lib/actions'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { signup, type SignupState } from '@/app/lib/actions';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
   Field,
   FieldDescription,
@@ -14,27 +15,29 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<'form'>) {
-  const router = useRouter()
-  const initialState: SignupState = { message: null, errors: {}, success: false }
+  const router = useRouter();
+  const initialState: SignupState = { message: null, errors: {}, success: false };
   const [state, formAction, isPending] = useActionState<SignupState, FormData>(
     signup,
-    initialState
-  )
+    initialState,
+  );
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const toFieldErrors = (errors?: string[]) =>
-    errors?.map((message) => ({ message }))
+    errors?.map((message) => ({ message }));
 
   useEffect(() => {
     if (state.success) {
-      router.replace('/login')
+      router.replace('/login');
     }
-  }, [state.success, router])
+  }, [state.success, router]);
 
   return (
     <form
@@ -44,70 +47,99 @@ export function SignupForm({
     >
       <FieldGroup>
         <div className='flex flex-col items-center gap-1 text-center'>
-          <h1 className='text-2xl font-bold'>Create your account</h1>
+          <h1 className='text-2xl font-bold'>创建你的账号</h1>
           <p className='text-muted-foreground text-sm text-balance'>
-            Fill in the form below to create your account
+            填写信息完成注册
           </p>
         </div>
         <Field>
-          <FieldLabel htmlFor='name'>Full Name</FieldLabel>
+          <FieldLabel htmlFor='name'>姓名</FieldLabel>
           <Input
             id='name'
             name='name'
             type='text'
-            placeholder='John Doe'
+            placeholder='张三'
             autoComplete='name'
             required
           />
           <FieldError errors={toFieldErrors(state.errors?.name)} />
         </Field>
         <Field>
-          <FieldLabel htmlFor='email'>Email</FieldLabel>
+          <FieldLabel htmlFor='email'>邮箱</FieldLabel>
           <Input
             id='email'
             name='email'
             type='email'
-            placeholder='m@example.com'
+            placeholder='name@example.com'
             autoComplete='email'
             required
           />
-          <FieldDescription>
-            We&apos;ll use this to contact you. We will not share your email
-            with anyone else.
-          </FieldDescription>
+          <FieldDescription>我们不会向他人泄露你的邮箱。</FieldDescription>
           <FieldError errors={toFieldErrors(state.errors?.email)} />
         </Field>
         <Field>
-          <FieldLabel htmlFor='password'>Password</FieldLabel>
-          <Input
-            id='password'
-            name='password'
-            type='password'
-            autoComplete='new-password'
-            minLength={6}
-            required
-          />
-          <FieldDescription>
-            Must be at least 6 characters long.
-          </FieldDescription>
+          <FieldLabel htmlFor='password'>密码</FieldLabel>
+          <div className='relative'>
+            <Input
+              id='password'
+              name='password'
+              type={showPassword ? 'text' : 'password'}
+              autoComplete='new-password'
+              minLength={6}
+              required
+              className='pr-16'
+            />
+            <button
+              type='button'
+              className='absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground'
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? '隐藏密码' : '显示密码'}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
+              <span className='sr-only'>
+                {showPassword ? '隐藏密码' : '显示密码'}
+              </span>
+            </button>
+          </div>
+          <FieldDescription>至少 6 位字符。</FieldDescription>
           <FieldError errors={toFieldErrors(state.errors?.password)} />
         </Field>
         <Field>
-          <FieldLabel htmlFor='confirm-password'>Confirm Password</FieldLabel>
-          <Input
-            id='confirm-password'
-            name='confirmPassword'
-            type='password'
-            autoComplete='new-password'
-            minLength={6}
-            required
-          />
-          <FieldDescription>Please confirm your password.</FieldDescription>
+          <FieldLabel htmlFor='confirm-password'>确认密码</FieldLabel>
+          <div className='relative'>
+            <Input
+              id='confirm-password'
+              name='confirmPassword'
+              type={showConfirmPassword ? 'text' : 'password'}
+              autoComplete='new-password'
+              minLength={6}
+              required
+              className='pr-16'
+            />
+            <button
+              type='button'
+              className='absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground'
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              aria-label={showConfirmPassword ? '隐藏确认密码' : '显示确认密码'}
+              aria-pressed={showConfirmPassword}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className='h-4 w-4' />
+              ) : (
+                <Eye className='h-4 w-4' />
+              )}
+              <span className='sr-only'>
+                {showConfirmPassword ? '隐藏确认密码' : '显示确认密码'}
+              </span>
+            </button>
+          </div>
+          <FieldDescription>请再次输入密码。</FieldDescription>
           <FieldError errors={toFieldErrors(state.errors?.confirmPassword)} />
         </Field>
         <Field>
           <Button type='submit' disabled={isPending} aria-disabled={isPending}>
-            Create Account
+            注册账号
           </Button>
           {state.message ? (
             <p className='text-sm text-destructive' role='alert'>
@@ -115,7 +147,7 @@ export function SignupForm({
             </p>
           ) : null}
         </Field>
-        <FieldSeparator>Or continue with</FieldSeparator>
+        <FieldSeparator>或使用以下方式</FieldSeparator>
         <Field>
           <Button variant='outline' type='button'>
             <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>
@@ -124,13 +156,13 @@ export function SignupForm({
                 fill='currentColor'
               />
             </svg>
-            Sign up with GitHub
+            使用 GitHub 注册
           </Button>
           <FieldDescription className='px-6 text-center'>
-            Already have an account? <Link href='/login'>Sign in</Link>
+            已有账号？ <Link href='/login'>去登录</Link>
           </FieldDescription>
         </Field>
       </FieldGroup>
     </form>
-  )
+  );
 }
