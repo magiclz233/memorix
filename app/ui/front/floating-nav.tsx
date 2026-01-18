@@ -150,7 +150,11 @@ export function FloatingNav() {
                 : 'border-zinc-200/70 bg-white/80 text-zinc-800 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
             )}
           />
-          <DropdownMenu open={accountOpen} onOpenChange={setAccountOpen}>
+          <DropdownMenu
+            open={accountOpen}
+            onOpenChange={setAccountOpen}
+            modal={false}
+          >
             <DropdownMenuTrigger asChild>
               <Button
                 variant='outline'
