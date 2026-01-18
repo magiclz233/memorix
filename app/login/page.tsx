@@ -9,24 +9,24 @@ type LoginPageProps = {
   };
 };
 
+const resolveRedirect = (value?: string | string[]) => {
+  if (typeof value === 'string') return value.trim();
+  if (Array.isArray(value)) return value[0]?.trim();
+  return '';
+};
+
 export default function LoginPage({ searchParams }: LoginPageProps) {
-  const rawCallbackUrl = searchParams?.callbackUrl;
+  const rawCallbackUrl = resolveRedirect(searchParams?.callbackUrl);
   const callbackUrl =
-    typeof rawCallbackUrl === 'string' && rawCallbackUrl.trim().length > 0
-      ? rawCallbackUrl.trim()
-      : Array.isArray(rawCallbackUrl) &&
-          rawCallbackUrl[0] &&
-          rawCallbackUrl[0].trim().length > 0
-        ? rawCallbackUrl[0].trim()
-        : '/gallery';
+    rawCallbackUrl && rawCallbackUrl.length > 0 ? rawCallbackUrl : '/gallery';
 
   return (
     <div className='grid min-h-svh lg:grid-cols-2'>
       <div className='bg-muted relative hidden lg:block'>
         <img
-          src='/placeholder.svg'
-          alt='Image'
-          className='absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale'
+          src='/hero-desktop.png'
+          alt='Hero 图片'
+          className='absolute inset-0 h-full w-full object-cover'
         />
       </div>
       <div className='flex flex-col gap-4 p-6 md:p-10'>
@@ -35,7 +35,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             <div className='bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md'>
               <GalleryVerticalEnd className='size-4' />
             </div>
-            Acme Inc.
+            Memorix 画廊
           </Link>
         </div>
         <div className='flex flex-1 items-center justify-center'>
