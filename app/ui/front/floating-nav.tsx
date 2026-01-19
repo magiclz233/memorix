@@ -18,6 +18,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { authClient } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
@@ -316,8 +317,14 @@ export function FloatingNav() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>修改密码</DialogTitle>
+            <DialogDescription>
+              为了您的账户安全，建议使用强密码。修改成功后将自动退出登录。
+            </DialogDescription>
           </DialogHeader>
-          <ChangePasswordForm onSuccess={() => setShowPasswordDialog(false)} />
+          <ChangePasswordForm 
+            onSuccess={() => setShowPasswordDialog(false)} 
+            onCancel={() => setShowPasswordDialog(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

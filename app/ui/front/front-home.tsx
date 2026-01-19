@@ -3,7 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { featuredCollections } from '@/app/lib/front-data';
+import {
+  featuredCollections,
+  getFallbackItems,
+  videoCollections,
+} from '@/app/lib/front-data';
 import { spaceGrotesk } from '@/app/ui/fonts';
 import { SpotlightCard } from '@/app/ui/front/spotlight-card';
 import { SectionHeader } from '@/app/ui/front/section-header';
@@ -129,6 +133,7 @@ const resolveHeroTone = (
 
 export function FrontHome() {
   const featured = featuredCollections.slice(0, 3);
+  const featuredVideos = videoCollections.slice(0, 3);
   const heroRef = useRef<HTMLElement | null>(null);
   const heroTextRef = useRef<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
@@ -314,6 +319,52 @@ export function FrontHome() {
                   <div className='relative z-10 space-y-4'>
                     <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
                       {collection.type === 'photo' ? '精选图集' : '精选视频集'}
+                    </span>
+                    <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
+                      {collection.title}
+                    </h3>
+                    <p className='text-sm text-zinc-600/80 dark:text-white/60'>
+                      {collection.description}
+                    </p>
+                  </div>
+                  <div className='relative z-10 flex items-center justify-between text-xs text-zinc-600/80 dark:text-white/60'>
+                    <span>{collection.count} 项内容</span>
+                    <span className='text-indigo-600 dark:text-indigo-400'>
+                      {(collection.tags ?? []).join(' / ')}
+                    </span>
+                  </div>
+                </div>
+              </SpotlightCard>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className='front-fade-up space-y-8'>
+        <SectionHeader
+          title='精选视频集'
+          description='动态影像的节奏与叙事实验。'
+          actionLabel='查看全部'
+          actionHref='/video-collections'
+        />
+        <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
+          {featuredVideos.map((collection) => (
+            <Link
+              key={collection.id}
+              href='/video-collections'
+              className='block'
+            >
+              <SpotlightCard className='h-full min-h-[280px]'>
+                <div className='relative flex h-full flex-col justify-between gap-6 p-6'>
+                  <div
+                    className={cn(
+                      'absolute inset-0 bg-gradient-to-br opacity-30 dark:opacity-70',
+                      collection.cover
+                    )}
+                  />
+                  <div className='relative z-10 space-y-4'>
+                    <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
+                      精选视频集
                     </span>
                     <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
                       {collection.title}

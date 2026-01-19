@@ -12,7 +12,7 @@ const footerLinks = [
 
 export function FrontFooter() {
   return (
-    <footer className='relative z-10 mt-16 border-t border-zinc-200 px-6 py-10 text-sm text-zinc-600/80 dark:border-zinc-800 dark:text-white/60'>
+    <footer className='front-footer relative z-10 mt-8 border-t border-zinc-200 px-6 py-3 text-sm text-zinc-600/80 dark:border-zinc-800 dark:text-white/60'>
       <div className='mx-auto flex w-[88vw] max-w-none flex-col gap-6 md:flex-row md:items-center md:justify-between'>
         <div className='space-y-2'>
           <p className={cn(spaceGrotesk.className, 'text-base text-zinc-900 dark:text-white')}>
