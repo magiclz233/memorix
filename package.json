@@ -4,7 +4,9 @@
     "build": "next build",
     "dev": "next dev",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "db:migrate": "drizzle-kit migrate",
+    "db:migrate:prod": "cross-env NODE_ENV=production drizzle-kit migrate"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -45,6 +47,8 @@
     "@types/node": "22.10.7",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.8",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.8"
