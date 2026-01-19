@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
 import { cn } from '@/lib/utils';
@@ -176,6 +177,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   const [isChromeVisible, setIsChromeVisible] = useState(!initialFullBleed);
   const [ratioMap, setRatioMap] = useState<Record<string, number>>({});
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const [mounted, setMounted] = useState(false);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const previousFullBleed = useRef(isFullBleed);
   const lastScrollY = useRef(0);
@@ -350,6 +352,20 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [selected, selectedIndex, visibleItems]);
 
+  useEffect(() => {
+    if (selected) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('gallery-modal-open');
+    } else {
+      document.body.style.overflow = '';
+      document.body.classList.remove('gallery-modal-open');
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('gallery-modal-open');
+    };
+  }, [selected]);
+
   const canNavigate = visibleItems.length > 1 && selectedIndex !== -1;
   const handleNavigate = (direction: 'prev' | 'next') => {
     if (!canNavigate) return;
@@ -501,11 +517,11 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
       <AnimatePresence>
         {selected ? (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className='fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-10'
-          >
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className='fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4'
+      >
             <button
               type='button'
               onClick={() => setSelectedId(null)}
