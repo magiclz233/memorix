@@ -62,6 +62,14 @@ export async function authenticate(
   }
 
   try {
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email.trim()),
+    });
+
+    if (existingUser?.banned) {
+      return '该账户已被禁用，请联系管理员。';
+    }
+
     await auth.api.signInEmail({
       body: {
         email: email.trim(),
@@ -151,6 +159,9 @@ async function requireUser() {
   });
   if (!user) {
     throw new Error('用户不存在。');
+  }
+  if (user.banned) {
+    throw new Error('账户已禁用。');
   }
   return user;
 }
@@ -624,6 +635,159 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
     success: true,
     message: isHero ? '首页展示状态已更新。' : '已取消首页展示。',
   };
+}
+
+export async function toggleUserBan(formData: FormData) {
+  const admin = await requireAdminUser();
+  const userId = Number(formData.get('userId'));
+  const banned = formData.get('banned') === 'true'; // Target state
+
+  if (!userId) {
+    return { success: false, message: '无效的用户 ID。' };
+  }
+
+  if (admin.id === userId) {
+    return { success: false, message: '不能禁用自己。' };
+  }
+
+  const target = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!target) {
+    return { success: false, message: '用户不存在。' };
+  }
+
+  await db
+    .update(users)
+    .set({ banned, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+
+  revalidatePath('/dashboard/settings/users');
+  return {
+    success: true,
+    message: banned ? '用户已禁用。' : '用户已启用。',
+  };
+}
+
+export async function deleteUser(formData: FormData) {
+  const admin = await requireAdminUser();
+  const userId = Number(formData.get('userId'));
+
+  if (!userId) {
+    return { success: false, message: '无效的用户 ID。' };
+  }
+
+  if (admin.id === userId) {
+    return { success: false, message: '不能删除自己。' };
+  }
+
+  try {
+    await db.delete(users).where(eq(users.id, userId));
+    
+    revalidatePath('/dashboard/settings/users');
+    return { success: true, message: '用户已删除。' };
+  } catch (error) {
+    console.error('删除用户失败：', error);
+    return { success: false, message: '删除用户失败。' };
+  }
+}
+
+const ProfileSchema = z.object({
+  name: z.string().trim().min(1, { message: '请输入姓名。' }),
+  email: z.string().trim().email({ message: '请输入有效邮箱。' }),
+});
+
+export async function updateProfile(prevState: any, formData: FormData) {
+  const user = await requireUser();
+  
+  const validatedFields = ProfileSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: '请检查表单信息。',
+    };
+  }
+
+  const { name, email } = validatedFields.data;
+
+  try {
+    if (email !== user.email) {
+      const existing = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      });
+      if (existing) {
+        return {
+          success: false,
+          errors: { email: ['该邮箱已被使用。'] },
+          message: '邮箱已被使用。',
+        };
+      }
+    }
+
+    await db
+      .update(users)
+      .set({ name, email, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+
+    revalidatePath('/dashboard/settings/profile');
+    return { success: true, message: '个人资料已更新。' };
+  } catch (error) {
+    console.error('更新资料失败：', error);
+    return { success: false, message: '更新失败，请稍后重试。' };
+  }
+}
+
+const ChangePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, { message: '请输入当前密码。' }),
+    newPassword: z.string().min(6, { message: '新密码至少需要 6 位。' }),
+    confirmPassword: z.string().min(6, { message: '请再次输入新密码。' }),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: '两次输入的密码不一致。',
+    path: ['confirmPassword'],
+  });
+
+export async function changePasswordAction(prevState: any, formData: FormData) {
+  const validatedFields = ChangePasswordSchema.safeParse({
+    currentPassword: formData.get('currentPassword'),
+    newPassword: formData.get('newPassword'),
+    confirmPassword: formData.get('confirmPassword'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: '请检查输入。',
+    };
+  }
+
+  const { currentPassword, newPassword } = validatedFields.data;
+
+  try {
+    await auth.api.changePassword({
+      body: {
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: true,
+      },
+      headers: await headers(),
+    });
+
+    return { success: true, message: '密码已修改，请使用新密码登录。' };
+  } catch (error) {
+    if (error instanceof APIError) {
+       return { success: false, message: error.message || '密码修改失败。' };
+    }
+    return { success: false, message: '密码修改失败，请确认当前密码是否正确。' };
+  }
 }
 
 
