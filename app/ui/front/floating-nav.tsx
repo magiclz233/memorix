@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogIn, ShieldCheck, UserCircle } from 'lucide-react';
+import { LogIn, ShieldCheck, UserCircle, KeyRound, LogOut } from 'lucide-react';
 import { spaceGrotesk } from '@/app/ui/fonts';
 import { ModeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,8 +13,16 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { authClient } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
+import { ChangePasswordForm } from '@/app/ui/shared/change-password-form';
+import { signOutAction } from '@/app/lib/actions';
 
 const navItems = [
   { label: '首页', href: '/' },
@@ -31,6 +39,7 @@ export function FloatingNav() {
     ? `/login?callbackUrl=${encodeURIComponent(pathname)}`
     : '/login';
   const [accountOpen, setAccountOpen] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const accountCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -244,6 +253,26 @@ export function FloatingNav() {
                       </Link>
                     </Button>
                   ) : null}
+
+                  <Button
+                    variant='outline'
+                    className={loginButtonClass}
+                    onClick={() => setShowPasswordDialog(true)}
+                  >
+                    <KeyRound className='h-4 w-4' />
+                    修改密码
+                  </Button>
+                  
+                  <form action={signOutAction} className="w-full">
+                    <Button
+                      type="submit"
+                      variant='outline'
+                      className={cn(loginButtonClass, "hover:text-red-600 dark:hover:text-red-400")}
+                    >
+                      <LogOut className='h-4 w-4' />
+                      退出登录
+                    </Button>
+                  </form>
                 </div>
               ) : (
                 <div className='space-y-3'>
@@ -282,6 +311,15 @@ export function FloatingNav() {
           </DropdownMenu>
         </div>
       </div>
+
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>修改密码</DialogTitle>
+          </DialogHeader>
+          <ChangePasswordForm onSuccess={() => setShowPasswordDialog(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
