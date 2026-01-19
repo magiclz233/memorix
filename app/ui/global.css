@@ -102,35 +102,22 @@ input[type='number']::-webkit-outer-spin-button {
   }
 }
 
-@keyframes front-fade-up {
-  0% {
+.front-fade-up {
+  animation: fade-up 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fade-up {
+  from {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(20px);
   }
-  100% {
+  to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-@keyframes front-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-18px);
-  }
-}
-
-@layer utilities {
-  .front-fade-up {
-    animation: front-fade-up 0.8s ease-out both;
-  }
-  .front-float {
-    animation: front-float 12s ease-in-out infinite;
-  }
-  .front-float-slow {
-    animation: front-float 18s ease-in-out infinite;
-  }
+body.gallery-modal-open .front-footer {
+  display: none !important;
 }
