@@ -15,6 +15,13 @@
       "when": 1768558149004,
       "tag": "0001_abnormal_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768831737177,
+      "tag": "0002_add_user_banned",
+      "breakpoints": true
     }
   ]
 }
