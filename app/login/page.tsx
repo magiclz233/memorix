@@ -4,9 +4,9 @@ import { GalleryVerticalEnd } from 'lucide-react';
 import { LoginForm } from '@/components/login-form';
 
 type LoginPageProps = {
-  searchParams?: {
+  searchParams: Promise<{
     callbackUrl?: string | string[];
-  };
+  }>;
 };
 
 const resolveRedirect = (value?: string | string[]) => {
@@ -15,8 +15,9 @@ const resolveRedirect = (value?: string | string[]) => {
   return '';
 };
 
-export default function LoginPage({ searchParams }: LoginPageProps) {
-  const rawCallbackUrl = resolveRedirect(searchParams?.callbackUrl);
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const rawCallbackUrl = resolveRedirect(params?.callbackUrl);
   const callbackUrl =
     rawCallbackUrl && rawCallbackUrl.length > 0 ? rawCallbackUrl : '/gallery';
 
