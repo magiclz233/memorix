@@ -67,6 +67,7 @@ export async function fetchUsers() {
       name: users.name,
       email: users.email,
       role: users.role,
+      banned: users.banned,
       createdAt: users.createdAt,
       updatedAt: users.updatedAt,
     })
