@@ -2,16 +2,15 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-Memorix is a modern gallery project built with the Next.js 16 App Router. It features a high-performance public-facing site (photo wall, gallery, portfolio) and a comprehensive admin dashboard for managing content, storage, and business data.
+Memorix is a modern gallery built on the Next.js 16 App Router. It includes a high-performance public site (photo wall, infinite gallery, portfolios) and an admin dashboard for managing content, storage, and system data.
 
-## Features
+## Highlights
 
-- **Public Site**: Hero landing, infinite scroll gallery, photo/video collections, portfolio.
-- **Admin Dashboard**: Comprehensive management for photos, collections, and system settings.
-- **Storage Management**: Support for local file storage and S3-compatible storage with file scanning capabilities.
-- **Image Processing**: Automatic BlurHash generation, Exif extraction, and thumbnail creation using Sharp.
-- **Authentication**: Secure login via Better Auth (Email/Password + GitHub OAuth).
-- **Security**: Route protection via Middleware, role-based access control (Admin only dashboard).
+- **Public Site**: Hero landing, infinite scroll gallery, photo/video collections, about and portfolio pages.
+- **Admin Dashboard**: Manage photos, collections, media library, storage, and system settings.
+- **Storage Management**: Local and S3-compatible storage with file scanning.
+- **Image Pipeline**: BlurHash generation, EXIF extraction, and thumbnails via Sharp.
+- **Authentication**: Better Auth (Email/Password + GitHub OAuth) with admin-only access control.
 - **Tech**: Server Actions, Postgres (Drizzle ORM), Shadcn UI, Framer Motion.
 
 ## Tech Stack
@@ -26,13 +25,13 @@ Memorix is a modern gallery project built with the Next.js 16 App Router. It fea
 
 ## Getting Started
 
-### 1. Install
+### 1. Install dependencies
 
 ```bash
 pnpm install
 ```
 
-### 2. Environment Variables
+### 2. Configure environment variables
 
 Create `.env.local` (do not commit it).
 Required variables: `POSTGRES_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`.
@@ -47,38 +46,41 @@ GITHUB_CLIENT_SECRET=...
 ```
 
 Generate a secret:
+
 ```bash
 openssl rand -base64 32
 ```
 
-### 3. Database Setup
+### 3. Run migrations
 
-Start the dev server:
-```bash
-pnpm dev
-```
-
-Run migrations (apply schema changes):
 ```bash
 pnpm drizzle-kit migrate
 ```
 
-Seed the database (creates default admin & sample data):
+### 4. Start the dev server
+
+```bash
+pnpm dev
+```
+
+### 5. Seed data (optional)
+
 ```bash
 curl http://localhost:3000/seed
 # Or on Windows PowerShell:
 # Invoke-WebRequest http://localhost:3000/seed
 ```
 
-### 4. Login
+### 6. Login
 
-Default Admin Credentials:
+Default admin credentials:
 - **Email**: `admin@memorix.com`
 - **Password**: `123456`
 
 ## Routes
 
 ### Public
+
 - `/`: Home (Hero + Highlights)
 - `/gallery`: Main Gallery (Infinite Scroll)
 - `/photo-collections`: Photo Sets
@@ -86,6 +88,7 @@ Default Admin Credentials:
 - `/about`: About Page
 
 ### Admin
+
 - `/login`: Admin Login
 - `/dashboard`: Dashboard Overview
 - `/dashboard/photos`: Photo Management
@@ -100,8 +103,8 @@ Default Admin Credentials:
 - `app/(front)/`: Public pages (Home, Gallery, etc.)
 - `app/dashboard/`: Admin dashboard pages
 - `app/api/`: API routes (Auth, Gallery, Storage)
-- `app/lib/`: Shared logic (Server Actions, Drizzle Schema, Utils)
-- `app/ui/`: UI Components (Shadcn, Admin, Front)
+- `app/lib/`: Shared logic (Server Actions, Drizzle schema, utilities)
+- `app/ui/`: UI components (Shadcn, Admin, Front)
 - `public/`: Static assets
 
 ## Scripts
