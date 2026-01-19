@@ -1,8 +1,19 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { headers } from 'next/headers';
+import { auth } from '@/auth';
+import { fetchUserByEmail } from '@/app/lib/data';
+import { ProfileForm } from '@/app/ui/dashboard/profile-form';
+import { ChangePasswordForm } from '@/app/ui/shared/change-password-form';
 
-export default function Page() {
+export default async function Page() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const user = session?.user?.email 
+    ? await fetchUserByEmail(session.user.email) 
+    : null;
+
+  if (!user) {
+    return <div>用户不存在</div>;
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -15,46 +26,13 @@ export default function Page() {
       </header>
 
       <div className="rounded-2xl border border-zinc-200 bg-white/80 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
-        <form className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label className="text-zinc-800 dark:text-zinc-100">姓名</Label>
-              <Input
-                placeholder="管理员"
-                className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-zinc-800 dark:text-zinc-100">邮箱</Label>
-              <Input
-                type="email"
-                placeholder="admin@memorix.com"
-                className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
-              />
-            </div>
-          </div>
+        <h2 className="mb-4 text-lg font-medium text-zinc-900 dark:text-zinc-100">基本资料</h2>
+        <ProfileForm user={user} />
+      </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label className="text-zinc-800 dark:text-zinc-100">新密码</Label>
-              <Input
-                type="password"
-                placeholder="请输入新密码"
-                className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-zinc-800 dark:text-zinc-100">确认密码</Label>
-              <Input
-                type="password"
-                placeholder="再次输入密码"
-                className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
-              />
-            </div>
-          </div>
-
-          <Button type="submit">保存资料</Button>
-        </form>
+      <div className="rounded-2xl border border-zinc-200 bg-white/80 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+        <h2 className="mb-4 text-lg font-medium text-zinc-900 dark:text-zinc-100">修改密码</h2>
+        <ChangePasswordForm />
       </div>
     </div>
   );
