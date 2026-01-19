@@ -2,107 +2,122 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-Memorix is a gallery project built with the Next.js App Router. It includes a public-facing site (photo wall, gallery, hero, portfolio) and an admin dashboard for managing content and business data.
+Memorix is a modern gallery project built with the Next.js 16 App Router. It features a high-performance public-facing site (photo wall, gallery, portfolio) and a comprehensive admin dashboard for managing content, storage, and business data.
 
 ## Features
 
-- Public site: hero landing, photo wall, gallery, portfolio
-- Admin dashboard: content and business data management
-- Better Auth: Email/password + GitHub OAuth sign-in
-- Route protection via `proxy.ts`: admin-only `/dashboard`, public front pages
-- Server Actions + Postgres (Drizzle ORM) for server-side data access
+- **Public Site**: Hero landing, infinite scroll gallery, photo/video collections, portfolio.
+- **Admin Dashboard**: Comprehensive management for photos, collections, and system settings.
+- **Storage Management**: Support for local file storage and S3-compatible storage with file scanning capabilities.
+- **Image Processing**: Automatic BlurHash generation, Exif extraction, and thumbnail creation using Sharp.
+- **Authentication**: Secure login via Better Auth (Email/Password + GitHub OAuth).
+- **Security**: Route protection via Middleware, role-based access control (Admin only dashboard).
+- **Tech**: Server Actions, Postgres (Drizzle ORM), Shadcn UI, Framer Motion.
 
 ## Tech Stack
 
-- Next.js 16 (App Router + Turbopack)
-- React + TypeScript
-- Tailwind CSS
-- Better Auth
-- Postgres (`postgres` client)
-- Zod (validation)
+- **Framework**: Next.js 16 (App Router + Turbopack)
+- **Language**: TypeScript + React 19
+- **Styling**: Tailwind CSS + Shadcn/UI (Radix UI) + Framer Motion
+- **Database**: Postgres + Drizzle ORM
+- **Auth**: Better Auth
+- **Image Processing**: Sharp, BlurHash, Exifr
+- **Validation**: Zod
 
 ## Getting Started
 
-### 1) Install
+### 1. Install
 
 ```bash
 pnpm install
 ```
 
-### 2) Environment Variables
+### 2. Environment Variables
 
-Prefer `.env.local` (do not commit it). This project reads `POSTGRES_URL` for Postgres access. Better Auth needs `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`, and GitHub sign-in needs `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`.
+Create `.env.local` (do not commit it).
+Required variables: `POSTGRES_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`.
+Optional: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` (for OAuth).
 
 ```bash
 POSTGRES_URL=postgres://USER:PASSWORD@HOST:PORT/DB
 BETTER_AUTH_SECRET=your-secret
 BETTER_AUTH_URL=http://localhost:3000
-GITHUB_CLIENT_ID=your-github-oauth-client-id
-GITHUB_CLIENT_SECRET=your-github-oauth-client-secret
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
 ```
 
-### 3) Seed Database (Dev Only)
+Generate a secret:
+```bash
+openssl rand -base64 32
+```
+
+### 3. Database Setup
 
 Start the dev server:
-
 ```bash
 pnpm dev
 ```
 
-Run migrations first (creates/updates tables via Drizzle migrations):
-
+Run migrations (apply schema changes):
 ```bash
 pnpm drizzle-kit migrate
 ```
 
-Then seed the database (inserts placeholder data and the default admin):
-
+Seed the database (creates default admin & sample data):
 ```bash
 curl http://localhost:3000/seed
+# Or on Windows PowerShell:
+# Invoke-WebRequest http://localhost:3000/seed
 ```
 
-On Windows PowerShell:
+### 4. Login
 
-```bash
-Invoke-WebRequest http://localhost:3000/seed
-```
-
-### 4) Login
-
-After seeding, you can sign in with the default admin:
-
-- Email: `admin@memorix.com`
-- Password: `123456`
+Default Admin Credentials:
+- **Email**: `admin@memorix.com`
+- **Password**: `123456`
 
 ## Routes
 
-- `/` Public home (hero + highlights)
-- `/gallery` Gallery
-- `/portfolio` Portfolio
-- `/login` Admin login (Credentials + GitHub)
-- `/dashboard` Admin dashboard
-- `/seed` Seed database (dev only)
-- `/query` Example query (dev only)
+### Public
+- `/`: Home (Hero + Highlights)
+- `/gallery`: Main Gallery (Infinite Scroll)
+- `/photo-collections`: Photo Sets
+- `/video-collections`: Video Sets
+- `/about`: About Page
+
+### Admin
+- `/login`: Admin Login
+- `/dashboard`: Dashboard Overview
+- `/dashboard/photos`: Photo Management
+- `/dashboard/collections`: Collection Management
+- `/dashboard/storage`: Storage Configuration & Scanning
+- `/dashboard/upload`: File Upload
+- `/dashboard/media`: Media Library
+- `/dashboard/settings`: System & User Settings
 
 ## Project Structure
 
-- `app/layout.tsx` / `app/page.tsx`: App Router entry and public site entry
-- `app/dashboard/**`: admin dashboard routes
-- `app/lib/**`: server logic (`actions.ts` Server Actions, `data.ts` queries, `definitions.ts` types)
-- `app/ui/**`: UI components and styles
-- `public/**`: static assets
+- `app/(front)/`: Public pages (Home, Gallery, etc.)
+- `app/dashboard/`: Admin dashboard pages
+- `app/api/`: API routes (Auth, Gallery, Storage)
+- `app/lib/`: Shared logic (Server Actions, Drizzle Schema, Utils)
+- `app/ui/`: UI Components (Shadcn, Admin, Front)
+- `public/`: Static assets
 
 ## Scripts
 
-- `pnpm dev`: dev server (Turbopack)
-- `pnpm build`: production build
-- `pnpm start`: production start
-- `pnpm lint`: ESLint
+- `pnpm dev`: Start development server
+- `pnpm build`: Build for production
+- `pnpm start`: Start production server
+- `pnpm lint`: Run ESLint
+- `pnpm drizzle-kit migrate`: Run database migrations
 
-## Database (Drizzle ORM)
+## Database
 
-- Drizzle ORM schema & migration guide: [`docs/drizzle.md`](docs/drizzle.md)
+Drizzle ORM is used for database interactions. Schema definitions are in `app/lib/schema.ts`.
+See [`docs/drizzle.md`](docs/drizzle.md) for more details.
 
 ## Notes
 
-- Keep `/seed` and `/query` for local development only; remove them or add access protection in production.
+- The `/seed` route is for development convenience. Secure or disable it in production.
+- Ensure your storage configuration is valid in `/dashboard/storage` for image features to work correctly.

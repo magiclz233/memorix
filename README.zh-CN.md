@@ -1,114 +1,123 @@
-# memorix 画廊（Next.js App Router）
+# Memorix - Next.js (App Router) 画廊
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-这是一个基于 Next.js App Router 的画廊项目，包含前端展示站点与管理端 dashboard。前端主要展示照片墙、画廊、Hero 页面与作品集，管理端用于管理内容与业务数据。
+Memorix 是一个基于 Next.js 16 App Router 构建的现代画廊项目。它包含一个高性能的前台展示站点（照片墙、无限滚动画廊、作品集）以及一个功能完善的管理后台，用于管理内容、存储和业务数据。
 
-## 功能概览
+## 功能特性
 
-- 前端展示：Hero、照片墙、画廊、作品集
-- 管理端 dashboard：内容与业务数据管理
-- Better Auth：邮箱/密码 + GitHub OAuth 登录
-- `proxy.ts` 路由保护：仅管理员可访问 `/dashboard/**`，前台页面对未登录用户开放
-- Server Actions + Postgres（Drizzle ORM）用于服务端数据访问
+- **前台展示**：Hero 落地页、无限滚动画廊、照片/视频合集、关于页。
+- **管理后台**：全功能的后台管理，涵盖照片、藏品、系统设置等。
+- **存储管理**：支持本地文件存储与 S3 兼容存储，并具备文件扫描功能。
+- **图像处理**：自动生成 BlurHash、提取 Exif 信息，并使用 Sharp 生成缩略图。
+- **身份认证**：基于 Better Auth 的安全登录（支持邮箱/密码 + GitHub OAuth）。
+- **安全机制**：通过中间件进行路由保护，基于角色的访问控制（仅管理员可访问后台）。
+- **技术栈**：Server Actions、Postgres (Drizzle ORM)、Shadcn UI、Framer Motion。
 
 ## 技术栈
 
-- Next.js 16（App Router + Turbopack）
-- React + TypeScript
-- Tailwind CSS
-- Better Auth
-- Postgres（`postgres` client）
-- Zod（表单校验）
+- **框架**：Next.js 16 (App Router + Turbopack)
+- **语言**：TypeScript + React 19
+- **样式**：Tailwind CSS + Shadcn/UI (Radix UI) + Framer Motion
+- **数据库**：Postgres + Drizzle ORM
+- **认证**：Better Auth
+- **图像处理**：Sharp, BlurHash, Exifr
+- **校验**：Zod
 
 ## 快速开始
 
-### 1）安装依赖
+### 1. 安装依赖
 
 ```bash
 pnpm install
 ```
 
-### 2）配置环境变量
+### 2. 配置环境变量
 
-推荐使用 `.env.local`（不要提交到仓库）。本项目在服务端读取 `POSTGRES_URL` 连接数据库；Better Auth 需要 `BETTER_AUTH_SECRET` 与 `BETTER_AUTH_URL`；GitHub 登录需要 `GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET`。
+创建 `.env.local` 文件（请勿提交到仓库）。
+必需变量：`POSTGRES_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`。
+可选变量：`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`（用于 OAuth）。
 
 ```bash
 POSTGRES_URL=postgres://USER:PASSWORD@HOST:PORT/DB
 BETTER_AUTH_SECRET=your-secret
 BETTER_AUTH_URL=http://localhost:3000
-GITHUB_CLIENT_ID=your-github-oauth-client-id
-GITHUB_CLIENT_SECRET=your-github-oauth-client-secret
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
 ```
 
-生成 `BETTER_AUTH_SECRET`（示例）：
-
+生成 Secret：
 ```bash
 openssl rand -base64 32
 ```
 
-### 3）预置数据库（仅本地开发建议）
+### 3. 数据库设置
 
 启动开发服务器：
-
 ```bash
 pnpm dev
 ```
 
-先运行迁移（通过 Drizzle 迁移创建/更新表结构）：
-
+运行迁移（应用数据库变更）：
 ```bash
 pnpm drizzle-kit migrate
 ```
 
-再访问 `/seed` 写入示例数据（用户/画廊/作品集等）：
-
+预置数据（创建默认管理员与示例数据）：
 ```bash
 curl http://localhost:3000/seed
+# Windows PowerShell 用户：
+# Invoke-WebRequest http://localhost:3000/seed
 ```
 
-Windows PowerShell 也可以用：
+### 4. 登录
 
-```bash
-Invoke-WebRequest http://localhost:3000/seed
-```
+默认管理员账号：
+- **邮箱**: `admin@memorix.com`
+- **密码**: `123456`
 
-### 4）登录验证
+## 路由说明
 
-预置数据写入后，可以使用默认账号登录：
+### 前台
+- `/`: 首页（Hero + 精选）
+- `/gallery`: 主画廊（无限滚动）
+- `/photo-collections`: 照片合集
+- `/video-collections`: 视频合集
+- `/about`: 关于页
 
-- 邮箱：`admin@memorix.com`
-- 密码：`123456`
+### 后台
+- `/login`: 管理员登录
+- `/dashboard`: 仪表盘概览
+- `/dashboard/photos`: 照片管理
+- `/dashboard/collections`: 藏品管理
+- `/dashboard/storage`: 存储配置与扫描
+- `/dashboard/upload`: 文件上传
+- `/dashboard/media`: 媒体库
+- `/dashboard/settings`: 系统与用户设置
 
-## 常用路由
+## 项目结构
 
-- `/` 前台首页（Hero + 入口）
-- `/gallery` 画廊
-- `/portfolio` 作品集
-- `/login` 管理端登录（Credentials + GitHub）
-- `/dashboard` 管理端 dashboard
-- `/seed` 预置数据库（仅建议本地开发使用）
-- `/query` 查询示例（仅建议本地开发使用）
-
-## 目录结构
-
-- `app/layout.tsx` / `app/page.tsx`：App Router 入口与前台入口
-- `app/dashboard/**`：管理端 dashboard 路由
-- `app/lib/**`：服务端逻辑（`actions.ts`、`data.ts`、`definitions.ts` 等）
-- `app/ui/**`：UI 组件与样式
-- `public/**`：静态资源
+- `app/(front)/`: 前台页面（首页、画廊等）
+- `app/dashboard/`: 后台管理页面
+- `app/api/`: API 路由（认证、画廊、存储）
+- `app/lib/`: 共享逻辑（Server Actions、Drizzle Schema、工具函数）
+- `app/ui/`: UI 组件（Shadcn、后台、前台）
+- `public/`: 静态资源
 
 ## 脚本命令
 
-- `pnpm dev`：本地开发（Turbopack）
-- `pnpm build`：生产构建
-- `pnpm start`：生产启动
-- `pnpm lint`：ESLint
+- `pnpm dev`: 启动开发服务器
+- `pnpm build`: 生产环境构建
+- `pnpm start`: 启动生产服务器
+- `pnpm lint`: 运行 ESLint 代码检查
+- `pnpm drizzle-kit migrate`: 运行数据库迁移
 
-## 数据库（Drizzle ORM）
+## 数据库
 
-- Drizzle ORM 结构与迁移流程：[`docs/drizzle.md`](docs/drizzle.md)
+项目使用 Drizzle ORM 进行数据库交互。Schema 定义位于 `app/lib/schema.ts`。
+更多详情请参阅 [`docs/drizzle.md`](docs/drizzle.md)。
 
 ## 注意事项
 
-- `/seed` 与 `/query` 建议仅用于本地开发，生产环境请移除或增加访问保护。
+- `/seed` 路由仅用于开发便利，生产环境请务必保护或禁用。
+- 请确保在 `/dashboard/storage` 中配置有效的存储路径，以保证图片功能的正常运行。
