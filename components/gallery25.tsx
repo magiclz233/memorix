@@ -33,14 +33,6 @@ type FilterValue = (typeof filters)[number]['value'];
 
 const clampColumnCount = (value: number) => Math.min(10, Math.max(3, value));
 
-const readStoredBoolean = (key: string, fallback: boolean) => {
-  if (typeof window === 'undefined') return fallback;
-  const stored = window.localStorage.getItem(key);
-  if (stored === 'true') return true;
-  if (stored === 'false') return false;
-  return fallback;
-};
-
 const readStoredNumber = (key: string, fallback: number) => {
   if (typeof window === 'undefined') return fallback;
   const stored = window.localStorage.getItem(key);
@@ -164,9 +156,8 @@ const buildDetails = (item: GalleryItem) => {
 };
 
 const Gallery25 = ({ items = [], className }: Gallery25Props) => {
-  const initialFullBleed = readStoredBoolean('gallery25-full-bleed', false);
   const [selectedId, setSelectedId] = useState<GalleryId | null>(null);
-  const [isFullBleed, setIsFullBleed] = useState(initialFullBleed);
+  const [isFullBleed, setIsFullBleed] = useState(false);
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('gallery25-columns', 4),
   );
@@ -174,7 +165,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     readStoredViewMode('gallery25-view-mode', 'fit'),
   );
   const [filter, setFilter] = useState<FilterValue>('all');
-  const [isChromeVisible, setIsChromeVisible] = useState(!initialFullBleed);
+  const [isChromeVisible, setIsChromeVisible] = useState(true);
   const [ratioMap, setRatioMap] = useState<Record<string, number>>({});
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const gridRef = useRef<HTMLDivElement | null>(null);
@@ -262,10 +253,6 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   const chromeVisible = !isFullBleed || isChromeVisible;
 
   useEffect(() => {
-    window.localStorage.setItem('gallery25-full-bleed', String(isFullBleed));
-  }, [isFullBleed]);
-
-  useEffect(() => {
     window.localStorage.setItem('gallery25-columns', String(columnCount));
   }, [columnCount]);
 
@@ -294,8 +281,6 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
         const delta = current - lastScrollY.current;
         if (delta > 6) {
           setIsChromeVisible(false);
-        } else if (delta < -6 && current <= 240) {
-          setIsChromeVisible(true);
         }
         lastScrollY.current = current;
       });
@@ -304,6 +289,19 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('scroll', onScroll);
+    };
+  }, [isFullBleed]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isFullBleed) return;
+    const onWheel = (event: WheelEvent) => {
+      if (window.scrollY > 0) return;
+      if (event.deltaY >= 0) return;
+      setIsChromeVisible(true);
+    };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', onWheel);
     };
   }, [isFullBleed]);
 
@@ -378,6 +376,156 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
           : selectedIndex + 1;
     setSelectedId(visibleItems[nextIndex]?.id ?? null);
   };
+
+  const modalNode = (
+    <AnimatePresence>
+      {selected ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className='fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 py-6'
+        >
+          <button
+            type='button'
+            onClick={() => setSelectedId(null)}
+            className='absolute inset-0'
+            aria-label='关闭'
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 20 }}
+            transition={{ duration: 0.2 }}
+            role='dialog'
+            aria-modal='true'
+            className={cn(
+              'relative z-10 flex w-[96vw] flex-col rounded-3xl border border-border bg-card p-6 text-foreground shadow-2xl md:p-8',
+              viewMode === 'crop'
+                ? 'h-[85vh] transition-[width,height] duration-300 ease-out md:h-[88vh]'
+                : 'h-[85vh] max-w-7xl md:h-[88vh]',
+            )}
+            style={
+              viewMode === 'crop' && modalDimensions
+                ? {
+                    width: modalDimensions.width,
+                    height: modalDimensions.height,
+                  }
+                : undefined
+            }
+          >
+            <div className='flex flex-wrap items-center justify-between gap-3 pb-4'>
+              <div className='inline-flex rounded-full border border-border bg-muted/60 p-1 text-xs text-muted-foreground'>
+                <button
+                  type='button'
+                  onClick={() => setViewMode('fit')}
+                  className={cn(
+                    'rounded-full px-3 py-1 transition',
+                    viewMode === 'fit'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'hover:text-foreground',
+                  )}
+                >
+                  适配
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setViewMode('crop')}
+                  className={cn(
+                    'rounded-full px-3 py-1 transition',
+                    viewMode === 'crop'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'hover:text-foreground',
+                  )}
+                >
+                  裁切
+                </button>
+              </div>
+              <button
+                type='button'
+                onClick={() => setSelectedId(null)}
+                className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
+              >
+                关闭
+              </button>
+            </div>
+            <div className='grid min-h-0 flex-1 gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]'>
+              <div className='relative flex min-h-0 flex-col rounded-2xl bg-muted/60 p-3'>
+                <div
+                  className='relative h-full w-full overflow-hidden rounded-xl bg-muted'
+                  style={{ aspectRatio: getAspectRatioValue(selected, ratioMap) }}
+                >
+                  <BlurImage
+                    fill
+                    sizes='(max-width: 768px) 90vw, 60vw'
+                    src={selected.src}
+                    alt={selected.title}
+                    blurHash={selected.blurHash}
+                    className={cn(
+                      viewMode === 'crop' ? 'object-cover' : 'object-contain',
+                    )}
+                    onLoadingComplete={(image) => {
+                      const ratioKey = getRatioKey(selected.id);
+                      if (ratioMap[ratioKey]) return;
+                      if (!image.naturalWidth || !image.naturalHeight) return;
+                      const ratio = image.naturalWidth / image.naturalHeight;
+                      setRatioMap((prev) => ({
+                        ...prev,
+                        [ratioKey]: ratio,
+                      }));
+                    }}
+                  />
+                </div>
+                {canNavigate ? (
+                  <>
+                    <button
+                      type='button'
+                      onClick={() => handleNavigate('prev')}
+                      className='absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
+                      aria-label='上一张'
+                    >
+                      <ChevronLeft className='h-5 w-5' />
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => handleNavigate('next')}
+                      className='absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
+                      aria-label='下一张'
+                    >
+                      <ChevronRight className='h-5 w-5' />
+                    </button>
+                  </>
+                ) : null}
+              </div>
+              <div className='max-h-full space-y-4 overflow-y-auto text-sm text-muted-foreground'>
+                <div>
+                  <p className='text-base font-semibold text-foreground'>{selected.title}</p>
+                  {selected.description ? (
+                    <p className='mt-2 text-sm text-muted-foreground'>{selected.description}</p>
+                  ) : null}
+                </div>
+                <div className='space-y-2'>
+                  {selectedDetails.length > 0 ? (
+                    selectedDetails.map((detail) => (
+                      <div
+                        key={detail.label}
+                        className='flex items-start justify-between gap-4 border-b border-border pb-2 last:border-b-0 last:pb-0'
+                      >
+                        <span className='text-xs text-muted-foreground'>{detail.label}</span>
+                        <span className='text-right text-sm text-foreground'>{detail.value}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className='text-sm text-muted-foreground'>暂无可用的详细信息。</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
 
   return (
     <section
@@ -512,154 +660,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
           })}
         </div>
       </div>
-
-      <AnimatePresence>
-        {selected ? (
-          <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className='fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4'
-      >
-            <button
-              type='button'
-              onClick={() => setSelectedId(null)}
-              className='absolute inset-0'
-              aria-label='关闭'
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 20 }}
-              transition={{ duration: 0.2 }}
-              role='dialog'
-              aria-modal='true'
-              className={cn(
-                'relative z-10 flex w-[96vw] flex-col rounded-3xl border border-border bg-card p-6 text-foreground shadow-2xl md:p-8',
-                viewMode === 'crop'
-                  ? 'h-[85vh] transition-[width,height] duration-300 ease-out md:h-[88vh]'
-                  : 'h-[85vh] max-w-7xl md:h-[88vh]',
-              )}
-              style={
-                viewMode === 'crop' && modalDimensions
-                  ? {
-                      width: modalDimensions.width,
-                      height: modalDimensions.height,
-                    }
-                  : undefined
-              }
-            >
-              <div className='flex flex-wrap items-center justify-between gap-3 pb-4'>
-                <div className='inline-flex rounded-full border border-border bg-muted/60 p-1 text-xs text-muted-foreground'>
-                  <button
-                    type='button'
-                    onClick={() => setViewMode('fit')}
-                    className={cn(
-                      'rounded-full px-3 py-1 transition',
-                      viewMode === 'fit'
-                        ? 'bg-card text-foreground shadow-sm'
-                        : 'hover:text-foreground',
-                    )}
-                  >
-                    适配
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setViewMode('crop')}
-                    className={cn(
-                      'rounded-full px-3 py-1 transition',
-                      viewMode === 'crop'
-                        ? 'bg-card text-foreground shadow-sm'
-                        : 'hover:text-foreground',
-                    )}
-                  >
-                    裁切
-                  </button>
-                </div>
-                <button
-                  type='button'
-                  onClick={() => setSelectedId(null)}
-                  className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
-                >
-                  关闭
-                </button>
-              </div>
-              <div className='grid min-h-0 flex-1 gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]'>
-                <div className='relative flex min-h-0 flex-col rounded-2xl bg-muted/60 p-3'>
-                  <div
-                    className='relative h-full w-full overflow-hidden rounded-xl bg-muted'
-                    style={{ aspectRatio: getAspectRatioValue(selected, ratioMap) }}
-                  >
-                    <BlurImage
-                      fill
-                      sizes='(max-width: 768px) 90vw, 60vw'
-                      src={selected.src}
-                      alt={selected.title}
-                      blurHash={selected.blurHash}
-                      className={cn(
-                        viewMode === 'crop' ? 'object-cover' : 'object-contain',
-                      )}
-                      onLoadingComplete={(image) => {
-                        const ratioKey = getRatioKey(selected.id);
-                        if (ratioMap[ratioKey]) return;
-                        if (!image.naturalWidth || !image.naturalHeight) return;
-                        const ratio = image.naturalWidth / image.naturalHeight;
-                        setRatioMap((prev) => ({
-                          ...prev,
-                          [ratioKey]: ratio,
-                        }));
-                      }}
-                    />
-                  </div>
-                  {canNavigate ? (
-                    <>
-                      <button
-                        type='button'
-                        onClick={() => handleNavigate('prev')}
-                        className='absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
-                        aria-label='上一张'
-                      >
-                        <ChevronLeft className='h-5 w-5' />
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => handleNavigate('next')}
-                        className='absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
-                        aria-label='下一张'
-                      >
-                        <ChevronRight className='h-5 w-5' />
-                      </button>
-                    </>
-                  ) : null}
-                </div>
-                <div className='max-h-full space-y-4 overflow-y-auto text-sm text-muted-foreground'>
-                  <div>
-                    <p className='text-base font-semibold text-foreground'>{selected.title}</p>
-                    {selected.description ? (
-                      <p className='mt-2 text-sm text-muted-foreground'>{selected.description}</p>
-                    ) : null}
-                  </div>
-                  <div className='space-y-2'>
-                    {selectedDetails.length > 0 ? (
-                      selectedDetails.map((detail) => (
-                        <div
-                          key={detail.label}
-                          className='flex items-start justify-between gap-4 border-b border-border pb-2 last:border-b-0 last:pb-0'
-                        >
-                          <span className='text-xs text-muted-foreground'>{detail.label}</span>
-                          <span className='text-right text-sm text-foreground'>{detail.value}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className='text-sm text-muted-foreground'>暂无可用的详细信息。</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      {typeof document !== 'undefined' ? createPortal(modalNode, document.body) : null}
     </section>
   );
 };
