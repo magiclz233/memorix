@@ -6,6 +6,7 @@ export const users = pgTable('users', {
   name: varchar('name', { length: 255 }).notNull(),
   email: text('email').notNull().unique(),
   role: varchar('role', { length: 50 }).default('user'),
+  banned: boolean('banned').notNull().default(false),
   imageUrl: varchar('image_url', { length: 255 }),
   emailVerified: boolean('email_verified').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
