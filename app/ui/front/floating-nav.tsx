@@ -83,6 +83,13 @@ export function FloatingNav() {
       : 'border-zinc-200/80 bg-white text-zinc-700 hover:bg-white dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
   );
 
+  const menuItemClass = cn(
+    'flex w-full items-center justify-start gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+    isHome
+      ? 'text-white/80 hover:bg-white/10 hover:text-white'
+      : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white',
+  );
+
   const clearAccountCloseTimer = () => {
     if (!accountCloseTimerRef.current) return;
     clearTimeout(accountCloseTimerRef.current);
@@ -242,12 +249,12 @@ export function FloatingNav() {
                   {isAdmin ? (
                     <Button
                       asChild
-                      variant='outline'
-                      className={loginButtonClass}
+                      variant='ghost'
+                      className={menuItemClass}
                     >
                       <Link
                         href='/dashboard'
-                        className='flex items-center justify-center gap-2'
+                        className='flex items-center gap-3'
                       >
                         <ShieldCheck className='h-4 w-4' />
                         管理端
@@ -256,8 +263,8 @@ export function FloatingNav() {
                   ) : null}
 
                   <Button
-                    variant='outline'
-                    className={loginButtonClass}
+                    variant='ghost'
+                    className={menuItemClass}
                     onClick={() => setShowPasswordDialog(true)}
                   >
                     <KeyRound className='h-4 w-4' />
@@ -267,8 +274,8 @@ export function FloatingNav() {
                   <form action={signOutAction} className="w-full">
                     <Button
                       type="submit"
-                      variant='outline'
-                      className={cn(loginButtonClass, "hover:text-red-600 dark:hover:text-red-400")}
+                      variant='ghost'
+                      className={cn(menuItemClass, "hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400")}
                     >
                       <LogOut className='h-4 w-4' />
                       退出登录

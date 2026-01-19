@@ -1,8 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Gallery25 } from '@/components/gallery25';
+import dynamic from 'next/dynamic';
 import type { GalleryItem } from '@/app/lib/gallery';
+import { GallerySkeleton } from '@/app/ui/front/gallery-skeleton';
+
+const Gallery25 = dynamic(
+  () => import('@/components/gallery25').then((mod) => mod.Gallery25),
+  {
+    ssr: false,
+    loading: () => <GallerySkeleton />,
+  },
+);
 
 type GalleryResponse = {
   items: GalleryItem[];

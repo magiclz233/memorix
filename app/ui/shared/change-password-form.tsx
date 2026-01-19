@@ -36,14 +36,14 @@ export function ChangePasswordForm({
         <div className="space-y-2">
           <Label htmlFor="currentPassword">当前密码</Label>
           <div className="relative">
-            <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <KeyRound className="absolute left-3 top-3 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
             <Input
               id="currentPassword"
               name="currentPassword"
               type="password"
               placeholder="请输入当前密码"
               required
-              className="pl-9"
+              className="pl-9 h-10"
               autoComplete="current-password"
             />
           </div>
@@ -52,7 +52,7 @@ export function ChangePasswordForm({
         <div className="space-y-2">
           <Label htmlFor="newPassword">新密码</Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
             <Input
               id="newPassword"
               name="newPassword"
@@ -60,7 +60,7 @@ export function ChangePasswordForm({
               placeholder="请输入新密码（至少6位）"
               required
               minLength={6}
-              className="pl-9"
+              className="pl-9 h-10"
               autoComplete="new-password"
             />
           </div>
@@ -69,7 +69,7 @@ export function ChangePasswordForm({
         <div className="space-y-2">
           <Label htmlFor="confirmPassword">确认密码</Label>
           <div className="relative">
-            <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <ShieldCheck className="absolute left-3 top-3 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
             <Input
               id="confirmPassword"
               name="confirmPassword"
@@ -77,7 +77,7 @@ export function ChangePasswordForm({
               placeholder="再次输入新密码"
               required
               minLength={6}
-              className="pl-9"
+              className="pl-9 h-10"
               autoComplete="new-password"
             />
           </div>

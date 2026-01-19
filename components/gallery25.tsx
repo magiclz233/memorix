@@ -177,7 +177,6 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   const [isChromeVisible, setIsChromeVisible] = useState(!initialFullBleed);
   const [ratioMap, setRatioMap] = useState<Record<string, number>>({});
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
-  const [mounted, setMounted] = useState(false);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const previousFullBleed = useRef(isFullBleed);
   const lastScrollY = useRef(0);
