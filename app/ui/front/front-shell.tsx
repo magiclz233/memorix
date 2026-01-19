@@ -1,7 +1,14 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import { FrontBackground } from '@/app/ui/front/front-background';
 import { FrontFooter } from '@/app/ui/front/front-footer';
-import { FloatingNav } from '@/app/ui/front/floating-nav';
+
+const FloatingNav = dynamic(
+  () => import('@/app/ui/front/floating-nav').then((mod) => mod.FloatingNav),
+  { ssr: false },
+);
 
 type FrontShellProps = {
   children: ReactNode;
