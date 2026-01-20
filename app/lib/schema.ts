@@ -1,92 +1,133 @@
-import { pgTable, serial, text, bigint, varchar, timestamp, integer, jsonb, doublePrecision, boolean, uniqueIndex, primaryKey } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  serial,
+  text,
+  bigint,
+  varchar,
+  timestamp,
+  integer,
+  jsonb,
+  doublePrecision,
+  boolean,
+  uniqueIndex,
+  primaryKey,
+} from 'drizzle-orm/pg-core';
 
-// 用户表
+// 用户表：基础身份信息与状态
 export const users = pgTable('users', {
+  // 主键 ID
   id: serial('id').primaryKey(),
+  // 显示名称
   name: varchar('name', { length: 255 }).notNull(),
+  // 登录邮箱（唯一）
   email: text('email').notNull().unique(),
+  // 角色（user/admin）
   role: varchar('role', { length: 50 }).default('user'),
+  // 是否被禁用
   banned: boolean('banned').notNull().default(false),
+  // 头像 URL
   imageUrl: varchar('image_url', { length: 255 }),
+  // 邮箱是否已验证
   emailVerified: boolean('email_verified').notNull().default(false),
+  // 创建时间
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  // 更新时间
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// 用户数据源表，用于保存用户的存储配置（如 S3、七牛云、本地、NAS 的地址和凭证）
-// 配置使用 JSONB 存储灵活的键值对（如 access_key, secret_key, bucket, path 等）
+// 用户存储配置表：保存每个用户的存储源与凭证信息
 export const userStorages = pgTable('user_storages', {
-  // 主键 ID，自增
+  // 主键 ID
   id: serial('id').primaryKey(),
   // 关联用户 ID（未设置外键约束）
   userId: integer('user_id').notNull(),
-  // 数据源类型（s3, qiniu, local, nas）
+  // 存储类型（s3、qiniu、local、nas）
   type: varchar('type', { length: 50 }).notNull(),
-  // 配置信息，使用 JSONB 存储（如 { "bucket": "my-bucket", "access_key": "xxx" }）
+  // 存储配置（JSONB，如 bucket、access_key、secret_key 等）
   config: jsonb('config').notNull(),
   // 创建时间
   createdAt: timestamp('created_at').defaultNow().notNull(),
   // 更新时间
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  // 软删除时间，可空
+  // 软删除时间（可为空）
   deletedAt: timestamp('deleted_at'),
 });
 
-export const files = pgTable('files', {
-  // 主键，自增
-  id: serial('id').primaryKey(),
-  // 创建时间，默认当前
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  // 更新时间，默认当前
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  // 软删除时间，可空
-  deletedAt: timestamp('deleted_at'),
+// 文件表：媒体文件基础信息
+export const files = pgTable(
+  'files',
+  {
+    // 主键 ID
+    id: serial('id').primaryKey(),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // 更新时间
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    // 软删除时间（可为空）
+    deletedAt: timestamp('deleted_at'),
+    // 标题
+    title: varchar('title', { length: 255 }),
+    // 相对存储根路径
+    path: text('path').notNull(),
+    // 来源类型（s3、qiniu、local、nas）
+    sourceType: varchar('source_type', { length: 50 }),
+    // 文件大小（字节）
+    size: bigint('size', { mode: 'number' }),
+    // MIME 类型
+    mimeType: varchar('mime_type', { length: 100 }),
+    // 文件修改时间
+    mtime: timestamp('mtime'),
+    // 原图 URL
+    url: text('url'),
+    // 缩略图 URL
+    thumbUrl: text('thumb_url'),
+    // 关联存储配置 ID（未设置外键约束）
+    userStorageId: integer('user_storage_id').notNull(),
+    // 媒体类型（image、audio、video）
+    mediaType: varchar('media_type', { length: 50 }).notNull(),
+    // BlurHash 值
+    blurHash: varchar('blur_hash', { length: 64 }),
+    // 是否在画廊展示
+    isPublished: boolean('is_published').notNull().default(false),
+  },
+  (table) => ({
+    storagePathUnique: uniqueIndex('files_storage_path_unique').on(
+      table.userStorageId,
+      table.path,
+    ),
+  }),
+);
 
-  // 标题
-  title: varchar('title', { length: 255 }),
-  // 路径（相对 rootPath）
-  path: text('path').notNull(),
-  // 来源类型 (s3, qiniu, local, nas)
-  sourceType: varchar('source_type', { length: 50 }),
-  // 大小（字节）
-  size: bigint('size', { mode: 'number' }),
-  // MIME 类型
-  mimeType: varchar('mime_type', { length: 100 }),
-  // 文件修改时间
-  mtime: timestamp('mtime'),
-  // 原文件 URL
-  url: text('url'),
-  // 缩略图 URL
-  thumbUrl: text('thumb_url'),
+// 用户设置表：键值对形式的个性化配置
+export const userSettings = pgTable(
+  'user_settings',
+  {
+    // 主键 ID
+    id: serial('id').primaryKey(),
+    // 关联用户 ID（未设置外键约束）
+    userId: integer('user_id').notNull(),
+    // 设置项名称
+    key: varchar('key', { length: 100 }).notNull(),
+    // 设置值（JSONB）
+    value: jsonb('value').notNull(),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // 更新时间
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userKeyUnique: uniqueIndex('user_settings_user_key_unique').on(
+      table.userId,
+      table.key,
+    ),
+  }),
+);
 
-  // 关联存储配置 ID（未设置外键约束）
-  userStorageId: integer('user_storage_id').notNull(),
-  // 媒体类型：'image'、'audio'、'video' 等
-  mediaType: varchar('media_type', { length: 50 }).notNull(),
-  blurHash: varchar('blur_hash', { length: 64 }),
-  // 是否在图库展示
-  isPublished: boolean('is_published').notNull().default(false),
-}, (table) => ({
-  storagePathUnique: uniqueIndex('files_storage_path_unique').on(table.userStorageId, table.path),
-}));
-
-export const userSettings = pgTable('user_settings', {
-  id: serial('id').primaryKey(),
-  // 关联用户 ID（未设置外键约束）
-  userId: integer('user_id').notNull(),
-  key: varchar('key', { length: 100 }).notNull(),
-  value: jsonb('value').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => ({
-  userKeyUnique: uniqueIndex('user_settings_user_key_unique').on(table.userId, table.key),
-}));
-
-// 图片元数据子表
+// 图片元数据表：用于保存 EXIF 等信息
 export const photoMetadata = pgTable('photo_metadata', {
   // 关联 files.id（未设置外键约束）
   fileId: integer('file_id').primaryKey(),
-  // 描述，可空
+  // 描述（可为空）
   description: text('description'),
   // 相机型号
   camera: varchar('camera', { length: 255 }),
@@ -114,33 +155,43 @@ export const photoMetadata = pgTable('photo_metadata', {
   gpsLatitude: doublePrecision('gps_latitude'),
   // GPS 经度
   gpsLongitude: doublePrecision('gps_longitude'),
-  // 宽度
+  // 分辨率宽度
   resolutionWidth: integer('resolution_width'),
-  // 高度
+  // 分辨率高度
   resolutionHeight: integer('resolution_height'),
   // 白平衡
   whiteBalance: varchar('white_balance', { length: 255 }),
 });
 
-// 存储配置表（后台管理使用）
+// 存储配置表：后台管理员可配置的存储源
 export const storageConfigs = pgTable('storage_configs', {
+  // 主键 ID
   id: serial('id').primaryKey(),
+  // 配置名称
   name: varchar('name', { length: 255 }).notNull(),
+  // 存储类型
   type: varchar('type', { length: 16 }).notNull(),
+  // 具体配置（JSONB）
   config: jsonb('config').notNull(),
+  // 状态标记（如 enabled/disabled）
   status: varchar('status', { length: 32 }).notNull(),
 });
 
 // 图集表
 export const photoCollections = pgTable('photo_collections', {
+  // 主键 ID
   id: serial('id').primaryKey(),
+  // 图集标题
   title: varchar('title', { length: 255 }).notNull(),
+  // 图集描述
   description: text('description'),
+  // 封面图 URL
   coverImage: text('cover_image'),
+  // 创建时间
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// 图集关联表
+// 图集关联表：图集与文件的多对多关系
 export const collectionItems = pgTable(
   'collection_items',
   {
@@ -148,6 +199,7 @@ export const collectionItems = pgTable(
     collectionId: integer('collection_id').notNull(),
     // 关联 files.id（未设置外键约束）
     fileId: integer('file_id').notNull(),
+    // 排序权重
     sortOrder: integer('sort_order').notNull(),
   },
   (table) => ({
@@ -157,15 +209,21 @@ export const collectionItems = pgTable(
 
 // 视频集表
 export const videoSeries = pgTable('video_series', {
+  // 主键 ID
   id: serial('id').primaryKey(),
+  // 视频集标题
   title: varchar('title', { length: 255 }).notNull(),
+  // 视频集描述
   description: text('description'),
+  // 封面图 URL
   coverImage: text('cover_image'),
+  // 创建时间
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  // 更新时间
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// 视频集关联表
+// 视频集关联表：视频集与文件的多对多关系
 export const videoSeriesItems = pgTable(
   'video_series_items',
   {
@@ -173,6 +231,7 @@ export const videoSeriesItems = pgTable(
     seriesId: integer('series_id').notNull(),
     // 关联 files.id（未设置外键约束）
     fileId: integer('file_id').notNull(),
+    // 排序权重
     sortOrder: integer('sort_order').notNull(),
   },
   (table) => ({
@@ -180,7 +239,7 @@ export const videoSeriesItems = pgTable(
   }),
 );
 
-// Better Auth 核心表
+// Better Auth 核心表：会话
 export const authSessions = pgTable('session', {
   // 会话 ID
   id: serial('id').primaryKey(),
@@ -200,6 +259,7 @@ export const authSessions = pgTable('session', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Better Auth 核心表：第三方账号
 export const authAccounts = pgTable('account', {
   // 账号记录 ID
   id: serial('id').primaryKey(),
@@ -229,12 +289,13 @@ export const authAccounts = pgTable('account', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Better Auth 核心表：验证记录
 export const authVerifications = pgTable('verification', {
   // 验证记录 ID
   id: serial('id').primaryKey(),
   // 标识（如邮箱）
   identifier: text('identifier').notNull(),
-  // 验证码/令牌
+  // 验证值（验证码/令牌）
   value: text('value').notNull(),
   // 过期时间
   expiresAt: timestamp('expires_at').notNull(),
