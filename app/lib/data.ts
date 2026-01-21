@@ -8,7 +8,21 @@ import {
   users,
   videoSeries,
 } from './schema';
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm';
 
 export async function fetchDashboardOverview(userId: number) {
   const storageCountPromise = db
@@ -107,6 +121,312 @@ export async function fetchStorageFiles(storageId: number) {
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
     .where(eq(files.userStorageId, storageId))
     .orderBy(desc(files.mtime));
+}
+
+export type MediaLibrarySort =
+  | 'dateShotDesc'
+  | 'dateShotAsc'
+  | 'sizeDesc'
+  | 'sizeAsc'
+  | 'resolutionDesc'
+  | 'resolutionAsc'
+  | 'titleAsc'
+  | 'titleDesc';
+
+export type MediaLibraryFilters = {
+  storageIds?: number[];
+  mediaType?: 'all' | 'image' | 'video';
+  publishStatus?: 'all' | 'published' | 'unpublished';
+  keyword?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  sizeMin?: number;
+  sizeMax?: number;
+  widthMin?: number;
+  widthMax?: number;
+  heightMin?: number;
+  heightMax?: number;
+  orientation?: 'all' | 'landscape' | 'portrait' | 'square';
+  camera?: string;
+  maker?: string;
+  lens?: string;
+  hasGps?: 'all' | 'yes' | 'no';
+  sort?: MediaLibrarySort;
+};
+
+export type MediaLibraryItem = {
+  id: number;
+  title: string | null;
+  path: string;
+  size: number | null;
+  mimeType: string | null;
+  mtime: Date | null;
+  createdAt: Date;
+  url: string | null;
+  thumbUrl: string | null;
+  mediaType: string;
+  isPublished: boolean;
+  blurHash: string | null;
+  resolutionWidth: number | null;
+  resolutionHeight: number | null;
+  dateShot: Date | null;
+  camera: string | null;
+  maker: string | null;
+  lens: string | null;
+  gpsLatitude: number | null;
+  gpsLongitude: number | null;
+  storage: {
+    id: number;
+    type: string;
+    alias: string | null;
+    isDisabled: boolean;
+  };
+};
+
+type MediaLibraryPageOptions = {
+  userId: number;
+  page: number;
+  perPage: number;
+  filters?: MediaLibraryFilters;
+};
+
+const parseDateStart = (value?: string) => {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const parseDateEnd = (value?: string) => {
+  if (!value) return null;
+  const date = new Date(`${value}T23:59:59.999`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+export async function fetchMediaLibraryPage({
+  userId,
+  page,
+  perPage,
+  filters = {},
+}: MediaLibraryPageOptions) {
+  const storageIds = filters.storageIds?.filter((id) => id > 0) ?? [];
+  const mediaType = filters.mediaType ?? 'all';
+  const publishStatus = filters.publishStatus ?? 'all';
+  const keyword = filters.keyword?.trim();
+  const dateFrom = parseDateStart(filters.dateFrom);
+  const dateTo = parseDateEnd(filters.dateTo);
+  const camera = filters.camera?.trim();
+  const maker = filters.maker?.trim();
+  const lens = filters.lens?.trim();
+  const orientation = filters.orientation ?? 'all';
+  const hasGps = filters.hasGps ?? 'all';
+  const sort = filters.sort ?? 'dateShotDesc';
+
+  const dateExpr = sql<Date>`coalesce(${photoMetadata.dateShot}, ${files.mtime}, ${files.createdAt})`;
+  const resolutionArea = sql<number>`coalesce(${photoMetadata.resolutionWidth}, 0) * coalesce(${photoMetadata.resolutionHeight}, 0)`;
+
+  const conditions = [eq(userStorages.userId, userId)];
+
+  if (storageIds.length > 0) {
+    conditions.push(inArray(files.userStorageId, storageIds));
+  }
+
+  if (mediaType !== 'all') {
+    conditions.push(eq(files.mediaType, mediaType));
+  } else {
+    conditions.push(inArray(files.mediaType, ['image', 'video']));
+  }
+
+  if (publishStatus === 'published') {
+    conditions.push(eq(files.isPublished, true));
+  } else if (publishStatus === 'unpublished') {
+    conditions.push(eq(files.isPublished, false));
+  }
+
+  if (keyword) {
+    const keywordCondition = or(
+      ilike(files.title, `%${keyword}%`),
+      ilike(files.path, `%${keyword}%`),
+      ilike(photoMetadata.description, `%${keyword}%`),
+    );
+    if (keywordCondition) {
+      conditions.push(keywordCondition);
+    }
+  }
+
+  if (dateFrom) {
+    conditions.push(gte(photoMetadata.dateShot, dateFrom));
+  }
+
+  if (dateTo) {
+    conditions.push(lte(photoMetadata.dateShot, dateTo));
+  }
+
+  if (typeof filters.sizeMin === 'number') {
+    conditions.push(gte(files.size, filters.sizeMin));
+  }
+
+  if (typeof filters.sizeMax === 'number') {
+    conditions.push(lte(files.size, filters.sizeMax));
+  }
+
+  if (typeof filters.widthMin === 'number') {
+    conditions.push(gte(photoMetadata.resolutionWidth, filters.widthMin));
+  }
+
+  if (typeof filters.widthMax === 'number') {
+    conditions.push(lte(photoMetadata.resolutionWidth, filters.widthMax));
+  }
+
+  if (typeof filters.heightMin === 'number') {
+    conditions.push(gte(photoMetadata.resolutionHeight, filters.heightMin));
+  }
+
+  if (typeof filters.heightMax === 'number') {
+    conditions.push(lte(photoMetadata.resolutionHeight, filters.heightMax));
+  }
+
+  if (orientation === 'landscape') {
+    conditions.push(sql`${photoMetadata.resolutionWidth} > ${photoMetadata.resolutionHeight}`);
+  } else if (orientation === 'portrait') {
+    conditions.push(sql`${photoMetadata.resolutionHeight} > ${photoMetadata.resolutionWidth}`);
+  } else if (orientation === 'square') {
+    conditions.push(sql`${photoMetadata.resolutionWidth} = ${photoMetadata.resolutionHeight}`);
+  }
+
+  if (camera) {
+    conditions.push(ilike(photoMetadata.camera, `%${camera}%`));
+  }
+
+  if (maker) {
+    conditions.push(ilike(photoMetadata.maker, `%${maker}%`));
+  }
+
+  if (lens) {
+    conditions.push(ilike(photoMetadata.lens, `%${lens}%`));
+  }
+
+  if (hasGps === 'yes') {
+    const gpsCondition = and(
+      isNotNull(photoMetadata.gpsLatitude),
+      isNotNull(photoMetadata.gpsLongitude),
+    );
+    if (gpsCondition) {
+      conditions.push(gpsCondition);
+    }
+  } else if (hasGps === 'no') {
+    const gpsCondition = or(
+      isNull(photoMetadata.gpsLatitude),
+      isNull(photoMetadata.gpsLongitude),
+    );
+    if (gpsCondition) {
+      conditions.push(gpsCondition);
+    }
+  }
+
+  const orderBy =
+    sort === 'dateShotAsc'
+      ? [asc(dateExpr), asc(files.id)]
+      : sort === 'sizeDesc'
+        ? [desc(files.size), desc(dateExpr)]
+        : sort === 'sizeAsc'
+          ? [asc(files.size), desc(dateExpr)]
+          : sort === 'resolutionDesc'
+            ? [desc(resolutionArea), desc(dateExpr)]
+            : sort === 'resolutionAsc'
+              ? [asc(resolutionArea), desc(dateExpr)]
+              : sort === 'titleAsc'
+                ? [asc(files.title), desc(dateExpr)]
+                : sort === 'titleDesc'
+                  ? [desc(files.title), desc(dateExpr)]
+                  : [desc(dateExpr), desc(files.id)];
+
+  const countResult = await db
+    .select({ count: count() })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .where(and(...conditions));
+
+  const totalCount = Number(countResult[0]?.count ?? 0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const offset = (safePage - 1) * perPage;
+
+  const records = await db
+    .select({
+      id: files.id,
+      title: files.title,
+      path: files.path,
+      size: files.size,
+      mimeType: files.mimeType,
+      mtime: files.mtime,
+      createdAt: files.createdAt,
+      url: files.url,
+      thumbUrl: files.thumbUrl,
+      mediaType: files.mediaType,
+      isPublished: files.isPublished,
+      blurHash: files.blurHash,
+      resolutionWidth: photoMetadata.resolutionWidth,
+      resolutionHeight: photoMetadata.resolutionHeight,
+      dateShot: photoMetadata.dateShot,
+      camera: photoMetadata.camera,
+      maker: photoMetadata.maker,
+      lens: photoMetadata.lens,
+      gpsLatitude: photoMetadata.gpsLatitude,
+      gpsLongitude: photoMetadata.gpsLongitude,
+      storageId: userStorages.id,
+      storageType: userStorages.type,
+      storageConfig: userStorages.config,
+    })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .where(and(...conditions))
+    .orderBy(...orderBy)
+    .limit(perPage)
+    .offset(offset);
+
+  const items: MediaLibraryItem[] = records.map((record) => {
+    const config = (record.storageConfig ?? {}) as {
+      alias?: string | null;
+      isDisabled?: boolean;
+    };
+    return {
+      id: record.id,
+      title: record.title,
+      path: record.path,
+      size: record.size ?? null,
+      mimeType: record.mimeType ?? null,
+      mtime: record.mtime ?? null,
+      createdAt: record.createdAt,
+      url: record.url ?? null,
+      thumbUrl: record.thumbUrl ?? null,
+      mediaType: record.mediaType,
+      isPublished: record.isPublished,
+      blurHash: record.blurHash ?? null,
+      resolutionWidth: record.resolutionWidth ?? null,
+      resolutionHeight: record.resolutionHeight ?? null,
+      dateShot: record.dateShot ?? null,
+      camera: record.camera ?? null,
+      maker: record.maker ?? null,
+      lens: record.lens ?? null,
+      gpsLatitude: record.gpsLatitude ?? null,
+      gpsLongitude: record.gpsLongitude ?? null,
+      storage: {
+        id: record.storageId,
+        type: record.storageType,
+        alias: config.alias?.trim() || null,
+        isDisabled: Boolean(config.isDisabled),
+      },
+    };
+  });
+
+  return {
+    items,
+    totalCount,
+    totalPages,
+    page: safePage,
+  };
 }
 
 export async function fetchPublishedPhotos(userId: number) {
