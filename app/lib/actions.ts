@@ -291,7 +291,8 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
           updatedAt: new Date(),
         })
         .where(and(eq(userStorages.id, data.id), eq(userStorages.userId, user.id)));
-      revalidatePath('/dashboard/photos');
+      revalidatePath('/dashboard/storage');
+      revalidatePath('/dashboard/media');
       return { success: true, message: '存储配置已更新。', storageId: data.id };
     }
 
@@ -304,7 +305,8 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
       })
       .returning({ id: userStorages.id });
 
-    revalidatePath('/dashboard/photos');
+    revalidatePath('/dashboard/storage');
+    revalidatePath('/dashboard/media');
     return {
       success: true,
       message: '存储配置已保存。',
@@ -336,7 +338,8 @@ export async function setUserStorageDisabled(storageId: number, isDisabled: bool
     })
     .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
 
-  revalidatePath('/dashboard/photos');
+  revalidatePath('/dashboard/storage');
+  revalidatePath('/dashboard/media');
   revalidatePath('/gallery');
   return {
     success: true,
@@ -429,7 +432,8 @@ export async function deleteUserStorage(storageId: number) {
       .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
   });
 
-  revalidatePath('/dashboard/photos');
+  revalidatePath('/dashboard/storage');
+  revalidatePath('/dashboard/media');
   revalidatePath('/gallery');
   return { success: true, message: '存储配置及相关文件已删除。' };
 }
@@ -449,7 +453,7 @@ export async function setStoragePublished(storageId: number, isPublished: boolea
     .set({ isPublished, updatedAt: new Date() })
     .where(eq(files.userStorageId, storageId));
 
-  revalidatePath('/dashboard/photos');
+  revalidatePath('/dashboard/media');
   revalidatePath('/gallery');
   return {
     success: true,
@@ -506,7 +510,7 @@ export async function scanStorage(storageId: number) {
         console.info(text);
       },
     });
-    revalidatePath('/dashboard/photos');
+    revalidatePath('/dashboard/media');
     revalidatePath('/gallery');
     return { success: true, message: `扫描完成，共处理 ${processed} 张图片，旧记录已清空。` };
   } catch (error) {
@@ -542,7 +546,7 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
       ),
     );
 
-  revalidatePath('/dashboard/photos');
+  revalidatePath('/dashboard/media');
   revalidatePath('/gallery');
   return { success: true, message: '图库展示状态已更新。' };
 }
@@ -629,7 +633,7 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
     });
   }
 
-  revalidatePath('/dashboard/photos');
+  revalidatePath('/dashboard/media');
   revalidatePath('/');
   return {
     success: true,
