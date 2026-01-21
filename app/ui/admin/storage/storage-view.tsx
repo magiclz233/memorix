@@ -26,8 +26,6 @@ import {
   Eye,
   EyeOff,
   Edit,
-  Wifi,
-  WifiOff
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -37,6 +35,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 type StorageItem = {
@@ -116,33 +120,21 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
     });
   };
 
-  const handleTogglePublish = (storageId: number, currentStatus: boolean) => {
-    // Logic: If currentStatus is true (all published), we want to hide (false).
-    // If mixed or false, we want to publish (true).
-    // Actually, we can just ask the user what they want.
-    // For simplicity, let's assume we want to TOGGLE based on user intent via confirm dialog.
-    // Or better, provide two separate actions in the menu? 
-    // The requirement said "extend is_published".
-    // I'll provide a single "Toggle Visibility" action that asks.
-    // But since I don't know the current state of ALL files, I'll assume we want to PUBLISH by default if we click it, or ask.
-    // Let's implement a simple "Publish All" and "Hide All" logic?
-    // Or just "Toggle". Let's use a prompt.
-    // Actually, let's provide two menu items: "Publish All" and "Hide All".
-    // But for now, let's stick to the confirm dialog approach I wrote earlier, but make it clearer.
-    const isPublishing = confirm('点击“确定”将【发布】该源下所有图片，点击“取消”将【隐藏】所有图片。');
-    // Wait, confirm returns boolean. This UI is bad.
-    // Better: use window.prompt or just separate actions.
-    // I'll add TWO menu items.
-  };
-
   const handleSetPublish = (storageId: number, publish: boolean) => {
-      if (!confirm(publish ? '确定要发布该数据源下的所有图片吗？' : '确定要隐藏该数据源下的所有图片吗？')) return;
-      
-      startTransition(async () => {
-          await setStoragePublished(storageId, publish);
-          router.refresh();
-      });
-  }
+    if (
+      !confirm(
+        publish
+          ? '确定要发布该数据源下的所有图片吗？'
+          : '确定要隐藏该数据源下的所有图片吗？',
+      )
+    ) {
+      return;
+    }
+    startTransition(async () => {
+      await setStoragePublished(storageId, publish);
+      router.refresh();
+    });
+  };
 
   const checkAndProceed = async (type: 'disable' | 'delete', storageId: number) => {
     const result = await checkStorageDependencies(storageId);
@@ -193,56 +185,35 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Button
-            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-            size="icon"
-            onClick={() => setViewMode('grid')}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-            size="icon"
-            onClick={() => setViewMode('list')}
-          >
-            <ListIcon className="h-4 w-4" />
-          </Button>
-        </div>
-        <Button onClick={handleAdd}>新增数据源</Button>
-      </div>
-
-      {viewMode === 'grid' ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {storages.map((storage) => (
-            <StorageCard
-              key={storage.id}
-              storage={storage}
-              onEdit={() => handleEdit(storage)}
-              onScan={() => handleScan(storage.id)}
-              onDelete={() => handleDelete(storage.id)}
-              onToggleDisable={() => handleToggleDisable(storage)}
-              onSetPublish={(pub: boolean) => handleSetPublish(storage.id, pub)}
-              isScanning={scanningId === storage.id}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
-          <div className="grid grid-cols-12 gap-4 border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-            <div className="col-span-3">名称/别名</div>
-            <div className="col-span-2">类型</div>
-            <div className="col-span-4">路径/配置</div>
-            <div className="col-span-1">状态</div>
-            <div className="col-span-2 text-right">操作</div>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => setViewMode('list')}
+            >
+              <ListIcon className="h-4 w-4" />
+            </Button>
           </div>
-          {storages.map((storage) => (
-            <StorageRow
-              key={storage.id}
-              storage={storage}
-              onEdit={() => handleEdit(storage)}
+          <Button onClick={handleAdd}>新增数据源</Button>
+        </div>
+
+        {viewMode === 'grid' ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {storages.map((storage) => (
+              <StorageCard
+                key={storage.id}
+                storage={storage}
+                onEdit={() => handleEdit(storage)}
               onScan={() => handleScan(storage.id)}
               onDelete={() => handleDelete(storage.id)}
               onToggleDisable={() => handleToggleDisable(storage)}
@@ -250,29 +221,52 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
               isScanning={scanningId === storage.id}
             />
           ))}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
+            <div className="grid grid-cols-12 gap-4 border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+              <div className="col-span-3">名称/别名</div>
+              <div className="col-span-2">类型</div>
+              <div className="col-span-4">路径/配置</div>
+              <div className="col-span-1">状态</div>
+              <div className="col-span-2 text-right">操作</div>
+            </div>
+            {storages.map((storage) => (
+              <StorageRow
+                key={storage.id}
+                storage={storage}
+                onEdit={() => handleEdit(storage)}
+              onScan={() => handleScan(storage.id)}
+              onDelete={() => handleDelete(storage.id)}
+              onToggleDisable={() => handleToggleDisable(storage)}
+              onSetPublish={(pub: boolean) => handleSetPublish(storage.id, pub)}
+              isScanning={scanningId === storage.id}
+            />
+          ))}
+          </div>
+        )}
 
-      <StorageModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        storage={editingStorage}
-      />
+        <StorageModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          storage={editingStorage}
+        />
 
-      <DependencyAlert
-        open={alertOpen}
-        onOpenChange={setAlertOpen}
-        dependencies={alertDependencies}
-        onConfirm={confirmAlert}
-        isConfirming={isPending}
-        title={pendingAction?.type === 'delete' ? '确认删除' : '确认停用'}
-        description={
-          pendingAction?.type === 'delete'
-            ? '删除该数据源将永久删除其下的所有文件，并从以下集合中移除相关引用。'
-            : '停用该数据源将导致以下集合中的相关图片不再显示。'
-        }
-      />
-    </div>
+        <DependencyAlert
+          open={alertOpen}
+          onOpenChange={setAlertOpen}
+          dependencies={alertDependencies}
+          onConfirm={confirmAlert}
+          isConfirming={isPending}
+          title={pendingAction?.type === 'delete' ? '确认删除' : '确认停用'}
+          description={
+            pendingAction?.type === 'delete'
+              ? '删除该数据源将永久删除其下的所有文件，并从以下集合中移除相关引用。'
+              : '停用该数据源将导致以下集合中的相关图片不再显示。'
+          }
+        />
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -318,12 +312,22 @@ function StorageCard({
 
       <div className="mt-6 flex items-center justify-between border-t border-zinc-100 pt-4 dark:border-zinc-800/50">
          <div className="flex space-x-2">
-            <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 px-2">
-                <Edit className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onScan} disabled={isScanning} className="h-8 px-2">
-                <RefreshCw className={cn("h-4 w-4", isScanning && "animate-spin")} />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 px-2">
+                    <Edit className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>编辑配置</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={onScan} disabled={isScanning} className="h-8 px-2">
+                    <RefreshCw className={cn("h-4 w-4", isScanning && "animate-spin")} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>扫描目录获取图片</TooltipContent>
+            </Tooltip>
          </div>
          
          <DropdownMenu>
@@ -347,7 +351,6 @@ function StorageCard({
                 <DropdownMenuItem onClick={() => onSetPublish(false)}>
                     <EyeOff className="mr-2 h-4 w-4" /> 全部隐藏
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onEdit}>编辑配置</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onDelete} className="text-red-600 dark:text-red-400">
                     <Trash2 className="mr-2 h-4 w-4" /> 删除
@@ -382,9 +385,22 @@ function StorageRow({ storage, onEdit, onScan, onDelete, onToggleDisable, onSetP
                  />
             </div>
             <div className="col-span-2 flex items-center justify-end space-x-2">
-                <Button variant="ghost" size="sm" onClick={onScan} disabled={isScanning} className="h-8 w-8 p-0">
-                    <RefreshCw className={cn("h-4 w-4", isScanning && "animate-spin")} />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 w-8 p-0">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>编辑配置</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={onScan} disabled={isScanning} className="h-8 w-8 p-0">
+                        <RefreshCw className={cn("h-4 w-4", isScanning && "animate-spin")} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>扫描目录获取图片</TooltipContent>
+                </Tooltip>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -406,7 +422,7 @@ function StorageRow({ storage, onEdit, onScan, onDelete, onToggleDisable, onSetP
                             <EyeOff className="mr-2 h-4 w-4" /> 全部隐藏
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={onEdit}>
-                            <Edit className="mr-2 h-4 w-4" /> 编辑
+                            <Edit className="mr-2 h-4 w-4" /> 编辑配置
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={onDelete} className="text-red-600">
                             <Trash2 className="mr-2 h-4 w-4" /> 删除
