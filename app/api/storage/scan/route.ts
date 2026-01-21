@@ -108,7 +108,7 @@ export async function GET(request: Request) {
           },
         });
 
-        revalidatePath('/dashboard/photos');
+        revalidatePath('/dashboard/media');
         revalidatePath('/gallery');
         send('done', { message: `扫描完成，共处理 ${processed} 张图片，旧记录已清空。` });
         logToConsole({ level: 'info', message: `扫描完成，共处理 ${processed} 张图片。` });
