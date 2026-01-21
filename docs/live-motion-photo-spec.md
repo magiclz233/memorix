@@ -1,6 +1,6 @@
 # Live Photo / Motion Photo 兼容需求与开发文档
 
-版本: v1.0  
+版本: v1.1  
 状态: 草案  
 适用范围: 本项目图库系统（本地/NAS/S3 索引式存储）
 
@@ -21,6 +21,7 @@
 - 当前扫描流程（`app/lib/storage.ts`、`app/lib/storage-scan.ts`）：
   - 递归扫描图片文件 → 写入 `files` 表 → 读取 EXIF → 写入 `photoMetadata` 表。
   - 使用 `exifr` 读取元信息，`sharp` 计算尺寸与 BlurHash。
+- `files.mediaType` 继续保持 `image | video`，Live/Motion 作为图片的子类型记录在 `photoMetadata`。
 
 ### 2.2 当前能力缺口
 
@@ -121,14 +122,13 @@ GitHub: https://github.com/photoprism/photoprism
 
 ### 5.2 数据结构（建议最小化）
 
-建议在 `files` 或独立表中增加以下字段（保持最小必要）：
+建议将 Live/Motion 字段加入 `photoMetadata`（避免新增表与额外 JOIN），`files` 保持通用字段不扩张：
 
 - `liveType`: `none | embedded | paired`
 - `videoOffset`: number | null（内嵌视频的 MP4 偏移）
 - `pairedPath`: string | null（同名 MOV 路径/Key）
 - `videoDuration`: number | null（秒）
-- `videoMimeType`: string | null
-- `hasEmbeddedVideo`: boolean
+- `videoMimeType`: string | null（可选，确需准确 Content-Type 时再存）
 
 > 仅存引用与索引信息，不存实际视频文件内容。
 
@@ -143,7 +143,7 @@ GitHub: https://github.com/photoprism/photoprism
    - 同目录同 basename 优先匹配 `.mov`。
    - 若存在多个候选，按时长阈值（≤3.1s）优先。
 4. **入库**
-   - 保存 `liveType`、`videoOffset`、`pairedPath`、`videoDuration`。
+   - 保存到 `photoMetadata`：`liveType`、`videoOffset`、`pairedPath`、`videoDuration`。
 
 ### 5.4 视频流出 API
 
@@ -201,7 +201,7 @@ GitHub: https://github.com/photoprism/photoprism
 
 ### 8.2 验收标准
 
-- 扫描完成后数据库中 `liveType`、`videoOffset`、`pairedPath` 字段正确。
+- 扫描完成后 `photoMetadata` 中 `liveType`、`videoOffset`、`pairedPath` 字段正确。
 - 前端播放体验稳定（桌面 hover / 移动端触控）。
 - 性能稳定，未出现全量视频下载。
 
@@ -211,7 +211,7 @@ GitHub: https://github.com/photoprism/photoprism
 
 - 输出完整需求与开发文档。
 - 汇总 Chronoframe 与 PhotoPrism 的实现方式。
-- 明确本系统“索引式存储”前提下的落地策略。
+- 明确本系统“索引式存储”前提下的落地策略与表结构取舍。
 
 ### 原则应用与收益
 
