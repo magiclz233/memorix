@@ -84,10 +84,10 @@ export function FloatingNav() {
   );
 
   const menuItemClass = cn(
-    'flex w-full items-center justify-start gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+    'flex w-full items-center justify-start gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900',
     isHome
-      ? 'text-white/80 hover:bg-white/10 hover:text-white'
-      : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white',
+      ? 'border-white/10 bg-white/6 text-white/80 hover:bg-white/12 hover:text-white'
+      : 'border-zinc-200/50 bg-zinc-50/60 text-zinc-600 hover:bg-zinc-100/80 hover:text-zinc-900 dark:border-white/10 dark:bg-white/4 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white',
   );
 
   const clearAccountCloseTimer = () => {
@@ -271,11 +271,14 @@ export function FloatingNav() {
                     修改密码
                   </Button>
                   
-                  <form action={signOutAction} className="w-full">
+                  <form action={signOutAction} className='w-full'>
                     <Button
-                      type="submit"
+                      type='submit'
                       variant='ghost'
-                      className={cn(menuItemClass, "hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400")}
+                      className={cn(
+                        menuItemClass,
+                        'hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400',
+                      )}
                     >
                       <LogOut className='h-4 w-4' />
                       退出登录
