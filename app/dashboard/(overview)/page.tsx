@@ -100,12 +100,6 @@ export default async function Page() {
         <h2 className="text-lg font-semibold text-zinc-900">快捷入口</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Link
-            href="/dashboard/photos"
-            className="rounded-xl border border-zinc-200/70 bg-white/70 px-4 py-3 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:text-zinc-900"
-          >
-            照片配置与发布
-          </Link>
-          <Link
             href="/dashboard/storage"
             className="rounded-xl border border-zinc-200/70 bg-white/70 px-4 py-3 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:text-zinc-900"
           >
