@@ -1,14 +1,43 @@
-import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import createMiddleware from 'next-intl/middleware';
 import { auth } from '@/auth';
+import { routing } from '@/i18n/routing';
+
+const intlMiddleware = createMiddleware(routing);
+const escapedLocales = routing.locales.map((locale) =>
+  locale.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'),
+);
+const localePattern = escapedLocales.join('|');
+const localeRegex = new RegExp(`^/(${localePattern})(?:/|$)`);
+const dashboardRegex = new RegExp(`^/(${localePattern})/dashboard(?:/|$)`);
+
+function getLocaleFromPathname(pathname: string) {
+  const match = pathname.match(localeRegex);
+  return match ? match[1] : routing.defaultLocale;
+}
 
 export async function proxy(request: NextRequest) {
+  const intlResponse = intlMiddleware(request);
+  const hasIntlRewrite =
+    intlResponse.headers.get('location') ||
+    intlResponse.headers.get('x-middleware-rewrite');
+
+  if (hasIntlRewrite) {
+    return intlResponse;
+  }
+
+  const pathname = request.nextUrl.pathname;
+  if (!dashboardRegex.test(pathname)) {
+    return intlResponse;
+  }
+
   const session = await auth.api.getSession({
-    headers: await headers(),
+    headers: request.headers,
   });
 
   if (!session) {
-    const loginUrl = new URL('/login', request.url);
+    const locale = getLocaleFromPathname(pathname);
+    const loginUrl = new URL(`/${locale}/login`, request.url);
     loginUrl.searchParams.set(
       'callbackUrl',
       `${request.nextUrl.pathname}${request.nextUrl.search}`,
@@ -17,12 +46,13 @@ export async function proxy(request: NextRequest) {
   }
 
   if (session.user.role !== 'admin') {
-    return NextResponse.redirect(new URL('/gallery', request.url));
+    const locale = getLocaleFromPathname(pathname);
+    return NextResponse.redirect(new URL(`/${locale}/gallery`, request.url));
   }
 
-  return NextResponse.next();
+  return intlResponse;
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  matcher: ['/((?!api|_next|_vercel|.*\\..*|seed).*)'],
 };
