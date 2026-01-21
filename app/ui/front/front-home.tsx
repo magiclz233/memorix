@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   featuredCollections,
-  getFallbackItems,
   videoCollections,
 } from '@/app/lib/front-data';
 import { spaceGrotesk } from '@/app/ui/fonts';
@@ -132,6 +132,7 @@ const resolveHeroTone = (
 };
 
 export function FrontHome() {
+  const t = useTranslations('front.home');
   const featured = featuredCollections.slice(0, 3);
   const featuredVideos = videoCollections.slice(0, 3);
   const heroRef = useRef<HTMLElement | null>(null);
@@ -234,7 +235,7 @@ export function FrontHome() {
                 )
               }
               className='inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white opacity-0 backdrop-blur transition group-hover/edge-left:opacity-100'
-              aria-label='上一张'
+              aria-label={t('carousel.previous')}
             >
               <ChevronLeft className='h-5 w-5' />
             </button>
@@ -246,7 +247,7 @@ export function FrontHome() {
                 setActiveIndex((prev) => (prev + 1) % heroImages.length)
               }
               className='inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white opacity-0 backdrop-blur transition group-hover/edge-right:opacity-100'
-              aria-label='下一张'
+              aria-label={t('carousel.next')}
             >
               <ChevronRight className='h-5 w-5' />
             </button>
@@ -269,7 +270,7 @@ export function FrontHome() {
             LUMINA VISION
           </h1>
           <p className={cn('max-w-xl text-sm md:text-base', heroBodyClass)}>
-            将沉浸式光影与极简排版融合成统一视觉语言，让每一帧影像都成为可收藏的光之记忆。
+            {t('hero.description')}
           </p>
           <div className='flex flex-wrap gap-3'>
             <Button
@@ -277,14 +278,14 @@ export function FrontHome() {
               variant='ghost'
               className={heroPrimaryButtonClass}
             >
-              <Link href='/gallery'>进入画廊</Link>
+              <Link href='/gallery'>{t('hero.primaryCta')}</Link>
             </Button>
             <Button
               asChild
               variant='ghost'
               className={heroSecondaryButtonClass}
             >
-              <Link href='/photo-collections'>浏览图集</Link>
+              <Link href='/photo-collections'>{t('hero.secondaryCta')}</Link>
             </Button>
           </div>
         </div>
@@ -292,9 +293,9 @@ export function FrontHome() {
 
       <section className='front-fade-up space-y-8'>
         <SectionHeader
-          title='精选图集'
-          description='三组代表性的系列，展示光影与节奏的两种叙事方式。'
-          actionLabel='查看全部'
+          title={t('sections.featuredCollections.title')}
+          description={t('sections.featuredCollections.description')}
+          actionLabel={t('sections.featuredCollections.action')}
           actionHref='/gallery'
         />
         <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
@@ -318,7 +319,9 @@ export function FrontHome() {
                   />
                   <div className='relative z-10 space-y-4'>
                     <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
-                      {collection.type === 'photo' ? '精选图集' : '精选视频集'}
+                      {collection.type === 'photo'
+                        ? t('sections.featuredCollections.badgePhoto')
+                        : t('sections.featuredCollections.badgeVideo')}
                     </span>
                     <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
                       {collection.title}
@@ -328,7 +331,7 @@ export function FrontHome() {
                     </p>
                   </div>
                   <div className='relative z-10 flex items-center justify-between text-xs text-zinc-600/80 dark:text-white/60'>
-                    <span>{collection.count} 项内容</span>
+                    <span>{t('itemCount', { count: collection.count })}</span>
                     <span className='text-indigo-600 dark:text-indigo-400'>
                       {(collection.tags ?? []).join(' / ')}
                     </span>
@@ -342,9 +345,9 @@ export function FrontHome() {
 
       <section className='front-fade-up space-y-8'>
         <SectionHeader
-          title='精选视频集'
-          description='动态影像的节奏与叙事实验。'
-          actionLabel='查看全部'
+          title={t('sections.featuredVideos.title')}
+          description={t('sections.featuredVideos.description')}
+          actionLabel={t('sections.featuredVideos.action')}
           actionHref='/video-collections'
         />
         <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
@@ -364,7 +367,7 @@ export function FrontHome() {
                   />
                   <div className='relative z-10 space-y-4'>
                     <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
-                      精选视频集
+                      {t('sections.featuredVideos.badge')}
                     </span>
                     <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
                       {collection.title}
@@ -374,7 +377,7 @@ export function FrontHome() {
                     </p>
                   </div>
                   <div className='relative z-10 flex items-center justify-between text-xs text-zinc-600/80 dark:text-white/60'>
-                    <span>{collection.count} 项内容</span>
+                    <span>{t('itemCount', { count: collection.count })}</span>
                     <span className='text-indigo-600 dark:text-indigo-400'>
                       {(collection.tags ?? []).join(' / ')}
                     </span>

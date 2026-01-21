@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { authenticate } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ export function LoginFormFields({
   className,
   redirectTo,
 }: LoginFormFieldsProps) {
+  const t = useTranslations('auth.login');
   const trimmedRedirectTo =
     typeof redirectTo === 'string' ? redirectTo.trim() : '';
   const safeRedirectTo = trimmedRedirectTo.startsWith('/')
@@ -32,24 +34,24 @@ export function LoginFormFields({
   return (
     <form action={formAction} className={cn('grid gap-4', className)}>
       <div className='grid gap-2'>
-        <Label htmlFor='email'>邮箱</Label>
+        <Label htmlFor='email'>{t('emailLabel')}</Label>
         <Input
           id='email'
           name='email'
           type='email'
-          placeholder='name@example.com'
+          placeholder={t('emailPlaceholder')}
           autoComplete='email'
           required
         />
       </div>
       <div className='grid gap-2'>
         <div className='flex items-center'>
-          <Label htmlFor='password'>密码</Label>
+          <Label htmlFor='password'>{t('passwordLabel')}</Label>
           <a
             href='#'
             className='ml-auto text-sm underline-offset-2 hover:underline'
           >
-            忘记密码？
+            {t('forgotPassword')}
           </a>
         </div>
         <div className='relative'>
@@ -66,12 +68,12 @@ export function LoginFormFields({
             type='button'
             className='absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground'
             onClick={() => setShowPassword((prev) => !prev)}
-            aria-label={showPassword ? '隐藏密码' : '显示密码'}
+            aria-label={showPassword ? t('hidePassword') : t('showPassword')}
             aria-pressed={showPassword}
           >
             {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
             <span className='sr-only'>
-              {showPassword ? '隐藏密码' : '显示密码'}
+              {showPassword ? t('hidePassword') : t('showPassword')}
             </span>
           </button>
         </div>
@@ -83,7 +85,7 @@ export function LoginFormFields({
         disabled={isPending}
         aria-disabled={isPending}
       >
-        登录
+        {t('submit')}
       </Button>
       {errorMessage ? (
         <p className='text-sm text-red-500' role='alert'>

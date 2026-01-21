@@ -1,4 +1,4 @@
-import { revalidatePath } from 'next/cache';
+import { revalidatePathForAllLocales } from '@/app/lib/revalidate';
 import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { and, eq } from 'drizzle-orm';
@@ -108,8 +108,8 @@ export async function GET(request: Request) {
           },
         });
 
-        revalidatePath('/dashboard/media');
-        revalidatePath('/gallery');
+        revalidatePathForAllLocales('/dashboard/media');
+        revalidatePathForAllLocales('/gallery');
         send('done', { message: `扫描完成，共处理 ${processed} 张图片，旧记录已清空。` });
         logToConsole({ level: 'info', message: `扫描完成，共处理 ${processed} 张图片。` });
       } catch (error) {

@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import {
   Collapsible,
@@ -32,10 +32,11 @@ type NavItem = {
 
 export function NavMain({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
+  const t = useTranslations('dashboard');
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>管理菜单</SidebarGroupLabel>
+      <SidebarGroupLabel>{t('navigation')}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const hasSubItems = Boolean(item.items?.length);

@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useActionState, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { signup, type SignupState } from '@/app/lib/actions';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<'form'>) {
+  const t = useTranslations('auth.signup');
   const router = useRouter();
   const initialState: SignupState = { message: null, errors: {}, success: false };
   const [state, formAction, isPending] = useActionState<SignupState, FormData>(
@@ -47,38 +48,38 @@ export function SignupForm({
     >
       <FieldGroup>
         <div className='flex flex-col items-center gap-1 text-center'>
-          <h1 className='text-2xl font-bold'>创建你的账号</h1>
+          <h1 className='text-2xl font-bold'>{t('title')}</h1>
           <p className='text-muted-foreground text-sm text-balance'>
-            填写信息完成注册
+            {t('subtitle')}
           </p>
         </div>
         <Field>
-          <FieldLabel htmlFor='name'>姓名</FieldLabel>
+          <FieldLabel htmlFor='name'>{t('nameLabel')}</FieldLabel>
           <Input
             id='name'
             name='name'
             type='text'
-            placeholder='张三'
+            placeholder={t('namePlaceholder')}
             autoComplete='name'
             required
           />
           <FieldError errors={toFieldErrors(state.errors?.name)} />
         </Field>
         <Field>
-          <FieldLabel htmlFor='email'>邮箱</FieldLabel>
+          <FieldLabel htmlFor='email'>{t('emailLabel')}</FieldLabel>
           <Input
             id='email'
             name='email'
             type='email'
-            placeholder='name@example.com'
+            placeholder={t('emailPlaceholder')}
             autoComplete='email'
             required
           />
-          <FieldDescription>我们不会向他人泄露你的邮箱。</FieldDescription>
+          <FieldDescription>{t('emailDescription')}</FieldDescription>
           <FieldError errors={toFieldErrors(state.errors?.email)} />
         </Field>
         <Field>
-          <FieldLabel htmlFor='password'>密码</FieldLabel>
+          <FieldLabel htmlFor='password'>{t('passwordLabel')}</FieldLabel>
           <div className='relative'>
             <Input
               id='password'
@@ -93,20 +94,22 @@ export function SignupForm({
               type='button'
               className='absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground'
               onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={showPassword ? '隐藏密码' : '显示密码'}
+              aria-label={showPassword ? t('hidePassword') : t('showPassword')}
               aria-pressed={showPassword}
             >
               {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
               <span className='sr-only'>
-                {showPassword ? '隐藏密码' : '显示密码'}
+                {showPassword ? t('hidePassword') : t('showPassword')}
               </span>
             </button>
           </div>
-          <FieldDescription>至少 6 位字符。</FieldDescription>
+          <FieldDescription>{t('passwordHint')}</FieldDescription>
           <FieldError errors={toFieldErrors(state.errors?.password)} />
         </Field>
         <Field>
-          <FieldLabel htmlFor='confirm-password'>确认密码</FieldLabel>
+          <FieldLabel htmlFor='confirm-password'>
+            {t('confirmPasswordLabel')}
+          </FieldLabel>
           <div className='relative'>
             <Input
               id='confirm-password'
@@ -121,7 +124,9 @@ export function SignupForm({
               type='button'
               className='absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground'
               onClick={() => setShowConfirmPassword((prev) => !prev)}
-              aria-label={showConfirmPassword ? '隐藏确认密码' : '显示确认密码'}
+              aria-label={
+                showConfirmPassword ? t('hideConfirmPassword') : t('showConfirmPassword')
+              }
               aria-pressed={showConfirmPassword}
             >
               {showConfirmPassword ? (
@@ -130,16 +135,16 @@ export function SignupForm({
                 <Eye className='h-4 w-4' />
               )}
               <span className='sr-only'>
-                {showConfirmPassword ? '隐藏确认密码' : '显示确认密码'}
+                {showConfirmPassword ? t('hideConfirmPassword') : t('showConfirmPassword')}
               </span>
             </button>
           </div>
-          <FieldDescription>请再次输入密码。</FieldDescription>
+          <FieldDescription>{t('confirmPasswordHint')}</FieldDescription>
           <FieldError errors={toFieldErrors(state.errors?.confirmPassword)} />
         </Field>
         <Field>
           <Button type='submit' disabled={isPending} aria-disabled={isPending}>
-            注册账号
+            {t('submit')}
           </Button>
           {state.message ? (
             <p className='text-sm text-destructive' role='alert'>
@@ -147,7 +152,7 @@ export function SignupForm({
             </p>
           ) : null}
         </Field>
-        <FieldSeparator>或使用以下方式</FieldSeparator>
+        <FieldSeparator>{t('divider')}</FieldSeparator>
         <Field>
           <Button variant='outline' type='button'>
             <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>
@@ -156,10 +161,13 @@ export function SignupForm({
                 fill='currentColor'
               />
             </svg>
-            使用 GitHub 注册
+            {t('githubSignUp')}
           </Button>
           <FieldDescription className='px-6 text-center'>
-            已有账号？ <Link href='/login'>去登录</Link>
+            {t('hasAccount')}{' '}
+            <Link href='/login' className='underline underline-offset-4'>
+              {t('loginLink')}
+            </Link>
           </FieldDescription>
         </Field>
       </FieldGroup>

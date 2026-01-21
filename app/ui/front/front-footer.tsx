@@ -1,24 +1,34 @@
-import Link from 'next/link';
+'use client';
+
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
 
 const footerLinks = [
-  { label: '首页', href: '/' },
-  { label: '画廊', href: '/gallery' },
-  { label: '照片作品集', href: '/photo-collections' },
-  { label: '视频作品集', href: '/video-collections' },
-  { label: '关于', href: '/about' },
+  { key: 'home', href: '/' },
+  { key: 'gallery', href: '/gallery' },
+  { key: 'photoCollections', href: '/photo-collections' },
+  { key: 'videoCollections', href: '/video-collections' },
+  { key: 'about', href: '/about' },
 ];
 
 export function FrontFooter() {
+  const t = useTranslations('front.footer');
+
   return (
     <footer className='front-footer relative z-10 mt-8 border-t border-zinc-200 px-6 py-3 text-sm text-zinc-600/80 dark:border-zinc-800 dark:text-white/60'>
       <div className='mx-auto flex w-[88vw] max-w-none flex-col gap-6 md:flex-row md:items-center md:justify-between'>
         <div className='space-y-2'>
-          <p className={cn(spaceGrotesk.className, 'text-base text-zinc-900 dark:text-white')}>
-            Lumina Archive
+          <p
+            className={cn(
+              spaceGrotesk.className,
+              'text-base text-zinc-900 dark:text-white',
+            )}
+          >
+            {t('title')}
           </p>
-          <p>用光线记录宇宙与城市的交汇。</p>
+          <p>{t('subtitle')}</p>
         </div>
         <div className='flex flex-wrap gap-4 text-xs uppercase tracking-[0.2em]'>
           {footerLinks.map((item) => (
@@ -27,7 +37,7 @@ export function FrontFooter() {
               href={item.href}
               className='transition hover:text-zinc-900 dark:hover:text-white'
             >
-              {item.label}
+              {t(`links.${item.key}`)}
             </Link>
           ))}
         </div>

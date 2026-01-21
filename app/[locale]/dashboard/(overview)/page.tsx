@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { fetchDashboardOverview, fetchUserByEmail } from '@/app/lib/data';

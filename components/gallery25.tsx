@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocale, useTranslations, type TranslationValues } from 'next-intl';
 import { createPortal } from 'react-dom';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
@@ -22,11 +23,13 @@ type Gallery25Props = {
 
 type ViewMode = 'fit' | 'crop';
 
+type TranslationFn = (key: string, values?: TranslationValues) => string;
+
 const filters = [
-  { value: 'all', label: '全部' },
-  { value: 'photo', label: '照片' },
-  { value: 'video', label: '视频' },
-  { value: 'timeline', label: '时间线' },
+  { value: 'all', key: 'all' },
+  { value: 'photo', key: 'photo' },
+  { value: 'video', key: 'video' },
+  { value: 'timeline', key: 'timeline' },
 ] as const;
 
 type FilterValue = (typeof filters)[number]['value'];
@@ -106,11 +109,11 @@ const getAspectRatioValue = (
   return 4 / 3;
 };
 
-const formatDate = (value?: string | null) => {
+const formatDate = (value: string | null | undefined, locale: string) => {
   if (!value) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleString('zh-CN', { hour12: false });
+  return parsed.toLocaleString(locale, { hour12: false });
 };
 
 const formatCoordinate = (value?: number | null) => {
@@ -128,7 +131,11 @@ const resolveTimelineTimestamp = (item: GalleryItem) => {
 
 const resolveItemType = (item: GalleryItem) => item.type ?? 'photo';
 
-const buildDetails = (item: GalleryItem) => {
+const buildDetails = (
+  item: GalleryItem,
+  t: TranslationFn,
+  locale: string,
+) => {
   const cameraLabel =
     item.maker && item.camera ? `${item.maker} ${item.camera}` : item.camera ?? item.maker;
   const resolution =
@@ -139,23 +146,31 @@ const buildDetails = (item: GalleryItem) => {
     latitude && longitude ? `${latitude}, ${longitude}` : latitude ?? longitude ?? null;
 
   const details = [
-    { label: '分辨率', value: resolution },
-    { label: '相机', value: cameraLabel },
-    { label: '镜头', value: item.lens },
-    { label: '光圈', value: item.aperture ? `f/${formatNumber(item.aperture, 1)}` : null },
-    { label: '快门', value: formatExposure(item.exposure) },
-    { label: 'ISO', value: item.iso ? `ISO ${item.iso}` : null },
-    { label: '焦距', value: item.focalLength ? `${formatNumber(item.focalLength, 1)}mm` : null },
-    { label: '白平衡', value: item.whiteBalance },
-    { label: '拍摄坐标', value: coordinate },
-    { label: '拍摄时间', value: formatDate(item.dateShot) },
-    { label: '文件大小', value: formatFileSize(item.size) },
+    { label: t('details.resolution'), value: resolution },
+    { label: t('details.camera'), value: cameraLabel },
+    { label: t('details.lens'), value: item.lens },
+    {
+      label: t('details.aperture'),
+      value: item.aperture ? `f/${formatNumber(item.aperture, 1)}` : null,
+    },
+    { label: t('details.shutter'), value: formatExposure(item.exposure) },
+    { label: t('details.iso'), value: item.iso ? `ISO ${item.iso}` : null },
+    {
+      label: t('details.focalLength'),
+      value: item.focalLength ? `${formatNumber(item.focalLength, 1)}mm` : null,
+    },
+    { label: t('details.whiteBalance'), value: item.whiteBalance },
+    { label: t('details.coordinates'), value: coordinate },
+    { label: t('details.dateShot'), value: formatDate(item.dateShot, locale) },
+    { label: t('details.fileSize'), value: formatFileSize(item.size) },
   ];
 
   return details.filter((detail) => detail.value);
 };
 
 const Gallery25 = ({ items = [], className }: Gallery25Props) => {
+  const locale = useLocale();
+  const t = useTranslations('front.galleryGrid');
   const [selectedId, setSelectedId] = useState<GalleryId | null>(null);
   const [isFullBleed, setIsFullBleed] = useState(false);
   const [columnCount, setColumnCount] = useState(() =>
@@ -207,8 +222,8 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     return visibleItems.find((item) => item.id === selectedId) ?? null;
   }, [selectedId, visibleItems]);
   const selectedDetails = useMemo(
-    () => (selected ? buildDetails(selected) : []),
-    [selected],
+    () => (selected ? buildDetails(selected, t, locale) : []),
+    [locale, selected, t],
   );
   const selectedAspectRatio = selected
     ? getAspectRatioValue(selected, ratioMap)
@@ -390,7 +405,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
             type='button'
             onClick={() => setSelectedId(null)}
             className='absolute inset-0'
-            aria-label='关闭'
+            aria-label={t('modal.closeAria')}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -426,7 +441,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                       : 'hover:text-foreground',
                   )}
                 >
-                  适配
+                  {t('modal.viewFit')}
                 </button>
                 <button
                   type='button'
@@ -438,7 +453,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                       : 'hover:text-foreground',
                   )}
                 >
-                  裁切
+                  {t('modal.viewCrop')}
                 </button>
               </div>
               <button
@@ -446,7 +461,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                 onClick={() => setSelectedId(null)}
                 className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
               >
-                关闭
+                {t('modal.close')}
               </button>
             </div>
             <div className='grid min-h-0 flex-1 gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]'>
@@ -482,7 +497,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                       type='button'
                       onClick={() => handleNavigate('prev')}
                       className='absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
-                      aria-label='上一张'
+                      aria-label={t('modal.previous')}
                     >
                       <ChevronLeft className='h-5 w-5' />
                     </button>
@@ -490,7 +505,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                       type='button'
                       onClick={() => handleNavigate('next')}
                       className='absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
-                      aria-label='下一张'
+                      aria-label={t('modal.next')}
                     >
                       <ChevronRight className='h-5 w-5' />
                     </button>
@@ -516,7 +531,9 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                       </div>
                     ))
                   ) : (
-                    <p className='text-sm text-muted-foreground'>暂无可用的详细信息。</p>
+                    <p className='text-sm text-muted-foreground'>
+                      {t('details.empty')}
+                    </p>
                   )}
                 </div>
               </div>
@@ -558,14 +575,19 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                         : 'text-zinc-600/80 hover:text-zinc-900 dark:text-white/60 dark:hover:text-white',
                     )}
                   >
-                    {tab.label}
+                    {t(`filters.${tab.key}`)}
                   </button>
                 ))}
               </div>
               <div className='flex flex-wrap items-center justify-end gap-3 text-sm text-muted-foreground'>
-                <span>已显示 {visibleItems.length} / {items.length} 项</span>
+                <span>
+                  {t('summary', {
+                    visible: visibleItems.length,
+                    total: items.length,
+                  })}
+                </span>
                 <label className='flex items-center gap-2 text-xs text-muted-foreground'>
-                  <span>每行</span>
+                  <span>{t('columns.label')}</span>
                   <input
                     type='range'
                     min={3}
@@ -576,9 +598,9 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                       setColumnCount(clampColumnCount(Number(event.target.value)))
                     }
                     className='h-1 w-32 cursor-pointer accent-primary'
-                    aria-label='每行显示数量'
+                    aria-label={t('columns.aria')}
                   />
-                  <span>{columnCount} 张</span>
+                  <span>{t('columns.count', { count: columnCount })}</span>
                 </label>
                 <button
                   type='button'
@@ -593,7 +615,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                   }}
                   className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
                 >
-                  {isFullBleed ? '两边留白' : '铺满屏幕'}
+                  {isFullBleed ? t('fullBleed.off') : t('fullBleed.on')}
                 </button>
               </div>
             </div>

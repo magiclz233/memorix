@@ -1,4 +1,7 @@
+'use client';
+
 import { Play } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import type { MediaItem } from '@/app/lib/definitions';
 import { cn } from '@/lib/utils';
 
@@ -7,10 +10,10 @@ type MediaCardProps = {
   showDate?: boolean;
 };
 
-const formatDate = (value: string) => {
+const formatDate = (value: string, locale: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('zh-CN', {
+  return date.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -18,7 +21,9 @@ const formatDate = (value: string) => {
 };
 
 export function MediaCard({ item, showDate }: MediaCardProps) {
-  const typeLabel = item.type === 'photo' ? '照片' : '视频';
+  const locale = useLocale();
+  const t = useTranslations('front.media');
+  const typeLabel = item.type === 'photo' ? t('photo') : t('video');
   const isVideo = item.type === 'video';
   const tags = item.tags ?? [];
   const hasImage = Boolean(item.coverUrl);
@@ -54,7 +59,7 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
       <div className='relative z-10 flex h-full flex-col justify-between gap-6 p-5 text-white'>
         <div className='flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-white/80'>
           <span>{typeLabel}</span>
-          {showDate ? <span>{formatDate(item.createdAt)}</span> : null}
+          {showDate ? <span>{formatDate(item.createdAt, locale)}</span> : null}
         </div>
         <div className='space-y-3'>
           <h3 className='text-lg font-semibold'>{item.title}</h3>

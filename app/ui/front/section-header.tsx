@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
 

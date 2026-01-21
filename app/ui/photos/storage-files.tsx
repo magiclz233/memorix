@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { setHeroPhotos, setFilesPublished, setStoragePublished } from '@/app/lib/actions';
 import { Button } from '@/app/ui/button';
 

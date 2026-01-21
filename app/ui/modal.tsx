@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useEffect, useRef } from 'react'; // 引入 hooks
 
 export function Modal({ children }: { children: React.ReactNode }) {

@@ -1,0 +1,249 @@
+{
+  "nav": {
+    "items": {
+      "home": "Home",
+      "gallery": "Gallery",
+      "photoCollections": "Photo Collections",
+      "videoCollections": "Video Collections",
+      "about": "About"
+    },
+    "account": {
+      "loggedIn": "Signed in",
+      "userInfo": "Account",
+      "login": "Sign in",
+      "welcome": "Welcome back",
+      "admin": "Admin Console",
+      "changePassword": "Change password",
+      "changePasswordDescription": "For your account security, use a strong password. You will be signed out after updating.",
+      "logout": "Sign out",
+      "title": "Account",
+      "loginHint": "Sign in to sync your visual preferences",
+      "loginDescription": "Save collections, keep playback history, manage releases."
+    }
+  },
+  "auth": {
+    "loginPage": {
+      "heroAlt": "Login background",
+      "appName": "Memorix Gallery"
+    },
+    "signupPage": {
+      "heroAlt": "Signup background",
+      "appName": "Memorix Gallery"
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Enter your email and password to continue",
+      "divider": "Or sign in with",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Create one",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@example.com",
+      "passwordLabel": "Password",
+      "forgotPassword": "Forgot password?",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "submit": "Sign in",
+      "githubSignIn": "Continue with GitHub"
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Fill in the details to sign up",
+      "nameLabel": "Name",
+      "namePlaceholder": "Alex Chen",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@example.com",
+      "emailDescription": "We'll never share your email.",
+      "passwordLabel": "Password",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "passwordHint": "At least 6 characters.",
+      "confirmPasswordLabel": "Confirm password",
+      "hideConfirmPassword": "Hide confirm password",
+      "showConfirmPassword": "Show confirm password",
+      "confirmPasswordHint": "Enter the password again.",
+      "submit": "Create account",
+      "divider": "Or continue with",
+      "githubSignUp": "Sign up with GitHub",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in"
+    }
+  },
+  "front": {
+    "footer": {
+      "title": "Lumina Archive",
+      "subtitle": "Recording the meeting point of light, city, and cosmos.",
+      "links": {
+        "home": "Home",
+        "gallery": "Gallery",
+        "photoCollections": "Photo Collections",
+        "videoCollections": "Video Collections",
+        "about": "About"
+      }
+    },
+    "home": {
+      "carousel": {
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "hero": {
+        "description": "Fuse immersive light with minimalist layout, turning every frame into a collectible memory of light.",
+        "primaryCta": "Enter Gallery",
+        "secondaryCta": "Browse Photo Sets"
+      },
+      "sections": {
+        "featuredCollections": {
+          "title": "Featured Collections",
+          "description": "Three signature series that explore light and rhythm in two narratives.",
+          "action": "View all",
+          "badgePhoto": "Featured Photos",
+          "badgeVideo": "Featured Videos"
+        },
+        "featuredVideos": {
+          "title": "Featured Video Sets",
+          "description": "Experiments in rhythm and motion.",
+          "action": "View all",
+          "badge": "Featured Videos"
+        }
+      },
+      "itemCount": "{count} items"
+    },
+    "gallery": {
+      "eyebrow": "Gallery / Archive",
+      "title": "Gallery",
+      "description": "Browse the archive by timeline or media type and trace the light of each shoot.",
+      "loading": "Loading...",
+      "scrollMore": "Scroll to load more",
+      "end": "You've reached the end",
+      "filters": {
+        "all": "All",
+        "photo": "Photo",
+        "video": "Video",
+        "timeline": "Timeline"
+      }
+    },
+    "media": {
+      "photo": "Photo",
+      "video": "Video"
+    },
+    "collections": {
+      "itemCount": "{count} items",
+      "badge": {
+        "photo": "Photo Set",
+        "video": "Video Set"
+      },
+      "photo": {
+        "eyebrow": "Collections / Photo",
+        "title": "Photo Collections",
+        "description": "Each theme is a standalone journey of light and composition."
+      },
+      "video": {
+        "eyebrow": "Collections / Video",
+        "title": "Video Collections",
+        "description": "Dynamic stories of rhythm, music, and space."
+      }
+    },
+    "about": {
+      "eyebrow": "About / Lumina",
+      "title": "Lumina Studio",
+      "description": "Minimal layouts carry dense visual narratives, extending light and emotion. Between still and motion, we search for breathing space.",
+      "manifesto": {
+        "title": "Studio Manifesto",
+        "description": "We treat every shoot as a light experiment, capturing irreplaceable highlights and shadows, then organizing them into a living visual archive."
+      },
+      "capabilities": [
+        {
+          "title": "Visual Storytelling",
+          "description": "Weave shooting, editing, and color grading into one narrative rhythm."
+        },
+        {
+          "title": "Spatial Composition",
+          "description": "Balance layers and negative space to give the frame room to breathe."
+        },
+        {
+          "title": "Motion Experiments",
+          "description": "Build flowing visual language with light trails and long exposure."
+        },
+        {
+          "title": "Brand Imagery",
+          "description": "Create scalable visual archives and launch-ready assets for brands."
+        }
+      ],
+      "equipmentSection": {
+        "eyebrow": "Equipment / Bento",
+        "title": "Equipment List",
+        "description": "A lightweight kit that keeps on-site agility and lighting control consistent."
+      },
+      "equipmentItems": [
+        {
+          "title": "Main Bodies",
+          "description": "Leica M11 / Sony A7R V for detail and skin tone depth.",
+          "size": "wide"
+        },
+        {
+          "title": "Cinema Camera",
+          "description": "Sony FX3 + Atomos for steadier dynamic range."
+        },
+        {
+          "title": "Lens Set",
+          "description": "35mm / 50mm / 85mm primes for a natural perspective."
+        },
+        {
+          "title": "Lighting",
+          "description": "Aputure 300D + PavoTube to shape atmosphere and highlights.",
+          "size": "wide"
+        },
+        {
+          "title": "Post",
+          "description": "DaVinci Resolve / Capture One for a cinematic grade."
+        },
+        {
+          "title": "On Set",
+          "description": "Mobile light control and haze machine to sculpt depth."
+        }
+      ]
+    },
+    "galleryGrid": {
+      "filters": {
+        "all": "All",
+        "photo": "Photo",
+        "video": "Video",
+        "timeline": "Timeline"
+      },
+      "summary": "Showing {visible} / {total} items",
+      "columns": {
+        "label": "Per row",
+        "aria": "Items per row",
+        "count": "{count} cols"
+      },
+      "fullBleed": {
+        "on": "Full bleed",
+        "off": "Add margins"
+      },
+      "modal": {
+        "closeAria": "Close",
+        "viewFit": "Fit",
+        "viewCrop": "Crop",
+        "close": "Close",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "details": {
+        "resolution": "Resolution",
+        "camera": "Camera",
+        "lens": "Lens",
+        "aperture": "Aperture",
+        "shutter": "Shutter",
+        "iso": "ISO",
+        "focalLength": "Focal length",
+        "whiteBalance": "White balance",
+        "coordinates": "Coordinates",
+        "dateShot": "Date shot",
+        "fileSize": "File size",
+        "empty": "No details available."
+      }
+    }
+  },
+  "dashboard": {
+    "navigation": "Navigation"
+  }
+}

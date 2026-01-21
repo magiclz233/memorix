@@ -1,7 +1,7 @@
 import '@/app/ui/global.css';
 import { inter } from '@/app/ui/fonts';
 import type { Metadata } from 'next';
-import { ThemeProvider } from '@/components/theme-provider';
+import { getLocale } from 'next-intl/server';
 
 export const metadata: Metadata = {
   title: {
@@ -12,15 +12,17 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://next-learn-dashboard.vercel.sh'),
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        {children}
       </body>
     </html>
   );

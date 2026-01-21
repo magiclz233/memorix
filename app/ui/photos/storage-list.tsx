@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { deleteUserStorage, setUserStorageDisabled } from '@/app/lib/actions';
 
 type StorageItem = {

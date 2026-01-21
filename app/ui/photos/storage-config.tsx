@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { saveUserStorage } from '@/app/lib/actions';
 import { Button } from '@/app/ui/button';
 

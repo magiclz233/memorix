@@ -1,0 +1,249 @@
+{
+  "nav": {
+    "items": {
+      "home": "首页",
+      "gallery": "画廊",
+      "photoCollections": "图集",
+      "videoCollections": "视频集",
+      "about": "关于"
+    },
+    "account": {
+      "loggedIn": "已登录",
+      "userInfo": "用户信息",
+      "login": "登录",
+      "welcome": "欢迎回来",
+      "admin": "管理端",
+      "changePassword": "修改密码",
+      "changePasswordDescription": "为了您的账户安全，建议使用强密码。修改成功后将自动退出登录。",
+      "logout": "退出登录",
+      "title": "账户",
+      "loginHint": "登录以同步你的影像偏好",
+      "loginDescription": "收藏图集、保存播放记录、管理作品发布。"
+    }
+  },
+  "auth": {
+    "loginPage": {
+      "heroAlt": "登录页背景图",
+      "appName": "Memorix 画廊"
+    },
+    "signupPage": {
+      "heroAlt": "注册页背景图",
+      "appName": "Memorix 画廊"
+    },
+    "login": {
+      "title": "登录你的账号",
+      "subtitle": "请输入邮箱和密码以继续",
+      "divider": "或使用以下方式登录",
+      "noAccount": "还没有账号？",
+      "signupLink": "去注册",
+      "emailLabel": "邮箱",
+      "emailPlaceholder": "name@example.com",
+      "passwordLabel": "密码",
+      "forgotPassword": "忘记密码？",
+      "hidePassword": "隐藏密码",
+      "showPassword": "显示密码",
+      "submit": "登录",
+      "githubSignIn": "使用 GitHub 登录"
+    },
+    "signup": {
+      "title": "创建你的账号",
+      "subtitle": "填写信息完成注册",
+      "nameLabel": "姓名",
+      "namePlaceholder": "张三",
+      "emailLabel": "邮箱",
+      "emailPlaceholder": "name@example.com",
+      "emailDescription": "我们不会向他人泄露你的邮箱。",
+      "passwordLabel": "密码",
+      "hidePassword": "隐藏密码",
+      "showPassword": "显示密码",
+      "passwordHint": "至少 6 位字符。",
+      "confirmPasswordLabel": "确认密码",
+      "hideConfirmPassword": "隐藏确认密码",
+      "showConfirmPassword": "显示确认密码",
+      "confirmPasswordHint": "请再次输入密码。",
+      "submit": "注册账号",
+      "divider": "或使用以下方式",
+      "githubSignUp": "使用 GitHub 注册",
+      "hasAccount": "已有账号？",
+      "loginLink": "去登录"
+    }
+  },
+  "front": {
+    "footer": {
+      "title": "Lumina Archive",
+      "subtitle": "用光线记录宇宙与城市的交汇。",
+      "links": {
+        "home": "首页",
+        "gallery": "画廊",
+        "photoCollections": "照片作品集",
+        "videoCollections": "视频作品集",
+        "about": "关于"
+      }
+    },
+    "home": {
+      "carousel": {
+        "previous": "上一张",
+        "next": "下一张"
+      },
+      "hero": {
+        "description": "将沉浸式光影与极简排版融合成统一视觉语言，让每一帧影像都成为可收藏的光之记忆。",
+        "primaryCta": "进入画廊",
+        "secondaryCta": "浏览图集"
+      },
+      "sections": {
+        "featuredCollections": {
+          "title": "精选图集",
+          "description": "三组代表性的系列，展示光影与节奏的两种叙事方式。",
+          "action": "查看全部",
+          "badgePhoto": "精选图集",
+          "badgeVideo": "精选视频集"
+        },
+        "featuredVideos": {
+          "title": "精选视频集",
+          "description": "动态影像的节奏与叙事实验。",
+          "action": "查看全部",
+          "badge": "精选视频集"
+        }
+      },
+      "itemCount": "{count} 项内容"
+    },
+    "gallery": {
+      "eyebrow": "Gallery / Archive",
+      "title": "画廊",
+      "description": "以时间线与媒介切换浏览影像档案，探索每一次拍摄留下的光痕。",
+      "loading": "加载中…",
+      "scrollMore": "向下滚动加载更多",
+      "end": "已经到底了",
+      "filters": {
+        "all": "全部",
+        "photo": "照片",
+        "video": "视频",
+        "timeline": "时间线"
+      }
+    },
+    "media": {
+      "photo": "照片",
+      "video": "视频"
+    },
+    "collections": {
+      "itemCount": "{count} 项内容",
+      "badge": {
+        "photo": "照片集",
+        "video": "视频集"
+      },
+      "photo": {
+        "eyebrow": "Collections / Photo",
+        "title": "照片作品集",
+        "description": "每一个主题都是一段独立的光影旅程，聚焦构图与氛围的沉浸感。"
+      },
+      "video": {
+        "eyebrow": "Collections / Video",
+        "title": "视频作品集",
+        "description": "以动态影像记录节奏、音乐与空间的互动，呈现不同主题的叙事线。"
+      }
+    },
+    "about": {
+      "eyebrow": "About / Lumina",
+      "title": "Lumina Studio",
+      "description": "以极简排版承载高密度影像叙事，专注于光影与情绪的延展。在静态与动态之间，寻找更有呼吸感的视觉语言。",
+      "manifesto": {
+        "title": "工作室宣言",
+        "description": "我们将每一次拍摄视为一次光线实验，通过影像记录不可复制的高光与阴影，并整理成持续更新的视觉档案。"
+      },
+      "capabilities": [
+        {
+          "title": "视觉叙事",
+          "description": "将拍摄、剪辑与调色串成统一的叙事节奏。"
+        },
+        {
+          "title": "空间构图",
+          "description": "强调层次与留白的平衡，让画面更具呼吸感。"
+        },
+        {
+          "title": "动态实验",
+          "description": "用光轨与长曝光建立流动的视觉语言。"
+        },
+        {
+          "title": "品牌影像",
+          "description": "为品牌打造可延展的视觉档案与传播素材。"
+        }
+      ],
+      "equipmentSection": {
+        "eyebrow": "Equipment / Bento",
+        "title": "设备清单",
+        "description": "以轻量化配置为主，保证现场机动性与光影塑形的稳定输出。"
+      },
+      "equipmentItems": [
+        {
+          "title": "主力机身",
+          "description": "Leica M11 / Sony A7R V，专注细节与肤色层次。",
+          "size": "wide"
+        },
+        {
+          "title": "电影机",
+          "description": "Sony FX3 + Atomos，记录更稳定的动态范围。"
+        },
+        {
+          "title": "镜头组",
+          "description": "35mm / 50mm / 85mm 定焦组合，偏爱自然视角。"
+        },
+        {
+          "title": "灯光",
+          "description": "Aputure 300D + PavoTube，控制氛围与高光层次。",
+          "size": "wide"
+        },
+        {
+          "title": "后期",
+          "description": "DaVinci Resolve / Capture One，偏向电影质感调色。"
+        },
+        {
+          "title": "现场",
+          "description": "移动控光布与烟雾机，塑造空间层次。"
+        }
+      ]
+    },
+    "galleryGrid": {
+      "filters": {
+        "all": "全部",
+        "photo": "照片",
+        "video": "视频",
+        "timeline": "时间线"
+      },
+      "summary": "已显示 {visible} / {total} 项",
+      "columns": {
+        "label": "每行",
+        "aria": "每行显示数量",
+        "count": "{count} 张"
+      },
+      "fullBleed": {
+        "on": "铺满屏幕",
+        "off": "两边留白"
+      },
+      "modal": {
+        "closeAria": "关闭",
+        "viewFit": "适配",
+        "viewCrop": "裁切",
+        "close": "关闭",
+        "previous": "上一张",
+        "next": "下一张"
+      },
+      "details": {
+        "resolution": "分辨率",
+        "camera": "相机",
+        "lens": "镜头",
+        "aperture": "光圈",
+        "shutter": "快门",
+        "iso": "ISO",
+        "focalLength": "焦距",
+        "whiteBalance": "白平衡",
+        "coordinates": "拍摄坐标",
+        "dateShot": "拍摄时间",
+        "fileSize": "文件大小",
+        "empty": "暂无可用的详细信息。"
+      }
+    }
+  },
+  "dashboard": {
+    "navigation": "导航"
+  }
+}

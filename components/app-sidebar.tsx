@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import {
   FolderKanban,
   HardDrive,
@@ -16,6 +16,7 @@ import { signOutAction } from '@/app/lib/actions';
 import { NavMain } from '@/components/nav-main';
 import { ModeToggle } from '@/components/ui/admin/mode-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import {
   Sidebar,
   SidebarContent,
@@ -93,7 +94,14 @@ export function AdminSidebar({
               {ADMIN_USER.email}
             </p>
           </div>
-          <ModeToggle />
+          <div className="flex items-center gap-2">
+            <LocaleSwitcher
+              className="rounded-full border border-zinc-200/70 bg-white/80 px-1 text-[10px] uppercase tracking-[0.25em] text-zinc-600 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-white/70"
+              itemClassName="rounded-full px-2 py-1 transition hover:text-zinc-900 dark:hover:text-white"
+              activeItemClassName="bg-zinc-100 text-zinc-900 dark:bg-white/15 dark:text-white"
+            />
+            <ModeToggle />
+          </div>
         </div>
         <form action={signOutAction}>
           <SidebarMenu>

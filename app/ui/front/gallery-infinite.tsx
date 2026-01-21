@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import type { GalleryItem } from '@/app/lib/gallery';
 import { GallerySkeleton } from '@/app/ui/front/gallery-skeleton';
 
@@ -32,6 +33,7 @@ export function GalleryInfinite({
   initialPage,
   pageSize,
 }: GalleryInfiniteProps) {
+  const t = useTranslations('front.gallery');
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
   const [page, setPage] = useState(initialPage);
   const [hasNext, setHasNext] = useState(initialHasNext);
@@ -84,9 +86,9 @@ export function GalleryInfinite({
       <Gallery25 items={items} />
       <div className='mt-10 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground'>
         {hasNext ? (
-          <span>{isLoading ? '加载中…' : '向下滚动加载更多'}</span>
+          <span>{isLoading ? t('loading') : t('scrollMore')}</span>
         ) : (
-          <span>已经到底了</span>
+          <span>{t('end')}</span>
         )}
       </div>
       <div ref={sentinelRef} className='h-6' />

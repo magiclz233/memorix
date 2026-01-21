@@ -1,5 +1,5 @@
 import { headers } from 'next/headers';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { auth } from '@/auth';
 import { fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
 import { StorageView } from '@/app/ui/admin/storage/storage-view';

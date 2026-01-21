@@ -4,21 +4,23 @@ import { useMemo, useState } from 'react';
 import type { MediaItem } from '@/app/lib/definitions';
 import { MediaCard } from '@/app/ui/front/media-card';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 type GalleryFilterProps = {
   items: MediaItem[];
 };
 
 const filters = [
-  { value: 'all', label: '全部' },
-  { value: 'photo', label: '照片' },
-  { value: 'video', label: '视频' },
-  { value: 'timeline', label: '时间线' },
+  { value: 'all', key: 'all' },
+  { value: 'photo', key: 'photo' },
+  { value: 'video', key: 'video' },
+  { value: 'timeline', key: 'timeline' },
 ] as const;
 
 type FilterValue = (typeof filters)[number]['value'];
 
 export function GalleryFilter({ items }: GalleryFilterProps) {
+  const t = useTranslations('front.gallery.filters');
   const [filter, setFilter] = useState<FilterValue>('all');
 
   const timelineItems = useMemo(
@@ -50,7 +52,7 @@ export function GalleryFilter({ items }: GalleryFilterProps) {
                 : 'text-zinc-600/80 hover:text-zinc-900 dark:text-white/60 dark:hover:text-white'
             )}
           >
-            {tab.label}
+            {t(tab.key)}
           </button>
         ))}
       </div>

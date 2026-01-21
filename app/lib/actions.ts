@@ -1,9 +1,10 @@
 'use server';
 
 import { z } from 'zod';
-import { revalidatePath } from 'next/cache';
+import { revalidatePathForAllLocales } from './revalidate';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { redirect } from '@/i18n/navigation';
+import { stripLocalePrefix } from '@/i18n/paths';
 import { APIError } from 'better-auth/api';
 import { auth } from '@/auth';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -54,8 +55,10 @@ export async function authenticate(
   const redirectTo = formData.get('redirectTo');
   const trimmedRedirectTo =
     typeof redirectTo === 'string' ? redirectTo.trim() : '';
-  const safeRedirectTo =
-    trimmedRedirectTo.startsWith('/') ? trimmedRedirectTo : '/gallery';
+  const rawRedirectTo = trimmedRedirectTo.startsWith('/')
+    ? trimmedRedirectTo
+    : '/gallery';
+  const safeRedirectTo = stripLocalePrefix(rawRedirectTo);
 
   if (typeof email !== 'string' || typeof password !== 'string') {
     return 'Invalid credentials.';
@@ -211,7 +214,7 @@ export async function setUserRole(formData: FormData) {
     .update(users)
     .set({ role, updatedAt: new Date() })
     .where(eq(users.id, userId));
-  revalidatePath('/dashboard/settings/users');
+  revalidatePathForAllLocales('/dashboard/settings/users');
   return {
     success: true,
     message: role === 'admin' ? '用户角色已设置为管理员。' : '用户角色已设置为普通用户。',
@@ -291,8 +294,8 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
           updatedAt: new Date(),
         })
         .where(and(eq(userStorages.id, data.id), eq(userStorages.userId, user.id)));
-      revalidatePath('/dashboard/storage');
-      revalidatePath('/dashboard/media');
+      revalidatePathForAllLocales('/dashboard/storage');
+      revalidatePathForAllLocales('/dashboard/media');
       return { success: true, message: '存储配置已更新。', storageId: data.id };
     }
 
@@ -305,8 +308,8 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
       })
       .returning({ id: userStorages.id });
 
-    revalidatePath('/dashboard/storage');
-    revalidatePath('/dashboard/media');
+    revalidatePathForAllLocales('/dashboard/storage');
+    revalidatePathForAllLocales('/dashboard/media');
     return {
       success: true,
       message: '存储配置已保存。',
@@ -338,9 +341,9 @@ export async function setUserStorageDisabled(storageId: number, isDisabled: bool
     })
     .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
 
-  revalidatePath('/dashboard/storage');
-  revalidatePath('/dashboard/media');
-  revalidatePath('/gallery');
+  revalidatePathForAllLocales('/dashboard/storage');
+  revalidatePathForAllLocales('/dashboard/media');
+  revalidatePathForAllLocales('/gallery');
   return {
     success: true,
     message: isDisabled ? '已禁用存储配置。' : '已启用存储配置。',
@@ -432,9 +435,9 @@ export async function deleteUserStorage(storageId: number) {
       .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
   });
 
-  revalidatePath('/dashboard/storage');
-  revalidatePath('/dashboard/media');
-  revalidatePath('/gallery');
+  revalidatePathForAllLocales('/dashboard/storage');
+  revalidatePathForAllLocales('/dashboard/media');
+  revalidatePathForAllLocales('/gallery');
   return { success: true, message: '存储配置及相关文件已删除。' };
 }
 
@@ -453,8 +456,8 @@ export async function setStoragePublished(storageId: number, isPublished: boolea
     .set({ isPublished, updatedAt: new Date() })
     .where(eq(files.userStorageId, storageId));
 
-  revalidatePath('/dashboard/media');
-  revalidatePath('/gallery');
+  revalidatePathForAllLocales('/dashboard/media');
+  revalidatePathForAllLocales('/gallery');
   return {
     success: true,
     message: isPublished
@@ -510,8 +513,8 @@ export async function scanStorage(storageId: number) {
         console.info(text);
       },
     });
-    revalidatePath('/dashboard/media');
-    revalidatePath('/gallery');
+    revalidatePathForAllLocales('/dashboard/media');
+    revalidatePathForAllLocales('/gallery');
     return { success: true, message: `扫描完成，共处理 ${processed} 张图片，旧记录已清空。` };
   } catch (error) {
     console.error('扫描目录失败：', error);
@@ -546,8 +549,8 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
       ),
     );
 
-  revalidatePath('/dashboard/media');
-  revalidatePath('/gallery');
+  revalidatePathForAllLocales('/dashboard/media');
+  revalidatePathForAllLocales('/gallery');
   return { success: true, message: '图库展示状态已更新。' };
 }
 
@@ -633,8 +636,8 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
     });
   }
 
-  revalidatePath('/dashboard/media');
-  revalidatePath('/');
+  revalidatePathForAllLocales('/dashboard/media');
+  revalidatePathForAllLocales('/');
   return {
     success: true,
     message: isHero ? '首页展示状态已更新。' : '已取消首页展示。',
@@ -667,7 +670,7 @@ export async function toggleUserBan(formData: FormData) {
     .set({ banned, updatedAt: new Date() })
     .where(eq(users.id, userId));
 
-  revalidatePath('/dashboard/settings/users');
+  revalidatePathForAllLocales('/dashboard/settings/users');
   return {
     success: true,
     message: banned ? '用户已禁用。' : '用户已启用。',
@@ -689,7 +692,7 @@ export async function deleteUser(formData: FormData) {
   try {
     await db.delete(users).where(eq(users.id, userId));
     
-    revalidatePath('/dashboard/settings/users');
+    revalidatePathForAllLocales('/dashboard/settings/users');
     return { success: true, message: '用户已删除。' };
   } catch (error) {
     console.error('删除用户失败：', error);
@@ -739,7 +742,7 @@ export async function updateProfile(prevState: any, formData: FormData) {
       .set({ name, email, updatedAt: new Date() })
       .where(eq(users.id, user.id));
 
-    revalidatePath('/dashboard/settings/profile');
+    revalidatePathForAllLocales('/dashboard/settings/profile');
     return { success: true, message: '个人资料已更新。' };
   } catch (error) {
     console.error('更新资料失败：', error);

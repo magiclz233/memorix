@@ -1,61 +1,27 @@
 import { lusitana, spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
+import { getTranslations } from 'next-intl/server';
 
-const capabilities = [
-  {
-    title: '视觉叙事',
-    description: '将拍摄、剪辑与调色串成统一的叙事节奏。',
-  },
-  {
-    title: '空间构图',
-    description: '强调层次与留白的平衡，让画面更具呼吸感。',
-  },
-  {
-    title: '动态实验',
-    description: '用光轨与长曝光建立流动的视觉语言。',
-  },
-  {
-    title: '品牌影像',
-    description: '为品牌打造可延展的视觉档案与传播素材。',
-  },
-];
+type AboutCard = {
+  title: string;
+  description: string;
+};
 
-const equipment = [
-  {
-    title: '主力机身',
-    description: 'Leica M11 / Sony A7R V，专注细节与肤色层次。',
-    size: 'wide',
-  },
-  {
-    title: '电影机',
-    description: 'Sony FX3 + Atomos，记录更稳定的动态范围。',
-  },
-  {
-    title: '镜头组',
-    description: '35mm / 50mm / 85mm 定焦组合，偏爱自然视角。',
-  },
-  {
-    title: '灯光',
-    description: 'Aputure 300D + PavoTube，控制氛围与高光层次。',
-    size: 'wide',
-  },
-  {
-    title: '后期',
-    description: 'DaVinci Resolve / Capture One，偏向电影质感调色。',
-  },
-  {
-    title: '现场',
-    description: '移动控光布与烟雾机，塑造空间层次。',
-  },
-];
+type EquipmentCard = AboutCard & {
+  size?: 'wide';
+};
 
-export default function Page() {
+export default async function Page() {
+  const t = await getTranslations('front.about');
+  const capabilities = t.raw('capabilities') as AboutCard[];
+  const equipment = t.raw('equipmentItems') as EquipmentCard[];
+
   return (
     <div className='space-y-20'>
       <section className='front-fade-up grid gap-12 lg:grid-cols-[0.6fr_0.4fr] lg:items-start'>
         <div className='space-y-6'>
           <p className='text-xs uppercase tracking-[0.4em] text-zinc-600/80 dark:text-white/60'>
-            About / Lumina
+            {t('eyebrow')}
           </p>
           <h1
             className={cn(
@@ -63,10 +29,10 @@ export default function Page() {
               'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-6xl'
             )}
           >
-            Lumina Studio
+            {t('title')}
           </h1>
           <p className='max-w-xl text-base text-zinc-600/80 dark:text-white/60'>
-            以极简排版承载高密度影像叙事，专注于光影与情绪的延展。在静态与动态之间，寻找更有呼吸感的视觉语言。
+            {t('description')}
           </p>
         </div>
         <div className='space-y-6'>
@@ -77,10 +43,10 @@ export default function Page() {
                 'text-lg font-semibold text-zinc-800/90 dark:text-white/85'
               )}
             >
-              工作室宣言
+              {t('manifesto.title')}
             </h2>
             <p className='mt-3 text-sm text-zinc-600/80 dark:text-white/60'>
-              我们将每一次拍摄视为一次光线实验，通过影像记录不可复制的高光与阴影，并整理成持续更新的视觉档案。
+              {t('manifesto.description')}
             </p>
           </div>
           <div className='grid gap-4 md:grid-cols-2'>
@@ -102,7 +68,7 @@ export default function Page() {
       <section className='front-fade-up space-y-6'>
         <div className='space-y-3'>
           <p className='text-xs uppercase tracking-[0.4em] text-zinc-600/80 dark:text-white/60'>
-            Equipment / Bento
+            {t('equipmentSection.eyebrow')}
           </p>
           <h2
             className={cn(
@@ -110,10 +76,10 @@ export default function Page() {
               'text-3xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-4xl'
             )}
           >
-            设备清单
+            {t('equipmentSection.title')}
           </h2>
           <p className='max-w-2xl text-sm text-zinc-600/80 dark:text-white/60'>
-            以轻量化配置为主，保证现场机动性与光影塑形的稳定输出。
+            {t('equipmentSection.description')}
           </p>
         </div>
         <div className='grid gap-4 md:grid-cols-2'>

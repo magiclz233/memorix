@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { LogIn, ShieldCheck, UserCircle, KeyRound, LogOut } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { spaceGrotesk } from '@/app/ui/fonts';
 import { ModeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,14 +27,15 @@ import { ChangePasswordForm } from '@/app/ui/shared/change-password-form';
 import { signOutAction } from '@/app/lib/actions';
 
 const navItems = [
-  { label: '首页', href: '/' },
-  { label: '画廊', href: '/gallery' },
-  { label: '图集', href: '/photo-collections' },
-  { label: '视频集', href: '/video-collections' },
-  { label: '关于', href: '/about' },
+  { key: 'home', href: '/' },
+  { key: 'gallery', href: '/gallery' },
+  { key: 'photoCollections', href: '/photo-collections' },
+  { key: 'videoCollections', href: '/video-collections' },
+  { key: 'about', href: '/about' },
 ];
 
 export function FloatingNav() {
+  const t = useTranslations('nav');
   const pathname = usePathname();
   const isHome = pathname === '/';
   const loginHref = pathname
@@ -46,7 +48,7 @@ export function FloatingNav() {
   );
   const { data: session } = authClient.useSession();
   const user = session?.user;
-  const displayName = user?.name || user?.email || '已登录';
+  const displayName = user?.name || user?.email || t('account.loggedIn');
   const email = user?.email ?? null;
   const avatarUrl = user?.image ?? null;
   const avatarFallback = displayName.trim().slice(0, 1);
@@ -139,6 +141,7 @@ export function FloatingNav() {
               const active =
                 pathname === item.href ||
                 (item.href !== '/' && pathname?.startsWith(item.href));
+              const label = t(`items.${item.key}`);
               return (
                 <Link
                   key={item.href}
@@ -154,11 +157,21 @@ export function FloatingNav() {
                         : 'hover:text-zinc-900 dark:hover:text-white',
                   )}
                 >
-                  {item.label}
+                  {label}
                 </Link>
               );
             })}
           </nav>
+          <LocaleSwitcher
+            className={cn(
+              'rounded-full border px-1 text-[10px] uppercase tracking-[0.25em] shadow-sm',
+              isHome
+                ? 'border-white/30 bg-white/10 text-white/70'
+                : 'border-zinc-200/70 bg-white/80 text-zinc-600 dark:border-white/15 dark:bg-white/10 dark:text-white/70',
+            )}
+            itemClassName='rounded-full px-2 py-1 transition'
+            activeItemClassName={isHome ? 'bg-white/15 text-white' : 'bg-zinc-100 text-zinc-900 dark:bg-white/15 dark:text-white'}
+          />
           <ModeToggle
             className={cn(
               'h-9 w-9 border shadow-sm backdrop-blur-xl',
@@ -177,7 +190,7 @@ export function FloatingNav() {
                 variant='outline'
                 size='icon'
                 className={accountButtonClass}
-                aria-label={user ? '用户信息' : '登录'}
+                aria-label={user ? t('account.userInfo') : t('account.login')}
                 onMouseEnter={handleAccountOpen}
                 onMouseLeave={handleAccountClose}
               >
@@ -236,14 +249,16 @@ export function FloatingNav() {
                     </div>
                   </div>
                   <div className='flex items-center gap-2'>
-                    <span className={accountBadgeClass}>已登录</span>
+                    <span className={accountBadgeClass}>
+                      {t('account.loggedIn')}
+                    </span>
                     <span
                       className={cn(
                         'text-[11px] uppercase tracking-[0.2em]',
                         accountSubtleTextClass,
                       )}
                     >
-                      欢迎回来
+                      {t('account.welcome')}
                     </span>
                   </div>
                   {isAdmin ? (
@@ -257,7 +272,7 @@ export function FloatingNav() {
                         className='flex items-center gap-3'
                       >
                         <ShieldCheck className='h-4 w-4' />
-                        管理端
+                        {t('account.admin')}
                       </Link>
                     </Button>
                   ) : null}
@@ -268,7 +283,7 @@ export function FloatingNav() {
                     onClick={() => setShowPasswordDialog(true)}
                   >
                     <KeyRound className='h-4 w-4' />
-                    修改密码
+                    {t('account.changePassword')}
                   </Button>
                   
                   <form action={signOutAction} className='w-full'>
@@ -281,7 +296,7 @@ export function FloatingNav() {
                       )}
                     >
                       <LogOut className='h-4 w-4' />
-                      退出登录
+                      {t('account.logout')}
                     </Button>
                   </form>
                 </div>
@@ -294,13 +309,13 @@ export function FloatingNav() {
                         accountSubtleTextClass,
                       )}
                     >
-                      账户
+                      {t('account.title')}
                     </p>
                     <p className='text-sm font-semibold'>
-                      登录以同步你的影像偏好
+                      {t('account.loginHint')}
                     </p>
                     <p className={cn('text-xs', accountMutedTextClass)}>
-                      收藏图集、保存播放记录、管理作品发布。
+                      {t('account.loginDescription')}
                     </p>
                   </div>
                   <Button
@@ -313,7 +328,7 @@ export function FloatingNav() {
                       className='flex items-center justify-center gap-2'
                     >
                       <LogIn className='h-4 w-4' />
-                      登录
+                      {t('account.login')}
                     </Link>
                   </Button>
                 </div>
@@ -324,11 +339,11 @@ export function FloatingNav() {
       </div>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className='sm:max-w-[425px]'>
           <DialogHeader>
-            <DialogTitle>修改密码</DialogTitle>
+            <DialogTitle>{t('account.changePassword')}</DialogTitle>
             <DialogDescription>
-              为了您的账户安全，建议使用强密码。修改成功后将自动退出登录。
+              {t('account.changePasswordDescription')}
             </DialogDescription>
           </DialogHeader>
           <ChangePasswordForm 

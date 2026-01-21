@@ -2,6 +2,7 @@
 
 import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 type GitHubSignInButtonProps = {
   redirectTo?: string;
@@ -10,6 +11,7 @@ type GitHubSignInButtonProps = {
 export function GitHubSignInButton({
   redirectTo = '/gallery',
 }: GitHubSignInButtonProps) {
+  const t = useTranslations('auth.login');
   const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/gallery';
 
   const handleClick = () => {
@@ -32,7 +34,7 @@ export function GitHubSignInButton({
           fill='currentColor'
         />
       </svg>
-      使用 GitHub 登录
+      {t('githubSignIn')}
     </Button>
   );
 }
