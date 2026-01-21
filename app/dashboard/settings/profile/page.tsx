@@ -21,7 +21,7 @@ export default async function Page() {
           用户设置
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          更新管理员资料与登录密码。
+          更新管理员资料与登录密码。                                                                            
         </p>
       </header>
 
