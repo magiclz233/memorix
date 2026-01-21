@@ -85,7 +85,7 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
 
       setMessage(result.message ?? null);
       if (result.storageId && result.storageId !== editingId) {
-        router.replace(`/dashboard/photos?storageId=${result.storageId}`);
+        router.replace(`/dashboard/media?storageId=${result.storageId}`);
       }
       router.refresh();
     });

@@ -138,14 +138,14 @@ export function StorageListManager({
               </div>
               <div className='flex flex-wrap gap-2 text-sm'>
                 <Link
-                  href={`/dashboard/photos?storageId=${storage.id}`}
+                  href={`/dashboard/media?storageId=${storage.id}`}
                   className='rounded-full border border-gray-200 px-3 py-1 text-gray-700 hover:border-blue-300 hover:text-blue-600'
                 >
                   编辑
                 </Link>
                 {canScan ? (
                   <Link
-                    href={`/dashboard/photos?storageId=${storage.id}#storage-scan`}
+                    href={`/dashboard/media?storageId=${storage.id}`}
                     className='rounded-full border border-gray-200 px-3 py-1 text-gray-700 hover:border-blue-300 hover:text-blue-600'
                   >
                     扫描
