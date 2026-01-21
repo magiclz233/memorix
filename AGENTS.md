@@ -59,6 +59,12 @@
 - **提交规范**：Conventional Commits（例如 `feat: add storage scan`）
 - **文件编码**：统一使用 UTF-8（无 BOM）
 
+## 国际化要求
+- **语言支持**：所有面向用户的功能必须同时支持简体中文（`zh-CN`）和英文（`en`）
+- **文案管理**：新增/修改文案必须写入 `messages/zh-CN.json` 与 `messages/en.json`
+- **路由与导航**：使用 `app/[locale]/` 路由与 `@/i18n/navigation`，确保 locale 透传
+- **扩展性**：新增语言需保持 key 结构一致，避免硬编码文案
+
 ## UI/UX 设计规范
 项目现有设计风格：Lumina Pro（流光黑洞 / 极简杂志风）
 
