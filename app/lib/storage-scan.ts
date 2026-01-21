@@ -82,12 +82,13 @@ export async function runStorageScan({
   await db.transaction(async (tx) => {
     // 1. 获取数据库中当前存储的所有文件路径
     const existingFiles = await tx
-      .select({ path: files.path })
+      .select({ path: files.path, size: files.size, mtime: files.mtime })
       .from(files)
       .where(eq(files.userStorageId, storageId));
     
     const existingPathSet = new Set(existingFiles.map((f) => f.path));
     const scannedPathSet = new Set(fileList.map((f) => f.relativePath));
+    const existingFileMap = new Map(existingFiles.map((file) => [file.path, file]));
 
     // 2. 找出需要删除的文件（数据库中有，但扫描结果中没有）
     const pathsToDelete = existingFiles
@@ -108,6 +109,23 @@ export async function runStorageScan({
 
     // 3. 更新或插入文件
     for (const file of fileList) {
+      const existing = existingFileMap.get(file.relativePath);
+      const isSameFile =
+        existing &&
+        typeof existing.size === 'number' &&
+        existing.size === file.size &&
+        existing.mtime instanceof Date &&
+        existing.mtime.getTime() === file.mtime.getTime();
+
+      if (isSameFile) {
+        processed += 1;
+        if (processed % 50 === 0 || processed === fileList.length) {
+          onProgress?.({ stage: 'save', processed, total: fileList.length });
+          log('info', `已处理 ${processed}/${fileList.length} 张图片`);
+        }
+        continue;
+      }
+
       const blurHash = await generateBlurHash(file.absolutePath);
 
       const [saved] = await tx

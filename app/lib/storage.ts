@@ -2,6 +2,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import type { Dirent, Stats } from 'fs';
 import exifr from 'exifr';
+import sharp from 'sharp';
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -138,57 +139,115 @@ function normalizeText(value: unknown) {
 }
 
 export async function readPhotoMetadata(filePath: string) {
+  let fileBuffer: Buffer;
   try {
-    const fileBuffer = await fs.readFile(filePath);
-    const metadata = await exifr.parse(fileBuffer, {
+    fileBuffer = await fs.readFile(filePath);
+  } catch (error) {
+    console.warn('读取文件失败，已忽略：', filePath, error);
+    return null;
+  }
+
+  let metadata: Record<string, unknown> | null = null;
+  try {
+    metadata = await exifr.parse(fileBuffer, {
       tiff: true,
       exif: true,
       gps: true,
     });
-
-    if (!metadata) return null;
-
-    const dateShot =
-      metadata.DateTimeOriginal ??
-      metadata.CreateDate ??
-      metadata.ModifyDate ??
-      null;
-
-    return {
-      description:
-        normalizeText(metadata.ImageDescription) ??
-        normalizeText(metadata.XPTitle) ??
-        normalizeText(metadata.Title) ??
-        null,
-      camera: metadata.Model ?? null,
-      maker: metadata.Make ?? null,
-      lens: metadata.LensModel ?? null,
-      dateShot: dateShot instanceof Date ? dateShot : null,
-      exposure: typeof metadata.ExposureTime === 'number' ? metadata.ExposureTime : null,
-      aperture: typeof metadata.FNumber === 'number' ? metadata.FNumber : null,
-      iso: typeof metadata.ISO === 'number' ? metadata.ISO : null,
-      focalLength: typeof metadata.FocalLength === 'number' ? metadata.FocalLength : null,
-      flash: typeof metadata.Flash === 'number' ? metadata.Flash : null,
-      orientation: typeof metadata.Orientation === 'number' ? metadata.Orientation : null,
-      exposureProgram: typeof metadata.ExposureProgram === 'number' ? metadata.ExposureProgram : null,
-      gpsLatitude: typeof metadata.GPSLatitude === 'number' ? metadata.GPSLatitude : null,
-      gpsLongitude: typeof metadata.GPSLongitude === 'number' ? metadata.GPSLongitude : null,
-      resolutionWidth:
-        typeof metadata.ExifImageWidth === 'number'
-          ? metadata.ExifImageWidth
-          : typeof metadata.ImageWidth === 'number'
-            ? metadata.ImageWidth
-            : null,
-      resolutionHeight:
-        typeof metadata.ExifImageHeight === 'number'
-          ? metadata.ExifImageHeight
-          : typeof metadata.ImageHeight === 'number'
-            ? metadata.ImageHeight
-            : null,
-      whiteBalance: normalizeWhiteBalance(metadata.WhiteBalance),
-    } satisfies ParsedPhotoMetadata;
   } catch (error) {
     console.warn('读取 EXIF 失败，已忽略：', filePath, error);
-    return null;
   }
+
+  const safeMetadata = metadata ?? {};
+  const dateShot =
+    (safeMetadata as { DateTimeOriginal?: unknown }).DateTimeOriginal ??
+    (safeMetadata as { CreateDate?: unknown }).CreateDate ??
+    (safeMetadata as { ModifyDate?: unknown }).ModifyDate ??
+    null;
+
+  let resolutionWidth =
+    typeof (safeMetadata as { ExifImageWidth?: unknown }).ExifImageWidth === 'number'
+      ? ((safeMetadata as { ExifImageWidth?: number }).ExifImageWidth ?? null)
+      : typeof (safeMetadata as { ImageWidth?: unknown }).ImageWidth === 'number'
+        ? ((safeMetadata as { ImageWidth?: number }).ImageWidth ?? null)
+        : null;
+  let resolutionHeight =
+    typeof (safeMetadata as { ExifImageHeight?: unknown }).ExifImageHeight === 'number'
+      ? ((safeMetadata as { ExifImageHeight?: number }).ExifImageHeight ?? null)
+      : typeof (safeMetadata as { ImageHeight?: unknown }).ImageHeight === 'number'
+        ? ((safeMetadata as { ImageHeight?: number }).ImageHeight ?? null)
+        : null;
+
+  if (!resolutionWidth || !resolutionHeight) {
+    try {
+      const size = await sharp(fileBuffer).metadata();
+      if (typeof size.width === 'number') {
+        resolutionWidth = size.width;
+      }
+      if (typeof size.height === 'number') {
+        resolutionHeight = size.height;
+      }
+    } catch (error) {
+      console.warn('读取图片尺寸失败，已忽略：', filePath, error);
+    }
+  }
+
+  const result: ParsedPhotoMetadata = {
+    description:
+      normalizeText((safeMetadata as { ImageDescription?: unknown }).ImageDescription) ??
+      normalizeText((safeMetadata as { XPTitle?: unknown }).XPTitle) ??
+      normalizeText((safeMetadata as { Title?: unknown }).Title) ??
+      null,
+    camera: (safeMetadata as { Model?: string | null }).Model ?? null,
+    maker: (safeMetadata as { Make?: string | null }).Make ?? null,
+    lens: (safeMetadata as { LensModel?: string | null }).LensModel ?? null,
+    dateShot: dateShot instanceof Date ? dateShot : null,
+    exposure:
+      typeof (safeMetadata as { ExposureTime?: unknown }).ExposureTime === 'number'
+        ? ((safeMetadata as { ExposureTime?: number }).ExposureTime ?? null)
+        : null,
+    aperture:
+      typeof (safeMetadata as { FNumber?: unknown }).FNumber === 'number'
+        ? ((safeMetadata as { FNumber?: number }).FNumber ?? null)
+        : null,
+    iso:
+      typeof (safeMetadata as { ISO?: unknown }).ISO === 'number'
+        ? ((safeMetadata as { ISO?: number }).ISO ?? null)
+        : null,
+    focalLength:
+      typeof (safeMetadata as { FocalLength?: unknown }).FocalLength === 'number'
+        ? ((safeMetadata as { FocalLength?: number }).FocalLength ?? null)
+        : null,
+    flash:
+      typeof (safeMetadata as { Flash?: unknown }).Flash === 'number'
+        ? ((safeMetadata as { Flash?: number }).Flash ?? null)
+        : null,
+    orientation:
+      typeof (safeMetadata as { Orientation?: unknown }).Orientation === 'number'
+        ? ((safeMetadata as { Orientation?: number }).Orientation ?? null)
+        : null,
+    exposureProgram:
+      typeof (safeMetadata as { ExposureProgram?: unknown }).ExposureProgram === 'number'
+        ? ((safeMetadata as { ExposureProgram?: number }).ExposureProgram ?? null)
+        : null,
+    gpsLatitude:
+      typeof (safeMetadata as { GPSLatitude?: unknown }).GPSLatitude === 'number'
+        ? ((safeMetadata as { GPSLatitude?: number }).GPSLatitude ?? null)
+        : null,
+    gpsLongitude:
+      typeof (safeMetadata as { GPSLongitude?: unknown }).GPSLongitude === 'number'
+        ? ((safeMetadata as { GPSLongitude?: number }).GPSLongitude ?? null)
+        : null,
+    resolutionWidth,
+    resolutionHeight,
+    whiteBalance: normalizeWhiteBalance(
+      (safeMetadata as { WhiteBalance?: unknown }).WhiteBalance,
+    ),
+  };
+
+  const hasAnyMetadata = Object.values(result).some(
+    (value) => value !== null && value !== undefined,
+  );
+
+  return hasAnyMetadata ? result : null;
 }
