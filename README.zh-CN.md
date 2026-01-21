@@ -23,6 +23,13 @@ Memorix 是一个基于 Next.js 16 App Router 的现代画廊项目。它包含�
 - **图像处理**：Sharp、BlurHash、Exifr
 - **校验**：Zod
 
+## 国际化（i18n）
+
+- **支持语言**：`zh-CN`、`en`
+- **路由形式**：语言前缀路由（例如 `/zh-CN`、`/en`、`/zh-CN/gallery`）
+- **文案资源**：`messages/zh-CN.json`、`messages/en.json`
+- **文档**：`docs/i18n.md`
+
 ## 快速开始
 
 ### 1. 安装依赖

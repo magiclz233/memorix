@@ -23,6 +23,13 @@ Memorix is a modern gallery built on the Next.js 16 App Router. It includes a hi
 - **Image Processing**: Sharp, BlurHash, Exifr
 - **Validation**: Zod
 
+## Internationalization (i18n)
+
+- **Supported locales**: `zh-CN`, `en`
+- **Routing**: Locale-prefixed routes (e.g. `/zh-CN`, `/en`, `/zh-CN/gallery`)
+- **Messages**: `messages/zh-CN.json`, `messages/en.json`
+- **Docs**: `docs/i18n.md`
+
 ## Getting Started
 
 ### 1. Install dependencies
