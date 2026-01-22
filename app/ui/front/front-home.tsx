@@ -133,6 +133,7 @@ const resolveHeroTone = (
 
 export function FrontHome() {
   const t = useTranslations('front.home');
+  const tData = useTranslations();
   const featured = featuredCollections.slice(0, 3);
   const featuredVideos = videoCollections.slice(0, 3);
   const heroRef = useRef<HTMLElement | null>(null);
@@ -258,7 +259,7 @@ export function FrontHome() {
           className='relative z-20 flex h-full flex-col justify-end gap-6 px-8 pb-12 pt-28 md:px-16 md:pb-16'
         >
           <p className={cn('text-xs uppercase tracking-[0.4em]', heroLabelClass)}>
-            Lumina / Vision
+            {t('hero.eyebrow')}
           </p>
           <h1
             className={cn(
@@ -267,7 +268,7 @@ export function FrontHome() {
               heroTitleClass,
             )}
           >
-            LUMINA VISION
+            {t('hero.title')}
           </h1>
           <p className={cn('max-w-xl text-sm md:text-base', heroBodyClass)}>
             {t('hero.description')}
@@ -324,16 +325,16 @@ export function FrontHome() {
                         : t('sections.featuredCollections.badgeVideo')}
                     </span>
                     <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
-                      {collection.title}
+                      {tData(collection.title)}
                     </h3>
                     <p className='text-sm text-zinc-600/80 dark:text-white/60'>
-                      {collection.description}
+                      {tData(collection.description)}
                     </p>
                   </div>
                   <div className='relative z-10 flex items-center justify-between text-xs text-zinc-600/80 dark:text-white/60'>
                     <span>{t('itemCount', { count: collection.count })}</span>
                     <span className='text-indigo-600 dark:text-indigo-400'>
-                      {(collection.tags ?? []).join(' / ')}
+                      {(collection.tags ?? []).map(tag => tData(tag)).join(' / ')}
                     </span>
                   </div>
                 </div>
@@ -370,16 +371,16 @@ export function FrontHome() {
                       {t('sections.featuredVideos.badge')}
                     </span>
                     <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
-                      {collection.title}
+                      {tData(collection.title)}
                     </h3>
                     <p className='text-sm text-zinc-600/80 dark:text-white/60'>
-                      {collection.description}
+                      {tData(collection.description)}
                     </p>
                   </div>
                   <div className='relative z-10 flex items-center justify-between text-xs text-zinc-600/80 dark:text-white/60'>
                     <span>{t('itemCount', { count: collection.count })}</span>
                     <span className='text-indigo-600 dark:text-indigo-400'>
-                      {(collection.tags ?? []).join(' / ')}
+                      {(collection.tags ?? []).map(tag => tData(tag)).join(' / ')}
                     </span>
                   </div>
                 </div>

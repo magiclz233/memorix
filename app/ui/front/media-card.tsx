@@ -23,6 +23,7 @@ const formatDate = (value: string, locale: string) => {
 export function MediaCard({ item, showDate }: MediaCardProps) {
   const locale = useLocale();
   const t = useTranslations('front.media');
+  const tData = useTranslations();
   const typeLabel = item.type === 'photo' ? t('photo') : t('video');
   const isVideo = item.type === 'video';
   const tags = item.tags ?? [];
@@ -38,7 +39,7 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
       {hasImage ? (
         <img
           src={item.coverUrl}
-          alt={item.title}
+          alt={tData(item.title)}
           loading='lazy'
           className='absolute inset-0 h-full w-full object-cover'
         />
@@ -62,7 +63,7 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
           {showDate ? <span>{formatDate(item.createdAt, locale)}</span> : null}
         </div>
         <div className='space-y-3'>
-          <h3 className='text-lg font-semibold'>{item.title}</h3>
+          <h3 className='text-lg font-semibold'>{tData(item.title)}</h3>
           {tags.length ? (
             <div className='flex flex-wrap gap-2 text-[11px] text-white/60'>
               {tags.map((tag) => (
@@ -70,7 +71,7 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
                   key={tag}
                   className='rounded-full border border-white/20 px-2 py-1'
                 >
-                  {tag}
+                  {tData(tag)}
                 </span>
               ))}
             </div>
