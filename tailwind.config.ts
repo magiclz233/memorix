@@ -12,6 +12,22 @@ const config: Config = {
   		gridTemplateColumns: {
   			'13': 'repeat(13, minmax(0, 1fr))'
   		},
+  		fontFamily: {
+  			sans: [
+  				'var(--font-sans)',
+  				'var(--font-sans-sc)',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif'
+  			],
+  			serif: [
+  				'var(--font-serif)',
+  				'var(--font-serif-sc)',
+  				'ui-serif',
+  				'Georgia',
+  				'serif'
+  			]
+  		},
   		colors: {
   			blue: {
   				'400': '#2589FE',
