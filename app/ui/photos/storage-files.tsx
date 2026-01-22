@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from '@/i18n/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { setHeroPhotos, setFilesPublished, setStoragePublished } from '@/app/lib/actions';
 import { Button } from '@/app/ui/button';
 
@@ -25,8 +26,8 @@ type StorageFilesManagerProps = {
   heroIds?: number[];
 };
 
-function formatSize(size: number | null) {
-  if (!size && size !== 0) return '未知大小';
+function formatSize(size: number | null, t: any) {
+  if (!size && size !== 0) return t('status.unknownSize');
   if (size < 1024) return `${size} B`;
   const kb = size / 1024;
   if (kb < 1024) return `${kb.toFixed(1)} KB`;
@@ -36,11 +37,11 @@ function formatSize(size: number | null) {
   return `${gb.toFixed(1)} GB`;
 }
 
-function formatDate(value: Date | string | null) {
+function formatDate(value: Date | string | null, locale: string) {
   if (!value) return '';
   const date = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat('zh-CN', {
+  return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -54,6 +55,9 @@ export function StorageFilesManager({
   isDisabled = false,
   heroIds = [],
 }: StorageFilesManagerProps) {
+  const t = useTranslations('dashboard.storage.files');
+  const tStorage = useTranslations('dashboard.storage');
+  const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -69,12 +73,16 @@ export function StorageFilesManager({
   const allIds = useMemo(() => files.map((item) => item.id), [files]);
   const selectedCount = selectedIds.length;
   const canScan = storageType === 'local' || storageType === 'nas';
-  const scanLabel = isScanning ? '扫描中...' : files.length > 0 ? '重新扫描' : '立即扫描';
+  const scanLabel = isScanning
+    ? t('scan.scanning')
+    : files.length > 0
+      ? t('scan.rescan')
+      : t('scan.scanNow');
   const isActionDisabled = isPending || isDisabled || isScanning;
   const progressText = scanProgress
     ? scanProgress.total > 0
-      ? `已处理 ${scanProgress.processed}/${scanProgress.total}`
-      : `已处理 ${scanProgress.processed}`
+      ? t('scan.processed', { processed: scanProgress.processed, total: scanProgress.total })
+      : t('scan.processedSimple', { processed: scanProgress.processed })
     : null;
   const heroIdSet = useMemo(() => new Set(heroIds), [heroIds]);
 
@@ -107,7 +115,7 @@ export function StorageFilesManager({
 
   const handleScan = () => {
     if (isDisabled) {
-      setMessage('当前配置已禁用，请先启用。');
+      setMessage(t('messages.disabled'));
       return;
     }
     if (isScanning) {
@@ -145,7 +153,7 @@ export function StorageFilesManager({
     source.addEventListener('done', (event) => {
       scanDoneRef.current = true;
       const data = parseEventData(event);
-      setMessage(typeof data?.message === 'string' ? data.message : '扫描完成。');
+      setMessage(typeof data?.message === 'string' ? data.message : t('scan.complete'));
       setIsScanning(false);
       setSelectedIds([]);
       source.close();
@@ -154,8 +162,8 @@ export function StorageFilesManager({
 
     source.addEventListener('error', () => {
       if (scanDoneRef.current) return;
-      appendLog('扫描连接已中断。');
-      setMessage('扫描失败或连接中断。');
+      appendLog(t('scan.scanInterrupted'));
+      setMessage(t('scan.scanFailed'));
       setIsScanning(false);
       source.close();
     });
@@ -163,11 +171,11 @@ export function StorageFilesManager({
 
   const updateSelected = (isPublished: boolean) => {
     if (isDisabled) {
-      setMessage('当前配置已禁用，请先启用。');
+      setMessage(t('messages.disabled'));
       return;
     }
     if (!selectedIds.length) {
-      setMessage('请先选择要更新的图片。');
+      setMessage(t('messages.selectFirst'));
       return;
     }
     setMessage(null);
@@ -180,11 +188,11 @@ export function StorageFilesManager({
 
   const updateSelectedHero = (isHero: boolean) => {
     if (isDisabled) {
-      setMessage('当前配置已禁用，请先启用。');
+      setMessage(t('messages.disabled'));
       return;
     }
     if (!selectedIds.length) {
-      setMessage('请先选择要更新的图片。');
+      setMessage(t('messages.selectFirst'));
       return;
     }
     setMessage(null);
@@ -197,7 +205,7 @@ export function StorageFilesManager({
 
   const updateAll = (isPublished: boolean) => {
     if (isDisabled) {
-      setMessage('当前配置已禁用，请先启用。');
+      setMessage(t('messages.disabled'));
       return;
     }
     setMessage(null);
@@ -211,7 +219,7 @@ export function StorageFilesManager({
   if (!canScan) {
     return (
       <div className='rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500'>
-        当前存储类型暂不支持扫描与展示。
+        {tStorage('scanUnsupported')}
       </div>
     );
   }
@@ -220,14 +228,14 @@ export function StorageFilesManager({
     <section id='storage-scan' className='space-y-6 rounded-lg border border-gray-200 bg-white p-6'>
       {isDisabled ? (
         <div className='rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700'>
-          当前配置已禁用，启用后才能扫描与更新发布状态。
+          {tStorage('configDisabled')}
         </div>
       ) : null}
       <div className='flex flex-wrap items-center justify-between gap-4'>
         <div>
-          <h2 className='text-lg font-semibold text-gray-900'>目录扫描</h2>
+          <h2 className='text-lg font-semibold text-gray-900'>{t('scan.title')}</h2>
           <p className='text-sm text-gray-500'>
-            扫描后可以选择哪些图片进入图库，重新扫描会清空旧记录。
+            {t('scan.description')}
           </p>
         </div>
         <Button
@@ -247,7 +255,7 @@ export function StorageFilesManager({
           onClick={() => setSelectedIds(allIds)}
           disabled={isActionDisabled}
         >
-          全选
+          {t('actions.selectAll')}
         </button>
         <button
           type='button'
@@ -255,7 +263,7 @@ export function StorageFilesManager({
           onClick={() => setSelectedIds([])}
           disabled={isActionDisabled}
         >
-          清空选择
+          {t('actions.clearSelection')}
         </button>
         <button
           type='button'
@@ -263,7 +271,7 @@ export function StorageFilesManager({
           onClick={() => updateSelected(true)}
           disabled={isActionDisabled}
         >
-          发布选中
+          {t('actions.publishSelected')}
         </button>
         <button
           type='button'
@@ -271,7 +279,7 @@ export function StorageFilesManager({
           onClick={() => updateSelected(false)}
           disabled={isActionDisabled}
         >
-          取消发布
+          {t('actions.unpublishSelected')}
         </button>
         <button
           type='button'
@@ -279,7 +287,7 @@ export function StorageFilesManager({
           onClick={() => updateSelectedHero(true)}
           disabled={isActionDisabled}
         >
-          设为首页
+          {t('actions.setHero')}
         </button>
         <button
           type='button'
@@ -287,7 +295,7 @@ export function StorageFilesManager({
           onClick={() => updateSelectedHero(false)}
           disabled={isActionDisabled}
         >
-          取消首页
+          {t('actions.unsetHero')}
         </button>
         <button
           type='button'
@@ -295,7 +303,7 @@ export function StorageFilesManager({
           onClick={() => updateAll(true)}
           disabled={isActionDisabled}
         >
-          全部发布
+          {t('actions.publishAll')}
         </button>
         <button
           type='button'
@@ -303,23 +311,23 @@ export function StorageFilesManager({
           onClick={() => updateAll(false)}
           disabled={isActionDisabled}
         >
-          全部取消
+          {t('actions.unpublishAll')}
         </button>
-        <span className='text-gray-500'>已选 {selectedCount} 张</span>
+        <span className='text-gray-500'>{t('messages.selectedCount', { count: selectedCount })}</span>
         {message ? <span className='text-gray-500'>{message}</span> : null}
       </div>
 
       {scanLogs.length > 0 || isScanning ? (
         <div className='rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-xs text-gray-600'>
           <div className='flex flex-wrap items-center justify-between gap-2 text-gray-500'>
-            <span>扫描日志</span>
+            <span>{t('scan.logs')}</span>
             {progressText ? <span>{progressText}</span> : null}
           </div>
           <div className='mt-2 max-h-56 overflow-auto whitespace-pre-wrap font-mono text-gray-600'>
             {scanLogs.length > 0 ? (
               scanLogs.map((line, index) => <div key={`${index}-${line}`}>{line}</div>)
             ) : (
-              <div>等待扫描日志...</div>
+              <div>{t('scan.waitingLogs')}</div>
             )}
           </div>
         </div>
@@ -327,7 +335,7 @@ export function StorageFilesManager({
 
       {files.length === 0 ? (
         <div className='rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500'>
-          暂无图片，点击“立即扫描”开始读取目录。
+          {t('scan.empty')}
         </div>
       ) : (
         <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
@@ -335,8 +343,8 @@ export function StorageFilesManager({
             const isChecked = selectedIds.includes(file.id);
             const title = file.title ?? file.path;
             const meta = [
-              formatSize(file.size ?? null),
-              formatDate(file.mtime ?? null),
+              formatSize(file.size ?? null, t),
+              formatDate(file.mtime ?? null, locale),
               file.resolutionWidth && file.resolutionHeight
                 ? `${file.resolutionWidth}×${file.resolutionHeight}`
                 : null,
@@ -369,10 +377,10 @@ export function StorageFilesManager({
                   <div className='truncate text-sm font-medium text-gray-900'>{title}</div>
                   <div className='text-xs text-gray-500'>{meta}</div>
                   <div className='text-xs text-gray-500'>
-                    {file.isPublished ? '已发布' : '未发布'}
+                    {file.isPublished ? t('status.published') : t('status.unpublished')}
                   </div>
                   <div className='text-xs text-gray-500'>
-                    {heroIdSet.has(file.id) ? '首页展示' : '未设为首页'}
+                    {heroIdSet.has(file.id) ? t('status.hero') : t('status.notHero')}
                   </div>
                 </div>
               </label>

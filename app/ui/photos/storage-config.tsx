@@ -2,8 +2,10 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
+
 import { saveUserStorage } from '@/app/lib/actions';
-import { Button } from '@/app/ui/button';
+import { Button } from '@/components/ui/button';
 
 type StorageItem = {
   id: number;
@@ -27,20 +29,22 @@ type StorageConfigFormProps = {
   storage: StorageItem | null;
 };
 
-const STORAGE_TYPES = [
-  { value: 'local', label: '本地存储' },
-  { value: 'nas', label: 'NAS 存储' },
-  { value: 'qiniu', label: '七牛云' },
-  { value: 's3', label: 'S3 兼容' },
-] as const;
-
 export function StorageConfigForm({ storage }: StorageConfigFormProps) {
+  const t = useTranslations('dashboard.storage.form');
+
+  const STORAGE_TYPES = [
+    { value: 'local', label: t('types.local') },
+    { value: 'nas', label: t('types.nas') },
+    { value: 'qiniu', label: t('types.qiniu') },
+    { value: 's3', label: t('types.s3') },
+  ] as const;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const config = (storage?.config ?? {}) as StorageConfig;
   const [editingId, setEditingId] = useState<number | undefined>(
     () => storage?.id,
   );
+  const [isDisabled, setIsDisabled] = useState(() => config.isDisabled ?? false);
   const [type, setType] = useState(() => storage?.type ?? 'local');
   const [rootPath, setRootPath] = useState(() => config.rootPath ?? '');
   const [alias, setAlias] = useState(() => config.alias ?? '');
@@ -63,6 +67,7 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
     setAccessKey('');
     setSecretKey('');
     setPrefix('');
+    setIsDisabled(false);
     setMessage(null);
   };
 
@@ -81,6 +86,7 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
         accessKey,
         secretKey,
         prefix,
+        isDisabled,
       });
 
       setMessage(result.message ?? null);
@@ -97,7 +103,7 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
     <form onSubmit={handleSave} className='space-y-6'>
       {config.isDisabled ? (
         <div className='rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700'>
-          当前配置已禁用，启用后才能扫描与展示。
+          {t('warnings.disabled')}
         </div>
       ) : null}
       <div className='flex flex-wrap items-center gap-3'>
@@ -126,56 +132,56 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
       {isLocal ? (
         <div className='grid gap-4 md:grid-cols-2'>
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-700'>目录路径</label>
+            <label className='text-sm font-medium text-gray-700'>{t('labels.rootPath')}</label>
             <input
               value={rootPath}
               onChange={(event) => setRootPath(event.target.value)}
               className='w-full rounded-lg border border-gray-200 px-3 py-2 text-sm'
-              placeholder='例如 /data/photos 或 D:\\Photos'
+              placeholder={t('placeholders.rootPath')}
             />
-            <p className='text-xs text-gray-500'>填写容器内或本机可访问的路径。</p>
+            <p className='text-xs text-gray-500'>{t('hints.rootPath')}</p>
           </div>
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-700'>别名（可选）</label>
+            <label className='text-sm font-medium text-gray-700'>{t('labels.alias')}</label>
             <input
               value={alias}
               onChange={(event) => setAlias(event.target.value)}
               className='w-full rounded-lg border border-gray-200 px-3 py-2 text-sm'
-              placeholder='例如 NAS 相册 A'
+              placeholder={t('placeholders.alias')}
             />
           </div>
         </div>
       ) : (
         <div className='grid gap-4 md:grid-cols-2'>
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-700'>Endpoint</label>
+            <label className='text-sm font-medium text-gray-700'>{t('labels.endpoint')}</label>
             <input
               value={endpoint}
               onChange={(event) => setEndpoint(event.target.value)}
               className='w-full rounded-lg border border-gray-200 px-3 py-2 text-sm'
-              placeholder='https://s3.example.com'
+              placeholder={t('placeholders.endpoint')}
             />
           </div>
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-700'>Bucket</label>
+            <label className='text-sm font-medium text-gray-700'>{t('labels.bucket')}</label>
             <input
               value={bucket}
               onChange={(event) => setBucket(event.target.value)}
               className='w-full rounded-lg border border-gray-200 px-3 py-2 text-sm'
-              placeholder='your-bucket'
+              placeholder={t('placeholders.bucket')}
             />
           </div>
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-700'>Region</label>
+            <label className='text-sm font-medium text-gray-700'>{t('labels.region')}</label>
             <input
               value={region}
               onChange={(event) => setRegion(event.target.value)}
               className='w-full rounded-lg border border-gray-200 px-3 py-2 text-sm'
-              placeholder='ap-east-1'
+              placeholder={t('placeholders.region')}
             />
           </div>
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-700'>Access Key</label>
+            <label className='text-sm font-medium text-gray-700'>{t('labels.accessKey')}</label>
             <input
               value={accessKey}
               onChange={(event) => setAccessKey(event.target.value)}
@@ -183,7 +189,7 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
             />
           </div>
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-700'>Secret Key</label>
+            <label className='text-sm font-medium text-gray-700'>{t('labels.secretKey')}</label>
             <input
               value={secretKey}
               onChange={(event) => setSecretKey(event.target.value)}
@@ -191,31 +197,42 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
             />
           </div>
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-700'>前缀（可选）</label>
+            <label className='text-sm font-medium text-gray-700'>{t('labels.prefix')}</label>
             <input
               value={prefix}
               onChange={(event) => setPrefix(event.target.value)}
               className='w-full rounded-lg border border-gray-200 px-3 py-2 text-sm'
-              placeholder='photos/'
+              placeholder={t('placeholders.prefix')}
             />
           </div>
           <p className='text-xs text-gray-500 md:col-span-2'>
-            云存储扫描与展示后续再接入，目前仅保存配置。
+            {t('hints.cloudNote')}
           </p>
         </div>
       )}
 
-      <div className='flex flex-wrap items-center gap-3'>
-        <Button type='submit' aria-disabled={isPending}>
-          {editingId ? '更新配置' : '保存配置'}
+      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-dashed border-zinc-200 bg-white/60 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={isDisabled}
+            onChange={(event) => setIsDisabled(event.target.checked)}
+            className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 dark:border-zinc-700"
+          />
+          {t('labels.disabled')}
+        </label>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          {t('hints.disabled')}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" aria-disabled={isPending}>
+          {editingId ? t('buttons.update') : t('buttons.save')}
         </Button>
-        <button
-          type='button'
-          className='text-sm text-gray-500 hover:text-gray-700'
-          onClick={resetToCreate}
-        >
-          新建配置
-        </button>
+        <Button type="button" variant="ghost" onClick={resetToCreate}>
+          {t('buttons.create')}
+        </Button>
         {message ? <span className='text-sm text-gray-500'>{message}</span> : null}
       </div>
     </form>

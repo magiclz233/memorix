@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { Link, useRouter } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
+
 import { deleteUserStorage, setUserStorageDisabled } from '@/app/lib/actions';
 
 type StorageItem = {
@@ -24,41 +26,43 @@ type StorageListManagerProps = {
   activeStorageId?: number;
 };
 
-const STORAGE_LABELS: Record<string, string> = {
-  local: '本地存储',
-  nas: 'NAS 存储',
-  qiniu: '七牛云',
-  s3: 'S3 兼容',
-};
-
-function getStorageSummary(storage: StorageItem) {
-  const config = (storage.config ?? {}) as StorageConfig;
-  const label = STORAGE_LABELS[storage.type] ?? storage.type.toUpperCase();
-  const alias = config.alias?.trim();
-  const isLocal = storage.type === 'local' || storage.type === 'nas';
-  const detail = isLocal
-    ? config.rootPath?.trim()
-    : config.bucket?.trim() ?? config.endpoint?.trim();
-  const extra = config.prefix?.trim();
-
-  return {
-    label,
-    displayName: alias || label,
-    detail,
-    extra,
-    isLocal,
-    isDisabled: Boolean(config.isDisabled),
-  };
-}
-
 export function StorageListManager({
   storages,
   activeStorageId,
 }: StorageListManagerProps) {
+  const t = useTranslations('dashboard.storage');
+  const tView = useTranslations('dashboard.storage.view');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
+
+  const STORAGE_LABELS: Record<string, string> = {
+    local: t('form.types.local'),
+    nas: t('form.types.nas'),
+    qiniu: t('form.types.qiniu'),
+    s3: t('form.types.s3'),
+  };
+
+  function getStorageSummary(storage: StorageItem) {
+    const config = (storage.config ?? {}) as StorageConfig;
+    const label = STORAGE_LABELS[storage.type] ?? storage.type.toUpperCase();
+    const alias = config.alias?.trim();
+    const isLocal = storage.type === 'local' || storage.type === 'nas';
+    const detail = isLocal
+      ? config.rootPath?.trim()
+      : config.bucket?.trim() ?? config.endpoint?.trim();
+    const extra = config.prefix?.trim();
+
+    return {
+      label,
+      displayName: alias || label,
+      detail,
+      extra,
+      isLocal,
+      isDisabled: Boolean(config.isDisabled),
+    };
+  }
 
   const handleToggle = (storageId: number, nextDisabled: boolean) => {
     setMessage(null);
@@ -72,7 +76,7 @@ export function StorageListManager({
   };
 
   const handleDelete = (storageId: number, displayName: string) => {
-    if (!window.confirm(`确定删除“${displayName}”？删除后图片记录会一并移除。`)) {
+    if (!window.confirm(tView('alerts.deleteDesc'))) {
       return;
     }
     setMessage(null);
@@ -88,9 +92,9 @@ export function StorageListManager({
   return (
     <section className='space-y-4 rounded-lg border border-gray-200 bg-white p-6'>
       <div>
-        <h2 className='text-lg font-semibold text-gray-900'>存储列表</h2>
+        <h2 className='text-lg font-semibold text-gray-900'>{t('title')}</h2>
         <p className='text-sm text-gray-500'>
-          选择要管理的配置，可编辑、禁用或切换到扫描。
+          {t('description')}
         </p>
       </div>
       <div className='space-y-3'>
@@ -117,22 +121,22 @@ export function StorageListManager({
                   </span>
                   {isActive ? (
                     <span className='rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white'>
-                      当前
+                      {tView('headers.status')}
                     </span>
                   ) : null}
                   {summary.isDisabled ? (
                     <span className='rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700'>
-                      已禁用
+                      {t('form.labels.disabled')}
                     </span>
                   ) : null}
                 </div>
                 {summary.detail ? (
                   <p className='text-xs text-gray-500 break-all'>{summary.detail}</p>
                 ) : (
-                  <p className='text-xs text-gray-400'>暂无详细信息</p>
+                  <p className='text-xs text-gray-400'>{t('view.modal.hints.permission')}</p>
                 )}
                 {summary.extra ? (
-                  <p className='text-xs text-gray-500'>前缀：{summary.extra}</p>
+                  <p className='text-xs text-gray-500'>{t('form.labels.prefix')}: {summary.extra}</p>
                 ) : null}
               </div>
               <div className='flex flex-wrap gap-2 text-sm'>
@@ -140,14 +144,14 @@ export function StorageListManager({
                   href={`/dashboard/media?storageId=${storage.id}`}
                   className='rounded-full border border-gray-200 px-3 py-1 text-gray-700 hover:border-blue-300 hover:text-blue-600'
                 >
-                  编辑
+                  {tView('actions.edit')}
                 </Link>
                 {canScan ? (
                   <Link
                     href={`/dashboard/media?storageId=${storage.id}`}
                     className='rounded-full border border-gray-200 px-3 py-1 text-gray-700 hover:border-blue-300 hover:text-blue-600'
                   >
-                    扫描
+                    {tView('actions.scan')}
                   </Link>
                 ) : null}
                 <button
@@ -156,7 +160,7 @@ export function StorageListManager({
                   onClick={() => handleToggle(storage.id, !summary.isDisabled)}
                   disabled={isItemPending}
                 >
-                  {summary.isDisabled ? '启用' : '禁用'}
+                  {summary.isDisabled ? tView('actions.enable') : tView('actions.disable')}
                 </button>
                 <button
                   type='button'
@@ -164,7 +168,7 @@ export function StorageListManager({
                   onClick={() => handleDelete(storage.id, summary.displayName)}
                   disabled={isItemPending}
                 >
-                  删除
+                  {tView('actions.delete')}
                 </button>
               </div>
             </div>
