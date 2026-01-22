@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useMessages, useTranslations, useLocale } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import {
   Eye,
@@ -15,6 +15,7 @@ import {
 
 import { setFilesPublished, setHeroPhotos } from '@/app/lib/actions';
 import type { MediaLibraryItem } from '@/app/lib/data';
+import { resolveMessage } from '@/app/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -68,7 +69,7 @@ export function MediaLibraryManager({
   totalCount,
 }: MediaLibraryManagerProps) {
   const t = useTranslations('dashboard.media');
-  const tData = useTranslations();
+  const messages = useMessages();
   const locale = useLocale();
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -205,6 +206,10 @@ export function MediaLibraryManager({
           const src = resolveMediaSrc(item);
           const isVideo = item.mediaType === 'video';
           const isSelected = selectedIds.includes(item.id);
+          const rawTitle = item.title ?? item.path ?? null;
+          const titleText = rawTitle
+            ? resolveMessage(messages, rawTitle)
+            : t('library.unnamed');
           const sourceLabel =
             item.storage.alias ||
             t(`storageLabels.${item.storage.type}`) ||
@@ -252,7 +257,7 @@ export function MediaLibraryManager({
                 {src ? (
                   <img
                     src={src}
-                    alt={item.title ? tData(item.title) : (item.path ?? '')}
+                    alt={titleText}
                     loading="lazy"
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />
@@ -276,7 +281,7 @@ export function MediaLibraryManager({
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {item.title ?? item.path ?? t('library.unnamed')}
+                      {titleText}
                     </h3>
                     <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                       {isVideo ? t('library.video') : t('library.image')}
