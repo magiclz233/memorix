@@ -7,6 +7,7 @@ import {
   HardDrive,
   Image,
   LayoutDashboard,
+  Home,
   LogOut,
   Settings,
   UploadCloud,
@@ -105,16 +106,32 @@ export function AdminSidebar({
             <ModeToggle className="h-9 w-9" />
           </div>
         </div>
-        <form action={signOutAction}>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton type="submit" tooltip={t('signOut')}>
+        <SidebarMenu className="w-full flex-row gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1">
+          <SidebarMenuItem className="flex-1">
+            <SidebarMenuButton
+              asChild
+              tooltip={t('backToFront')}
+              className="w-full justify-center"
+            >
+              <Link href="/">
+                <Home />
+                <span>{t('backToFront')}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem className="flex-1">
+            <form action={signOutAction} className="w-full">
+              <SidebarMenuButton
+                type="submit"
+                tooltip={t('signOut')}
+                className="w-full justify-center"
+              >
                 <LogOut />
                 <span>{t('signOut')}</span>
               </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </form>
+            </form>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
