@@ -6,6 +6,14 @@ import { getTranslations } from 'next-intl/server';
 
 export default async function Page() {
   const t = await getTranslations('front.collections');
+  const tData = await getTranslations();
+
+  const translatedCollections = photoCollections.map((c) => ({
+    ...c,
+    title: tData(c.title),
+    description: tData(c.description),
+    tags: c.tags?.map((tag) => tData(tag)),
+  }));
 
   return (
     <div className='space-y-12'>
@@ -26,7 +34,7 @@ export default async function Page() {
         </p>
       </header>
       <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
-        {photoCollections.map((collection) => (
+        {translatedCollections.map((collection) => (
           <CollectionCard
             key={collection.id}
             collection={collection}
