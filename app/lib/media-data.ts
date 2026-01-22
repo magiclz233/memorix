@@ -1,4 +1,4 @@
-export type MediaSource = 'Synology NAS' | 'AWS S3' | '七牛云';
+export type MediaSource = 'Synology NAS' | 'AWS S3' | 'Qiniu Cloud';
 export type MediaKind = 'image' | 'video';
 
 export type MediaItem = {
@@ -12,7 +12,7 @@ export type MediaItem = {
   thumb: string;
 };
 
-export const MEDIA_SOURCES: MediaSource[] = ['Synology NAS', 'AWS S3', '七牛云'];
+export const MEDIA_SOURCES: MediaSource[] = ['Synology NAS', 'AWS S3', 'Qiniu Cloud'];
 export const MEDIA_KINDS: MediaKind[] = ['image', 'video'];
 
 const ASPECTS = [
@@ -32,7 +32,7 @@ const createMediaItems = (): MediaItem[] =>
     ).toISOString();
     return {
       id: `media-${index + 1}`,
-      title: `媒体素材 ${index + 1}`,
+      title: `Media Item ${index + 1}`,
       source,
       kind,
       createdAt,

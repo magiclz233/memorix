@@ -553,7 +553,7 @@ const warnHeroSettingsFallback = (error: unknown) => {
   const code = getErrorCode(error);
   const message = getErrorMessage(error);
   const detail = [code ? `code=${code}` : null, message].filter(Boolean).join(' ');
-  console.warn(`读取 Hero 配置失败，已降级为默认图片。${detail ? ` ${detail}` : ''}`);
+  console.warn(`Failed to read Hero config, fallback to default.${detail ? ` ${detail}` : ''}`);
 };
 
 export async function fetchHeroPhotoIdsByUser(userId: number) {
@@ -687,9 +687,9 @@ export async function fetchPublishedMediaForGallery(
       .map(({ storageConfig, ...rest }) => rest);
   } catch (error) {
     const cause = (error as Error & { cause?: unknown }).cause;
-    console.error('画廊查询失败:', error);
+    console.error('Gallery query failed:', error);
     if (cause) {
-      console.error('画廊查询原始错误:', cause);
+      console.error('Gallery query raw error:', cause);
     }
     throw error;
   }

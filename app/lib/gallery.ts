@@ -42,7 +42,7 @@ const normalizeDate = (value?: string | Date | null) => {
 
 export const buildGalleryItems = (records: GalleryRecord[]) =>
   records.reduce<GalleryItem[]>((acc, record) => {
-    const title = record.title ?? record.path ?? '未命名';
+    const title = record.title ?? record.path ?? 'front.gallery.unnamed';
     const mediaType = normalizeType(record.mediaType, record.mimeType);
     const isVideo = mediaType === 'video';
     const src =

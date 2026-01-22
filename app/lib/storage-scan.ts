@@ -2,6 +2,7 @@ import { eq, sql, inArray, and } from 'drizzle-orm';
 import { db } from './drizzle';
 import { files, photoMetadata } from './schema';
 import { readPhotoMetadata, scanImageFiles, type ScanWalkEvent } from './storage';
+import { getTranslations } from 'next-intl/server';
 import sharp from 'sharp';
 import { encode } from 'blurhash';
 
@@ -48,6 +49,7 @@ export async function runStorageScan({
   onLog,
   onProgress,
 }: StorageScanOptions) {
+  const t = await getTranslations('dashboard.storage.files.scan');
   const log = (level: StorageScanLogLevel, message: string) => {
     onLog?.({ level, message });
   };
@@ -59,28 +61,28 @@ export async function runStorageScan({
     if (event.kind === 'dir') {
       scannedDirs += 1;
       if (scannedDirs % 100 === 0) {
-        log('info', `已扫描目录 ${scannedDirs} 个`);
+        log('info', t('scannedDirs', { count: scannedDirs }));
       }
       return;
     }
     if (event.kind === 'file') {
       scannedImages += 1;
       if (scannedImages % 100 === 0) {
-        log('info', `已发现 ${scannedImages} 张图片`);
+        log('info', t('foundImages', { count: scannedImages }));
       }
       return;
     }
     if (event.kind === 'error') {
-      log('warn', `${event.message ?? '读取失败'}：${event.path}`);
+      log('warn', `${event.message ?? t('readFailed')}: ${event.path}`);
     }
   });
 
-  log('info', `扫描完成，发现 ${fileList.length} 张图片。`);
+  log('info', t('complete', { count: fileList.length }));
 
   let processed = 0;
 
   await db.transaction(async (tx) => {
-    // 1. 获取数据库中当前存储的所有文件路径
+    // 1. Get all file paths in DB for this storage
     const existingFiles = await tx
       .select({ path: files.path, size: files.size, mtime: files.mtime })
       .from(files)
@@ -90,13 +92,13 @@ export async function runStorageScan({
     const scannedPathSet = new Set(fileList.map((f) => f.relativePath));
     const existingFileMap = new Map(existingFiles.map((file) => [file.path, file]));
 
-    // 2. 找出需要删除的文件（数据库中有，但扫描结果中没有）
+    // 2. Find files to delete (in DB but not in scan)
     const pathsToDelete = existingFiles
       .filter((f) => !scannedPathSet.has(f.path))
       .map((f) => f.path);
 
     if (pathsToDelete.length > 0) {
-      // 分批删除，避免参数过多
+      // Batch delete
       const batchSize = 1000;
       for (let i = 0; i < pathsToDelete.length; i += batchSize) {
         const batch = pathsToDelete.slice(i, i + batchSize);
@@ -104,10 +106,10 @@ export async function runStorageScan({
           .delete(files)
           .where(and(eq(files.userStorageId, storageId), inArray(files.path, batch)));
       }
-      log('info', `已清理 ${pathsToDelete.length} 个丢失的文件记录。`);
+      log('info', t('clearedMissing', { count: pathsToDelete.length }));
     }
 
-    // 3. 更新或插入文件
+    // 3. Update or insert files
     for (const file of fileList) {
       const existing = existingFileMap.get(file.relativePath);
       const isSameFile =
@@ -121,7 +123,7 @@ export async function runStorageScan({
         processed += 1;
         if (processed % 50 === 0 || processed === fileList.length) {
           onProgress?.({ stage: 'save', processed, total: fileList.length });
-          log('info', `已处理 ${processed}/${fileList.length} 张图片`);
+          log('info', t('processed', { processed, total: fileList.length }));
         }
         continue;
       }
@@ -210,7 +212,7 @@ export async function runStorageScan({
 
       if (processed % 50 === 0 || processed === fileList.length) {
         onProgress?.({ stage: 'save', processed, total: fileList.length });
-        log('info', `已处理 ${processed}/${fileList.length} 张图片`);
+        log('info', t('processed', { processed, total: fileList.length }));
       }
     }
 

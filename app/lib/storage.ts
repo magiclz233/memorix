@@ -65,7 +65,7 @@ export async function scanImageFiles(
   const normalizedRoot = path.resolve(rootPath);
   const rootStat = await fs.stat(normalizedRoot);
   if (!rootStat.isDirectory()) {
-    throw new Error('根目录不可用。');
+    throw new Error('Root directory invalid.');
   }
   const stack = [normalizedRoot];
   const results: ImageFileInfo[] = [];
@@ -79,8 +79,8 @@ export async function scanImageFiles(
     try {
       entries = await fs.readdir(current, { withFileTypes: true });
     } catch (error) {
-      onEvent?.({ kind: 'error', path: current, message: '读取目录失败' });
-      console.warn('读取目录失败，已跳过：', current, error);
+      onEvent?.({ kind: 'error', path: current, message: 'Failed to read directory' });
+      console.warn('Failed to read directory, skipped:', current, error);
       continue;
     }
 
@@ -102,8 +102,8 @@ export async function scanImageFiles(
       try {
         stat = await fs.stat(fullPath);
       } catch (error) {
-        onEvent?.({ kind: 'error', path: fullPath, message: '读取文件信息失败' });
-        console.warn('读取文件信息失败，已跳过：', fullPath, error);
+        onEvent?.({ kind: 'error', path: fullPath, message: 'Failed to read file info' });
+        console.warn('Failed to read file info, skipped:', fullPath, error);
         continue;
       }
 
@@ -143,7 +143,7 @@ export async function readPhotoMetadata(filePath: string) {
   try {
     fileBuffer = await fs.readFile(filePath);
   } catch (error) {
-    console.warn('读取文件失败，已忽略：', filePath, error);
+    console.warn('Failed to read file, ignored:', filePath, error);
     return null;
   }
 
@@ -155,7 +155,7 @@ export async function readPhotoMetadata(filePath: string) {
       gps: true,
     });
   } catch (error) {
-    console.warn('读取 EXIF 失败，已忽略：', filePath, error);
+    console.warn('Failed to read EXIF, ignored:', filePath, error);
   }
 
   const safeMetadata = metadata ?? {};
@@ -188,7 +188,7 @@ export async function readPhotoMetadata(filePath: string) {
         resolutionHeight = size.height;
       }
     } catch (error) {
-      console.warn('读取图片尺寸失败，已忽略：', filePath, error);
+      console.warn('Failed to read image dimensions, ignored:', filePath, error);
     }
   }
 

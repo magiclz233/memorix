@@ -8,6 +8,7 @@ import { stripLocalePrefix } from '@/i18n/paths';
 import { APIError } from 'better-auth/api';
 import { auth } from '@/auth';
 import { and, eq, inArray } from 'drizzle-orm';
+import { getTranslations, getLocale } from 'next-intl/server';
 import { db } from './drizzle'; // 引入 db
 import {
   collectionItems,
@@ -34,22 +35,11 @@ export type SignupState = {
   success?: boolean;
 };
 
-const SignupSchema = z
-  .object({
-    name: z.string().trim().min(1, { message: '请输入姓名。' }),
-    email: z.string().trim().email({ message: '请输入有效邮箱。' }),
-    password: z.string().min(6, { message: '密码至少需要 6 位。' }),
-    confirmPassword: z.string().min(6, { message: '请再次输入至少 6 位密码。' }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: '两次输入的密码不一致。',
-    path: ['confirmPassword'],
-  });
-
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
 ) {
+  const t = await getTranslations('actions.login');
   const email = formData.get('email');
   const password = formData.get('password');
   const redirectTo = formData.get('redirectTo');
@@ -61,7 +51,7 @@ export async function authenticate(
   const safeRedirectTo = stripLocalePrefix(rawRedirectTo);
 
   if (typeof email !== 'string' || typeof password !== 'string') {
-    return 'Invalid credentials.';
+    return t('invalidCredentials');
   }
 
   try {
@@ -70,7 +60,7 @@ export async function authenticate(
     });
 
     if (existingUser?.banned) {
-      return '该账户已被禁用，请联系管理员。';
+      return t('banned');
     }
 
     await auth.api.signInEmail({
@@ -83,20 +73,34 @@ export async function authenticate(
   } catch (error) {
     if (error instanceof APIError) {
       if (error.status === 401) {
-        return 'Invalid credentials.';
+        return t('invalidCredentials');
       }
-      return error.message || 'Something went wrong.';
+      return error.message || t('error');
     }
     throw error;
   }
 
-  redirect(safeRedirectTo);
+  const locale = await getLocale();
+  redirect({ href: safeRedirectTo, locale });
 }
 
 export async function signup(
   prevState: SignupState,
   formData: FormData,
 ): Promise<SignupState> {
+  const t = await getTranslations('actions.signup');
+  const SignupSchema = z
+    .object({
+      name: z.string().trim().min(1, { message: t('nameRequired') }),
+      email: z.string().trim().email({ message: t('emailInvalid') }),
+      password: z.string().min(6, { message: t('passwordMin') }),
+      confirmPassword: z.string().min(6, { message: t('confirmPasswordMin') }),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t('passwordMismatch'),
+      path: ['confirmPassword'],
+    });
+
   const validatedFields = SignupSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
@@ -107,7 +111,7 @@ export async function signup(
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
-      message: '请检查表单信息。',
+      message: t('checkForm'),
       success: false,
     };
   }
@@ -121,8 +125,8 @@ export async function signup(
 
     if (existingUser) {
       return {
-        errors: { email: ['该邮箱已注册。'] },
-        message: '该邮箱已注册。',
+        errors: { email: [t('emailTaken')] },
+        message: t('emailTaken'),
         success: false,
       };
     }
@@ -137,8 +141,8 @@ export async function signup(
     });
     return { success: true, message: null, errors: {} };
   } catch (error) {
-    console.error('注册失败：', error);
-    return { success: false, message: '注册失败，请稍后重试。' };
+    console.error('Registration failed:', error);
+    return { success: false, message: t('failed') };
   }
 }
 
@@ -146,33 +150,36 @@ export async function signOutAction() {
   await auth.api.signOut({
     headers: await headers(),
   });
-  redirect('/login');
+  const locale = await getLocale();
+  redirect({ href: '/login', locale });
 }
 
 async function requireUser() {
+  const t = await getTranslations('actions.common');
   const session = await auth.api.getSession({
     headers: await headers(),
   });
   const email = session?.user?.email;
   if (!email) {
-    throw new Error('未登录或缺少用户信息。');
+    throw new Error(t('notLoggedIn'));
   }
   const user = await db.query.users.findFirst({
     where: eq(users.email, email),
   });
   if (!user) {
-    throw new Error('用户不存在。');
+    throw new Error(t('userNotFound'));
   }
   if (user.banned) {
-    throw new Error('账户已禁用。');
+    throw new Error(t('banned'));
   }
   return user;
 }
 
 async function requireAdminUser() {
+  const t = await getTranslations('actions.common');
   const user = await requireUser();
   if (user.role !== 'admin') {
-    throw new Error('Forbidden');
+    throw new Error(t('forbidden'));
   }
   return user;
 }
@@ -183,6 +190,8 @@ const UserRoleSchema = z.object({
 });
 
 export async function setUserRole(formData: FormData) {
+  const t = await getTranslations('actions.role');
+  const tCommon = await getTranslations('actions.common');
   const admin = await requireAdminUser();
   const parsed = UserRoleSchema.safeParse({
     userId: formData.get('userId'),
@@ -190,12 +199,12 @@ export async function setUserRole(formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { success: false, message: '无效的用户角色参数。' };
+    return { success: false, message: t('invalid') };
   }
 
   const { userId, role } = parsed.data;
   if (admin.id === userId && role !== 'admin') {
-    return { success: false, message: '不能将自己设置为普通用户。' };
+    return { success: false, message: t('selfDowngrade') };
   }
 
   const target = await db.query.users.findFirst({
@@ -203,11 +212,11 @@ export async function setUserRole(formData: FormData) {
   });
 
   if (!target) {
-    return { success: false, message: '用户不存在。' };
+    return { success: false, message: tCommon('userNotFound') };
   }
 
   if (target.role === role) {
-    return { success: true, message: '用户角色未改变。' };
+    return { success: true, message: t('unchanged') };
   }
 
   await db
@@ -217,7 +226,7 @@ export async function setUserRole(formData: FormData) {
   revalidatePathForAllLocales('/dashboard/settings/users');
   return {
     success: true,
-    message: role === 'admin' ? '用户角色已设置为管理员。' : '用户角色已设置为普通用户。',
+    message: role === 'admin' ? t('setAdmin') : t('setUser'),
   };
 }
 
@@ -238,9 +247,10 @@ const StorageConfigSchema = z.object({
 const HERO_SETTING_KEY = 'hero_images';
 
 export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>) {
+  const t = await getTranslations('actions.storage');
   const parsed = StorageConfigSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, message: '配置参数不完整。' };
+    return { success: false, message: t('incomplete') };
   }
 
   const user = await requireAdminUser();
@@ -252,7 +262,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
     : null;
 
   if (data.id && !existingStorage) {
-    return { success: false, message: '存储配置不存在。' };
+    return { success: false, message: t('notFound') };
   }
 
   const rootPath = data.rootPath?.trim();
@@ -265,7 +275,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
         : false;
 
   if ((data.type === 'local' || data.type === 'nas') && !rootPath) {
-    return { success: false, message: '请填写根目录路径。' };
+    return { success: false, message: t('rootPathRequired') };
   }
 
   const configBase =
@@ -296,7 +306,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
         .where(and(eq(userStorages.id, data.id), eq(userStorages.userId, user.id)));
       revalidatePathForAllLocales('/dashboard/storage');
       revalidatePathForAllLocales('/dashboard/media');
-      return { success: true, message: '存储配置已更新。', storageId: data.id };
+      return { success: true, message: t('updated'), storageId: data.id };
     }
 
     const inserted = await db
@@ -312,23 +322,24 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
     revalidatePathForAllLocales('/dashboard/media');
     return {
       success: true,
-      message: '存储配置已保存。',
+      message: t('saved'),
       storageId: inserted[0]?.id,
     };
   } catch (error) {
-    console.error('保存存储配置失败：', error);
-    return { success: false, message: '保存存储配置失败。' };
+    console.error('Failed to save storage config:', error);
+    return { success: false, message: t('saveFailed') };
   }
 }
 
 export async function setUserStorageDisabled(storageId: number, isDisabled: boolean) {
+  const t = await getTranslations('actions.storage');
   const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
 
   if (!storage) {
-    return { success: false, message: '存储配置不存在。' };
+    return { success: false, message: t('notFound') };
   }
 
   const config = (storage.config ?? {}) as Record<string, unknown>;
@@ -346,18 +357,20 @@ export async function setUserStorageDisabled(storageId: number, isDisabled: bool
   revalidatePathForAllLocales('/gallery');
   return {
     success: true,
-    message: isDisabled ? '已禁用存储配置。' : '已启用存储配置。',
+    message: isDisabled ? t('disabled') : t('enabled'),
   };
 }
 
 export async function checkStorageDependencies(storageId: number) {
   const user = await requireAdminUser();
+  const t = await getTranslations('actions.storage.dependency');
+  const tStorage = await getTranslations('actions.storage');
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
 
   if (!storage) {
-    return { success: false, message: '存储配置不存在。' };
+    return { success: false, message: tStorage('notFound') };
   }
 
   const storageFiles = await db
@@ -392,21 +405,22 @@ export async function checkStorageDependencies(storageId: number) {
     .groupBy(videoSeries.id, videoSeries.title);
 
   const dependencies = [
-    ...relatedCollections.map((c) => `图片集: ${c.title}`),
-    ...relatedSeries.map((s) => `视频集: ${s.title}`),
+    ...relatedCollections.map((c) => t('collection', { title: c.title })),
+    ...relatedSeries.map((s) => t('series', { title: s.title })),
   ];
 
   return { success: true, dependencies };
 }
 
 export async function deleteUserStorage(storageId: number) {
+  const t = await getTranslations('actions.storage');
   const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
 
   if (!storage) {
-    return { success: false, message: '存储配置不存在。' };
+    return { success: false, message: t('notFound') };
   }
 
   await db.transaction(async (tx) => {
@@ -438,17 +452,18 @@ export async function deleteUserStorage(storageId: number) {
   revalidatePathForAllLocales('/dashboard/storage');
   revalidatePathForAllLocales('/dashboard/media');
   revalidatePathForAllLocales('/gallery');
-  return { success: true, message: '存储配置及相关文件已删除。' };
+  return { success: true, message: t('deleted') };
 }
 
 export async function setStoragePublished(storageId: number, isPublished: boolean) {
+  const t = await getTranslations('actions.storage');
   const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
 
   if (!storage) {
-    return { success: false, message: '存储配置不存在。' };
+    return { success: false, message: t('notFound') };
   }
 
   await db
@@ -461,23 +476,24 @@ export async function setStoragePublished(storageId: number, isPublished: boolea
   return {
     success: true,
     message: isPublished
-      ? '已发布该数据源下的所有图片。'
-      : '已隐藏该数据源下的所有图片。',
+      ? t('published')
+      : t('hidden'),
   };
 }
 
 export async function scanStorage(storageId: number) {
+  const t = await getTranslations('actions.storage');
   const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
 
   if (!storage) {
-    return { success: false, message: '存储配置不存在。' };
+    return { success: false, message: t('notFound') };
   }
 
   if (storage.type !== 'local' && storage.type !== 'nas') {
-    return { success: false, message: '当前存储类型暂不支持扫描。' };
+    return { success: false, message: t('scanUnsupported') };
   }
 
   const storageType = storage.type as 'local' | 'nas';
@@ -487,12 +503,12 @@ export async function scanStorage(storageId: number) {
   };
 
   if (storageConfig.isDisabled) {
-    return { success: false, message: '当前配置已禁用，请先启用。' };
+    return { success: false, message: t('configDisabled') };
   }
 
   const rootPath = storageConfig.rootPath;
   if (!rootPath) {
-    return { success: false, message: '根目录路径未配置。' };
+    return { success: false, message: t('noRootPath') };
   }
 
   try {
@@ -501,7 +517,7 @@ export async function scanStorage(storageId: number) {
       storageType,
       rootPath,
       onLog: (entry) => {
-        const text = `[扫描] ${entry.message}`;
+        const text = t('scanPrefix', { message: entry.message });
         if (entry.level === 'error') {
           console.error(text);
           return;
@@ -515,14 +531,15 @@ export async function scanStorage(storageId: number) {
     });
     revalidatePathForAllLocales('/dashboard/media');
     revalidatePathForAllLocales('/gallery');
-    return { success: true, message: `扫描完成，共处理 ${processed} 张图片，旧记录已清空。` };
+    return { success: true, message: t('scanSuccess', { count: processed }) };
   } catch (error) {
     console.error('扫描目录失败：', error);
-    return { success: false, message: '扫描目录失败，请检查路径是否可访问。' };
+    return { success: false, message: t('scanFailed') };
   }
 }
 
 export async function setFilesPublished(fileIds: number[], isPublished: boolean) {
+  const t = await getTranslations('actions.files');
   const user = await requireAdminUser();
 
   const storageIds = await db
@@ -532,11 +549,11 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
 
   const allowedStorageIds = storageIds.map((item) => item.id);
   if (allowedStorageIds.length === 0) {
-    return { success: false, message: '未找到可用的存储配置。' };
+    return { success: false, message: t('noStorage') };
   }
 
   if (!fileIds.length) {
-    return { success: false, message: '未选择任何图片。' };
+    return { success: false, message: t('noneSelected') };
   }
 
   await db
@@ -551,7 +568,7 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
 
   revalidatePathForAllLocales('/dashboard/media');
   revalidatePathForAllLocales('/gallery');
-  return { success: true, message: '图库展示状态已更新。' };
+  return { success: true, message: t('statusUpdated') };
 }
 
 const normalizeIdList = (value: unknown) => {
@@ -570,6 +587,7 @@ const normalizeIdList = (value: unknown) => {
 };
 
 export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
+  const t = await getTranslations('actions.files');
   const user = await requireAdminUser();
 
   const storageIds = await db
@@ -579,11 +597,11 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
 
   const allowedStorageIds = storageIds.map((item) => item.id);
   if (allowedStorageIds.length === 0) {
-    return { success: false, message: '未找到可用的存储配置。' };
+    return { success: false, message: t('noStorage') };
   }
 
   if (!fileIds.length) {
-    return { success: false, message: '未选择任何图片。' };
+    return { success: false, message: t('noneSelected') };
   }
 
   const allowedFiles = await db
@@ -599,7 +617,7 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
 
   const allowedFileIds = allowedFiles.map((item) => item.id);
   if (allowedFileIds.length === 0) {
-    return { success: false, message: '请选择已发布的图片。' };
+    return { success: false, message: t('selectPublished') };
   }
 
   const existing = await db
@@ -640,21 +658,23 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
   revalidatePathForAllLocales('/');
   return {
     success: true,
-    message: isHero ? '首页展示状态已更新。' : '已取消首页展示。',
+    message: isHero ? t('heroUpdated') : t('heroRemoved'),
   };
 }
 
 export async function toggleUserBan(formData: FormData) {
+  const t = await getTranslations('actions.user');
+  const tCommon = await getTranslations('actions.common');
   const admin = await requireAdminUser();
   const userId = Number(formData.get('userId'));
   const banned = formData.get('banned') === 'true'; // Target state
 
   if (!userId) {
-    return { success: false, message: '无效的用户 ID。' };
+    return { success: false, message: t('invalidId') };
   }
 
   if (admin.id === userId) {
-    return { success: false, message: '不能禁用自己。' };
+    return { success: false, message: t('selfBan') };
   }
 
   const target = await db.query.users.findFirst({
@@ -662,7 +682,7 @@ export async function toggleUserBan(formData: FormData) {
   });
 
   if (!target) {
-    return { success: false, message: '用户不存在。' };
+    return { success: false, message: tCommon('userNotFound') };
   }
 
   await db
@@ -673,41 +693,44 @@ export async function toggleUserBan(formData: FormData) {
   revalidatePathForAllLocales('/dashboard/settings/users');
   return {
     success: true,
-    message: banned ? '用户已禁用。' : '用户已启用。',
+    message: banned ? t('banned') : t('enabled'),
   };
 }
 
 export async function deleteUser(formData: FormData) {
+  const t = await getTranslations('actions.user');
   const admin = await requireAdminUser();
   const userId = Number(formData.get('userId'));
 
   if (!userId) {
-    return { success: false, message: '无效的用户 ID。' };
+    return { success: false, message: t('invalidId') };
   }
 
   if (admin.id === userId) {
-    return { success: false, message: '不能删除自己。' };
+    return { success: false, message: t('selfDelete') };
   }
 
   try {
     await db.delete(users).where(eq(users.id, userId));
     
     revalidatePathForAllLocales('/dashboard/settings/users');
-    return { success: true, message: '用户已删除。' };
+    return { success: true, message: t('deleted') };
   } catch (error) {
     console.error('删除用户失败：', error);
-    return { success: false, message: '删除用户失败。' };
+    return { success: false, message: t('deleteFailed') };
   }
 }
 
-const ProfileSchema = z.object({
-  name: z.string().trim().min(1, { message: '请输入姓名。' }),
-  email: z.string().trim().email({ message: '请输入有效邮箱。' }),
-});
-
 export async function updateProfile(prevState: any, formData: FormData) {
+  const t = await getTranslations('actions.profile');
+  const tSignup = await getTranslations('actions.signup');
   const user = await requireUser();
   
+  const ProfileSchema = z.object({
+    name: z.string().trim().min(1, { message: tSignup('nameRequired') }),
+    email: z.string().trim().email({ message: tSignup('emailInvalid') }),
+  });
+
   const validatedFields = ProfileSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
@@ -717,7 +740,7 @@ export async function updateProfile(prevState: any, formData: FormData) {
     return {
       success: false,
       errors: validatedFields.error.flatten().fieldErrors,
-      message: '请检查表单信息。',
+      message: tSignup('checkForm'),
     };
   }
 
@@ -731,8 +754,8 @@ export async function updateProfile(prevState: any, formData: FormData) {
       if (existing) {
         return {
           success: false,
-          errors: { email: ['该邮箱已被使用。'] },
-          message: '邮箱已被使用。',
+          errors: { email: [t('emailTaken')] },
+          message: t('emailTaken'),
         };
       }
     }
@@ -743,25 +766,26 @@ export async function updateProfile(prevState: any, formData: FormData) {
       .where(eq(users.id, user.id));
 
     revalidatePathForAllLocales('/dashboard/settings/profile');
-    return { success: true, message: '个人资料已更新。' };
+    return { success: true, message: t('updated') };
   } catch (error) {
-    console.error('更新资料失败：', error);
-    return { success: false, message: '更新失败，请稍后重试。' };
+    console.error('Failed to update profile:', error);
+    return { success: false, message: t('updateFailed') };
   }
 }
 
-const ChangePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, { message: '请输入当前密码。' }),
-    newPassword: z.string().min(6, { message: '新密码至少需要 6 位。' }),
-    confirmPassword: z.string().min(6, { message: '请再次输入新密码。' }),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: '两次输入的密码不一致。',
-    path: ['confirmPassword'],
-  });
-
 export async function changePasswordAction(prevState: any, formData: FormData) {
+  const t = await getTranslations('actions.password');
+  const ChangePasswordSchema = z
+    .object({
+      currentPassword: z.string().min(1, { message: t('currentRequired') }),
+      newPassword: z.string().min(6, { message: t('newMin') }),
+      confirmPassword: z.string().min(6, { message: t('confirmMin') }),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: t('mismatch'),
+      path: ['confirmPassword'],
+    });
+
   const validatedFields = ChangePasswordSchema.safeParse({
     currentPassword: formData.get('currentPassword'),
     newPassword: formData.get('newPassword'),
@@ -772,7 +796,7 @@ export async function changePasswordAction(prevState: any, formData: FormData) {
     return {
       success: false,
       errors: validatedFields.error.flatten().fieldErrors,
-      message: '请检查输入。',
+      message: t('checkInput'),
     };
   }
 
@@ -788,12 +812,12 @@ export async function changePasswordAction(prevState: any, formData: FormData) {
       headers: await headers(),
     });
 
-    return { success: true, message: '密码已修改，请使用新密码登录。' };
+    return { success: true, message: t('success') };
   } catch (error) {
     if (error instanceof APIError) {
-       return { success: false, message: error.message || '密码修改失败。' };
+       return { success: false, message: error.message || t('failed') };
     }
-    return { success: false, message: '密码修改失败，请确认当前密码是否正确。' };
+    return { success: false, message: t('verifyCurrent') };
   }
 }
 
