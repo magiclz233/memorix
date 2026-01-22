@@ -468,6 +468,7 @@
     "shell": {
       "title": "Admin Console"
     },
+    "navigation": "Navigation",
     "status": {
       "online": "Online",
       "scanning": "Scanning",
@@ -543,6 +544,7 @@
           "published": "Published",
           "unpublished": "Unpublished"
         },
+        "disabled": " (Disabled)",
         "dateShot": "Date Shot",
         "to": "to",
         "size": "File Size (MB)",
@@ -656,6 +658,8 @@
     "storage": {
       "title": "Storage Configuration",
       "description": "Manage file storage sources, supporting Local, NAS, S3, and Qiniu Cloud.",
+      "configDisabled": "Storage configuration is disabled, please enable first.",
+      "scanUnsupported": "Scanning not supported for this storage type.",
       "loginRequired": "Please login to manage storage configuration.",
       "goToLogin": "Go to Login",
       "userNotFound": "User not found.",
@@ -774,6 +778,8 @@
       },
       "files": {
         "scan": {
+          "title": "Directory Scan",
+          "description": "Scan to choose images for the gallery. Re-scanning clears old records.",
           "scanning": "Scanning...",
           "rescan": "Rescan",
           "scanNow": "Scan Now",

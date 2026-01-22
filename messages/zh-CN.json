@@ -91,6 +91,8 @@
         "next": "下一张"
       },
       "hero": {
+        "eyebrow": "光影 / 视界",
+        "title": "LUMINA 视界",
         "description": "将沉浸式光影与极简排版融合成统一视觉语言，让每一帧影像都成为可收藏的光之记忆。",
         "primaryCta": "进入画廊",
         "secondaryCta": "浏览图集"
@@ -476,6 +478,7 @@
     "shell": {
       "title": "后台管理"
     },
+    "navigation": "导航",
     "status": {
       "online": "在线",
       "scanning": "扫描中",
@@ -518,6 +521,20 @@
       "goToLogin": "前往登录",
       "userNotFound": "未找到用户信息。"
     },
+    "data": {
+      "collections": {
+        "photo": {
+          "pc-1": "2024 东京街头",
+          "pc-2": "北欧极光计划",
+          "pc-3": "城市夜航"
+        },
+        "video": {
+          "vs-1": "VLOG: 冰岛之旅",
+          "vs-2": "幕后制作：Lumina",
+          "vs-3": "旅行短片合集"
+        }
+      }
+    },
     "media": {
       "mockTitle": "媒体素材 {index}",
       "title": "资源库",
@@ -541,6 +558,7 @@
           "published": "已发布",
           "unpublished": "未发布"
         },
+        "disabled": "（已停用）",
         "dateShot": "拍摄时间",
         "to": "至",
         "size": "文件大小（MB）",
@@ -591,6 +609,7 @@
       },
       "pagination": "第 {current} / {total} 页",
       "library": {
+        "hero": "首页展示",
         "selectAllPage": "全选当前页",
         "clearSelection": "清空选择",
         "publishSelected": "发布选中",
@@ -652,6 +671,8 @@
     "storage": {
       "title": "存储配置",
       "description": "管理文件存储源，支持本地、NAS、S3 与七牛云。",
+      "configDisabled": "当前配置已禁用，请先启用。",
+      "scanUnsupported": "当前存储类型暂不支持扫描。",
       "loginRequired": "请先登录后再管理存储配置。",
       "goToLogin": "前往登录",
       "userNotFound": "未找到用户信息。",
@@ -770,6 +791,8 @@
       },
       "files": {
         "scan": {
+          "title": "目录扫描",
+          "description": "扫描后可选择哪些图片进入图库，重新扫描会清空旧记录。",
           "scanning": "扫描中...",
           "rescan": "重新扫描",
           "scanNow": "立即扫描",
