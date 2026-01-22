@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import {
   FolderKanban,
   HardDrive,
@@ -29,18 +30,8 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 
-const navItems = [
-  { title: '概览', url: '/dashboard', icon: LayoutDashboard },
-  { title: '资源库', url: '/dashboard/media', icon: Image },
-  { title: '集合管理', url: '/dashboard/collections', icon: FolderKanban },
-  { title: '上传中心', url: '/dashboard/upload', icon: UploadCloud },
-  { title: '存储配置', url: '/dashboard/storage', icon: HardDrive },
-  { title: '系统设置', url: '/dashboard/settings/system', icon: Settings },
-  { title: '用户管理', url: '/dashboard/settings/users', icon: Users },
-];
-
 const ADMIN_USER = {
-  name: '管理员',
+  name: 'Administrator',
   email: 'admin@memorix.com',
   avatar: '/hero1.jpg',
 };
@@ -48,6 +39,18 @@ const ADMIN_USER = {
 export function AdminSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const t = useTranslations('dashboard.sidebar');
+
+  const navItems = [
+    { title: t('overview'), url: '/dashboard', icon: LayoutDashboard },
+    { title: t('media'), url: '/dashboard/media', icon: Image },
+    { title: t('collections'), url: '/dashboard/collections', icon: FolderKanban },
+    { title: t('upload'), url: '/dashboard/upload', icon: UploadCloud },
+    { title: t('storage'), url: '/dashboard/storage', icon: HardDrive },
+    { title: t('systemSettings'), url: '/dashboard/settings/system', icon: Settings },
+    { title: t('userManagement'), url: '/dashboard/settings/users', icon: Users },
+  ];
+
   return (
     <Sidebar
       collapsible="icon"
@@ -67,7 +70,7 @@ export function AdminSidebar({
                     Memorix
                   </span>
                   <span className="truncate text-xs text-zinc-500 dark:text-zinc-400">
-                    Admin Console
+                    {t('adminConsole')}
                   </span>
                 </div>
               </Link>
@@ -79,7 +82,6 @@ export function AdminSidebar({
       <SidebarContent>
         <NavMain items={navItems} />
       </SidebarContent>
-      <SidebarSeparator />
       <SidebarFooter className="gap-3">
         <div className="flex items-center gap-2 rounded-xl border border-zinc-200/70 bg-white/70 p-2 text-zinc-900 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 dark:text-zinc-100">
           <Avatar className="h-9 w-9 rounded-lg">
@@ -106,9 +108,9 @@ export function AdminSidebar({
         <form action={signOutAction}>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton type="submit" tooltip="退出登录">
+              <SidebarMenuButton type="submit" tooltip={t('signOut')}>
                 <LogOut />
-                <span>退出登录</span>
+                <span>{t('signOut')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
