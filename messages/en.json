@@ -1,4 +1,9 @@
 {
+  "common": {
+    "theme": {
+      "toggle": "Toggle Theme"
+    }
+  },
   "nav": {
     "items": {
       "home": "Home",
@@ -86,6 +91,8 @@
         "next": "Next"
       },
       "hero": {
+        "eyebrow": "Lumina / Vision",
+        "title": "LUMINA VISION",
         "description": "Fuse immersive light with minimalist layout, turning every frame into a collectible memory of light.",
         "primaryCta": "Enter Gallery",
         "secondaryCta": "Browse Photo Sets"
@@ -108,6 +115,7 @@
       "itemCount": "{count} items"
     },
     "gallery": {
+      "unnamed": "Unnamed",
       "eyebrow": "Gallery / Archive",
       "title": "Gallery",
       "description": "Browse the archive by timeline or media type and trace the light of each shoot.",
@@ -124,6 +132,208 @@
     "media": {
       "photo": "Photo",
       "video": "Video"
+    },
+    "data": {
+      "featured": {
+        "fc-01": {
+          "title": "Twilight Starport",
+          "description": "Long exposure stories where city meets starlight.",
+          "tags": {
+            "0": "Night View",
+            "1": "Long Exposure",
+            "2": "City"
+          }
+        },
+        "fc-02": {
+          "title": "Orbital Light Fragments",
+          "description": "Rhythmic edits of a cosmic journey.",
+          "tags": {
+            "0": "Short Film",
+            "1": "Soundtrack",
+            "2": "Motion"
+          }
+        },
+        "fc-03": {
+          "title": "Aurora Archives",
+          "description": "Cool-toned collages of ice fields and light bands.",
+          "tags": {
+            "0": "Nature",
+            "1": "Cool Tone",
+            "2": "Aurora"
+          }
+        }
+      },
+      "photo": {
+        "pc-01": {
+          "title": "Misty Coast",
+          "description": "A balance of mist, tides, and grayscale layers.",
+          "tags": {
+            "0": "Coast",
+            "1": "Grayscale"
+          }
+        },
+        "pc-02": {
+          "title": "Night Light Trails",
+          "description": "A light map composed of neon and traffic flow.",
+          "tags": {
+            "0": "Light Trails",
+            "1": "Neon"
+          }
+        },
+        "pc-03": {
+          "title": "Dawn Silence",
+          "description": "Soft light and negative space at dawn.",
+          "tags": {
+            "0": "Sunrise",
+            "1": "Minimalist"
+          }
+        },
+        "pc-04": {
+          "title": "Mirrored Forest",
+          "description": "Refractions and reflections in the forest after rain.",
+          "tags": {
+            "0": "Forest",
+            "1": "Reflection"
+          }
+        },
+        "pc-05": {
+          "title": "Linear Experiments",
+          "description": "A minimalist laboratory of geometric composition.",
+          "tags": {
+            "0": "Geometry",
+            "1": "Lines"
+          }
+        },
+        "pc-06": {
+          "title": "Twilight Route",
+          "description": "Long-haul trajectories depicted with an airy feel.",
+          "tags": {
+            "0": "Travel",
+            "1": "Clouds"
+          }
+        }
+      },
+      "video": {
+        "vc-01": {
+          "title": "Sliced Universe",
+          "description": "Narrative collages from multiple camera angles.",
+          "tags": {
+            "0": "Multi-cam",
+            "1": "Narrative"
+          }
+        },
+        "vc-02": {
+          "title": "Blue Beacon",
+          "description": "Moody short films in blue tones.",
+          "tags": {
+            "0": "Mood",
+            "1": "Blue Tone"
+          }
+        },
+        "vc-03": {
+          "title": "Silent Workshop",
+          "description": "Slow-paced observations of studio daily life.",
+          "tags": {
+            "0": "Documentary",
+            "1": "Slow Motion"
+          }
+        },
+        "vc-04": {
+          "title": "Magnetic Echo",
+          "description": "Visual beats driven by electronic music.",
+          "tags": {
+            "0": "Electronic",
+            "1": "Beats"
+          }
+        }
+      },
+      "gallery": {
+        "gm-01": {
+          "title": "Midnight Clouds",
+          "tags": {
+            "0": "Cool Tone",
+            "1": "Clouds"
+          }
+        },
+        "gm-02": {
+          "title": "Gravity Corridor",
+          "tags": {
+            "0": "Slow Motion",
+            "1": "Rhythm"
+          }
+        },
+        "gm-03": {
+          "title": "Dim Light District",
+          "tags": {
+            "0": "Street View",
+            "1": "Neon"
+          }
+        },
+        "gm-04": {
+          "title": "Dark Field Beats",
+          "tags": {
+            "0": "Night View",
+            "1": "Beats"
+          }
+        },
+        "gm-05": {
+          "title": "Morning Mist Texture",
+          "tags": {
+            "0": "Mist",
+            "1": "Texture"
+          }
+        },
+        "gm-06": {
+          "title": "Polar Night Echo",
+          "tags": {
+            "0": "Polar Night",
+            "1": "Halo"
+          }
+        },
+        "gm-07": {
+          "title": "Shuttle Engine",
+          "tags": {
+            "0": "Motion",
+            "1": "Editing"
+          }
+        },
+        "gm-08": {
+          "title": "Quiet Mast Light",
+          "tags": {
+            "0": "Coast",
+            "1": "Blue Tone"
+          }
+        },
+        "gm-09": {
+          "title": "Stardust Trajectory",
+          "tags": {
+            "0": "Starlight",
+            "1": "Short Film"
+          }
+        }
+      },
+      "fallback": {
+        "1": {
+          "title": "Dashboard Preview",
+          "description": "A comprehensive view of the dashboard interface."
+        },
+        "2": {
+          "title": "Neon Nights",
+          "description": "Vibrant city lights reflecting in the rain."
+        },
+        "3": {
+          "title": "Urban Geometry",
+          "description": "Modern architectural lines and shadows."
+        },
+        "4": {
+          "title": "Serene Nature",
+          "description": "Soft morning light filtering through the trees."
+        },
+        "5": {
+          "title": "Ocean Horizon",
+          "description": "A calm sunset over the endless ocean."
+        }
+      }
     },
     "collections": {
       "itemCount": "{count} items",
@@ -243,7 +453,564 @@
       }
     }
   },
+  "api": {
+    "errors": {
+      "paramError": "Invalid parameter.",
+      "fileNotFound": "File not found.",
+      "fileNotPublished": "File not published.",
+      "rootNotConfigured": "Root path not configured.",
+      "pathInvalid": "Invalid path.",
+      "readFailed": "Failed to read file.",
+      "adminCreateFailed": "Failed to create default admin"
+    }
+  },
   "dashboard": {
-    "navigation": "Navigation"
+    "shell": {
+      "title": "Admin Console"
+    },
+    "status": {
+      "online": "Online",
+      "scanning": "Scanning",
+      "error": "Error",
+      "disabled": "Disabled",
+      "offline": "Offline"
+    },
+    "sidebar": {
+      "overview": "Overview",
+      "media": "Media Library",
+      "collections": "Collections",
+      "upload": "Upload",
+      "storage": "Storage",
+      "systemSettings": "System Settings",
+      "userManagement": "Users",
+      "adminConsole": "Admin Console",
+      "signOut": "Sign out"
+    },
+    "overview": {
+      "title": "Overview",
+      "description": "Summary of Memorix core resources for quick check and management.",
+      "stats": {
+        "storage": "Storage Sources",
+        "storageDesc": "Connected storage configurations",
+        "assets": "Total Assets",
+        "assetsDesc": "Indexed photos and videos",
+        "published": "Published",
+        "publishedDesc": "Media visible in frontend",
+        "photoCollections": "Photo Collections",
+        "photoCollectionsDesc": "Created photo albums",
+        "videoCollections": "Video Collections",
+        "videoCollectionsDesc": "Created video series"
+      },
+      "quickLinks": {
+        "title": "Quick Links",
+        "storage": "Storage Management",
+        "gallery": "Gallery Preview"
+      },
+      "loginRequired": "Please sign in to view the dashboard.",
+      "goToLogin": "Go to Login",
+      "userNotFound": "User info not found."
+    },
+    "data": {
+      "collections": {
+        "pc-1": "2024 Tokyo Streets",
+        "pc-2": "Nordic Aurora Project",
+        "pc-3": "City Night Flight",
+        "vs-1": "VLOG: Iceland Trip",
+        "vs-2": "Behind the Scenes: Lumina",
+        "vs-3": "Travel Shorts Collection"
+      }
+    },
+    "media": {
+      "mockTitle": "Media Material {index}",
+      "title": "Media Library",
+      "description": "The media library is for display and publishing only. For scanning, please go to Storage Configuration.",
+      "loginRequired": "Please sign in to manage media library.",
+      "goToLogin": "Go to Login",
+      "userNotFound": "User info not found.",
+      "filters": {
+        "searchPlaceholder": "Search title / path / description",
+        "apply": "Apply Filter",
+        "clear": "Clear Filter",
+        "source": "Source Filter",
+        "advanced": "Advanced Filter",
+        "type": {
+          "all": "All Types",
+          "image": "Photo",
+          "video": "Video"
+        },
+        "status": {
+          "all": "All Status",
+          "published": "Published",
+          "unpublished": "Unpublished"
+        },
+        "dateShot": "Date Shot",
+        "to": "to",
+        "size": "File Size (MB)",
+        "min": "Min",
+        "max": "Max",
+        "resolutionWidth": "Resolution Width",
+        "resolutionHeight": "Resolution Height",
+        "orientation": {
+          "label": "Orientation",
+          "all": "All",
+          "landscape": "Landscape",
+          "portrait": "Portrait",
+          "square": "Square"
+        },
+        "gps": {
+          "label": "GPS",
+          "all": "All",
+          "yes": "Has GPS",
+          "no": "No GPS"
+        },
+        "camera": "Camera Model",
+        "maker": "Maker",
+        "lens": "Lens",
+        "example": "e.g. {value}"
+      },
+      "sort": {
+        "dateShotDesc": "Date Shot (Newest)",
+        "dateShotAsc": "Date Shot (Oldest)",
+        "sizeDesc": "Size (Largest)",
+        "sizeAsc": "Size (Smallest)",
+        "resolutionDesc": "Resolution (High to Low)",
+        "resolutionAsc": "Resolution (Low to High)",
+        "titleAsc": "Title (A-Z)",
+        "titleDesc": "Title (Z-A)"
+      },
+      "storageLabels": {
+        "local": "Local Storage",
+        "nas": "NAS Storage",
+        "s3": "S3 Compatible",
+        "qiniu": "Qiniu Cloud"
+      },
+      "disabledLabel": "(Disabled)",
+      "disabledWarning": "Resources from disabled sources are shown in grayscale and cannot be published. Please re-enable in Storage Configuration.",
+      "empty": {
+        "noMatches": "No matching resources found, please adjust filters.",
+        "noContent": "No resources in library. Please scan or sync in Storage Configuration.",
+        "goToStorage": "Go to Storage Configuration"
+      },
+      "pagination": "Page {current} of {total}",
+      "library": {
+        "hero": "Hero",
+        "selectAllPage": "Select All on Page",
+        "clearSelection": "Clear Selection",
+        "publishSelected": "Publish Selected",
+        "unpublishSelected": "Unpublish Selected",
+        "setHero": "Set as Hero",
+        "unsetHero": "Unset Hero",
+        "selectedCount": "{count} selected",
+        "selectableCount": "{count} selectable on page",
+        "totalCount": "Total {count} items",
+        "selectFirst": "Please select items first.",
+        "unknownSize": "Unknown Size",
+        "unknownTime": "Unknown Time",
+        "unknownResolution": "Unknown Resolution",
+        "video": "Video",
+        "image": "Image",
+        "source": "Source: {label}",
+        "sourceDisabled": "Source Disabled",
+        "disabled": " (Disabled)",
+        "configureStorage": "Go to Storage Config",
+        "unnamed": "Unnamed",
+        "published": "Published",
+        "unpublished": "Unpublished",
+        "hero": "Hero"
+      }
+    },
+    "collections": {
+      "title": "Collections",
+      "description": "Manage photo albums and video series, create and edit collections.",
+      "data": {
+        "photo": {
+          "pc-1": "2024 Tokyo Streets",
+          "pc-2": "Nordic Aurora Project",
+          "pc-3": "City Night Flight"
+        },
+        "video": {
+          "vs-1": "VLOG: Iceland Trip",
+          "vs-2": "Behind the Scenes: Lumina",
+          "vs-3": "Travel Shorts Collection"
+        }
+      },
+      "tabs": {
+        "photos": "Photo Collections",
+        "videos": "Video Series"
+      },
+      "create": "New Collection",
+      "status": {
+        "ongoing": "Ongoing",
+        "completed": "Completed",
+        "planning": "Planning"
+      },
+      "photoItem": {
+        "count": "Contains {count} photos",
+        "manage": "Manage Photos"
+      },
+      "videoItem": {
+        "episodes": "{count} Episodes",
+        "edit": "Edit Episodes"
+      }
+    },
+    "storage": {
+      "title": "Storage Configuration",
+      "description": "Manage file storage sources, supporting Local, NAS, S3, and Qiniu Cloud.",
+      "loginRequired": "Please login to manage storage configuration.",
+      "goToLogin": "Go to Login",
+      "userNotFound": "User not found.",
+      "add": "Add Storage",
+      "view": {
+        "headers": {
+          "name": "Name/Alias",
+          "type": "Type",
+          "path": "Path/Config",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "actions": {
+          "add": "Add Data Source",
+          "edit": "Edit Config",
+          "scan": "Scan Directory",
+          "enable": "Enable",
+          "disable": "Disable",
+          "publishAll": "Publish All",
+          "hideAll": "Hide All",
+          "delete": "Delete"
+        },
+        "alerts": {
+          "confirmPublish": "Are you sure you want to publish all images from this source?",
+          "confirmHide": "Are you sure you want to hide all images from this source?",
+          "deleteTitle": "Confirm Delete",
+          "disableTitle": "Confirm Disable",
+          "deleteDesc": "Deleting this source will permanently remove all its files and references from collections.",
+          "disableDesc": "Disabling this source will hide its images from collections."
+        },
+        "types": {
+          "local": "Local Storage",
+          "nas": "NAS Storage",
+          "s3": "S3 Compatible",
+          "qiniu": "Qiniu Cloud"
+        },
+        "modal": {
+          "addTitle": "Add Storage Configuration",
+          "editTitle": "Edit Storage Configuration",
+          "addDesc": "Add a new image storage source.",
+          "editDesc": "Modify connection info for existing storage.",
+          "labels": {
+            "type": "Storage Type",
+            "alias": "Alias (Optional)",
+            "rootPath": "Root Path",
+            "endpoint": "Endpoint (Required for S3)",
+            "region": "Region",
+            "bucket": "Bucket Name",
+            "accessKey": "Access Key",
+            "secretKey": "Secret Key",
+            "prefix": "Path Prefix (Optional)"
+          },
+          "placeholders": {
+            "alias": "e.g. My Photography",
+            "rootPathNas": "/mnt/nas/photos",
+            "rootPathLocal": "D:/photos",
+            "endpoint": "s3.region.amazonaws.com",
+            "region": "us-east-1",
+            "prefix": "photos/"
+          },
+          "hints": {
+            "permission": "Please ensure the server has permission to access this path."
+          },
+          "save": "Save Config",
+          "saving": "Saving...",
+          "cancel": "Cancel",
+          "error": "Save failed"
+        },
+        "dependency": {
+          "title": "Dependencies Exist",
+          "description": "The following collections are using images from this source. Continuing will cause images in these collections to be hidden (Disable) or permanently deleted (Delete).",
+          "cancel": "Cancel",
+          "confirm": "Confirm",
+          "processing": "Processing..."
+        }
+      },
+      "form": {
+        "types": {
+          "local": "Local Storage",
+          "nas": "NAS Storage",
+          "qiniu": "Qiniu Cloud",
+          "s3": "S3 Compatible"
+        },
+        "labels": {
+          "rootPath": "Root Path",
+          "alias": "Alias (Optional)",
+          "endpoint": "Endpoint",
+          "bucket": "Bucket",
+          "region": "Region",
+          "accessKey": "Access Key",
+          "secretKey": "Secret Key",
+          "prefix": "Prefix (Optional)",
+          "disabled": "Pause scanning and display for this storage"
+        },
+        "placeholders": {
+          "rootPath": "e.g. /data/photos or D:\\Photos",
+          "alias": "e.g. Studio NAS",
+          "endpoint": "https://s3.example.com",
+          "bucket": "your-bucket",
+          "region": "ap-east-1",
+          "prefix": "photos/"
+        },
+        "hints": {
+          "rootPath": "Enter path accessible within container or host.",
+          "cloudNote": "Cloud storage scanning and display will be added later, currently only saving config.",
+          "disabled": "Ensure path or credentials are valid before enabling."
+        },
+        "warnings": {
+          "disabled": "Current config is disabled. Enable to scan and display."
+        },
+        "buttons": {
+          "update": "Update Config",
+          "save": "Save Config",
+          "create": "New Config"
+        }
+      },
+      "files": {
+        "scan": {
+          "scanning": "Scanning...",
+          "rescan": "Rescan",
+          "scanNow": "Scan Now",
+          "processed": "Processed {processed}/{total}",
+          "processedSimple": "Processed {processed}",
+          "scannedDirs": "Scanned {count} directories",
+          "foundImages": "Found {count} images",
+          "readFailed": "Read failed",
+          "scanComplete": "Scan complete, processed {count} images, old records cleared.",
+          "scanCompleteConsole": "Scan complete, processed {count} images.",
+          "scanFailedMessage": "Scan failed, please check if path is accessible.",
+          "clearedMissing": "Cleared {count} missing records.",
+          "logs": "Scan Logs",
+          "waitingLogs": "Waiting for logs...",
+          "empty": "No images yet. Click 'Scan Now' to read directory.",
+          "scanFailed": "Scan failed or connection interrupted.",
+          "scanInterrupted": "Scan connection interrupted.",
+          "complete": "Scan complete."
+        },
+        "actions": {
+          "selectAll": "Select All",
+          "clearSelection": "Clear Selection",
+          "publishSelected": "Publish Selected",
+          "unpublishSelected": "Unpublish",
+          "setHero": "Set as Hero",
+          "unsetHero": "Unset Hero",
+          "publishAll": "Publish All",
+          "unpublishAll": "Unpublish All"
+        },
+        "status": {
+          "published": "Published",
+          "unpublished": "Unpublished",
+          "hero": "Hero",
+          "notHero": "Not Hero",
+          "unknownSize": "Unknown Size"
+        },
+        "messages": {
+          "disabled": "Config disabled, please enable first.",
+          "selectFirst": "Please select images to update.",
+          "selectedCount": "{count} selected"
+        }
+      }
+    },
+    "upload": {
+      "title": "Upload Center",
+      "description": "Select target storage and drag files to upload. Progress feedback will be provided.",
+      "loginRequired": "Please login to perform upload operations.",
+      "goToLogin": "Go to Login",
+      "userNotFound": "User not found.",
+      "unnamed": "Unnamed",
+      "noPath": "Path not configured",
+      "noConnection": "Connection info not configured",
+      "defaultLabel": "Storage",
+      "queue": {
+        "title": "Upload Queue",
+        "description": "Select target and drag files here. Real-time progress will be shown.",
+        "uploadTo": "Upload to",
+        "noStorage": "No storage available",
+        "empty": "No uploads yet. Drag files from right or click to select.",
+        "status": {
+          "waiting": "Waiting",
+          "uploading": "Uploading",
+          "done": "Done",
+          "error": "Error"
+        }
+      },
+      "drag": {
+        "title": "Drag & Drop Upload",
+        "description": "Batch upload photos and videos. Please confirm target storage first.",
+        "dropHere": "Drop files here",
+        "selectStorageFirst": "Please select storage first",
+        "formats": "Supports JPG, PNG, MP4 etc.",
+        "selectFile": "Select Files"
+      }
+    },
+    "settings": {
+      "profile": {
+        "title": "User Profile",
+        "description": "Update admin profile and password.",
+        "basicInfo": "Basic Info",
+        "changePassword": "Change Password",
+        "userNotFound": "User not found",
+        "form": {
+          "nameLabel": "Name",
+          "namePlaceholder": "Enter name",
+          "emailLabel": "Email",
+          "emailPlaceholder": "Enter email",
+          "saving": "Saving...",
+          "save": "Save Profile"
+        },
+        "passwordForm": {
+          "currentPassword": "Current Password",
+          "currentPasswordPlaceholder": "Enter current password",
+          "newPassword": "New Password",
+          "newPasswordPlaceholder": "Enter new password (min 6 chars)",
+          "confirmPassword": "Confirm Password",
+          "confirmPasswordPlaceholder": "Re-enter new password",
+          "cancel": "Cancel",
+          "saving": "Saving...",
+          "submit": "Change Password"
+        }
+      },
+      "system": {
+        "title": "System Settings",
+        "description": "Manage site name, SEO description and public access.",
+        "siteName": "Site Name",
+        "seoDescription": "SEO Description",
+        "seoPlaceholder": "Enter core keywords and intro for search engines.",
+        "publicAccess": "Enable Public Access",
+        "publicAccessDesc": "If disabled, visitors cannot view the public gallery.",
+        "save": "Save Settings"
+      },
+      "users": {
+        "title": "User Management",
+        "description": "Manage user roles. Only admins can access this page.",
+        "noUsers": "No users found.",
+        "table": {
+          "user": "User",
+          "status": "Status",
+          "registeredAt": "Registered At",
+          "actions": "Actions"
+        },
+        "role": {
+          "admin": "Admin",
+          "user": "User"
+        },
+        "status": {
+          "banned": "Banned"
+        },
+        "actions": {
+          "enableUser": "Enable User",
+          "disableUser": "Disable User",
+          "confirmEnable": "Are you sure to enable this user? They will regain login access.",
+          "confirmDisable": "Are you sure to disable this user? They will not be able to login.",
+          "deleteUser": "Delete User",
+          "confirmDelete": "Are you sure to delete this user? This cannot be undone.",
+          "setAdmin": "Set as Admin",
+          "setUser": "Set as User",
+          "cannotDowngrade": "Cannot downgrade current account",
+          "confirmRoleChange": "Are you sure to {action} this user?",
+          "cancel": "Cancel",
+          "confirm": "Confirm",
+          "processing": "Processing...",
+          "deleting": "Deleting..."
+        }
+      }
+    }
+  },
+  "actions": {
+    "signup": {
+      "nameRequired": "Please enter your name.",
+      "emailInvalid": "Please enter a valid email.",
+      "passwordMin": "Password must be at least 6 characters.",
+      "confirmPasswordMin": "Please confirm your password.",
+      "passwordMismatch": "Passwords do not match.",
+      "checkForm": "Please check the form.",
+      "emailTaken": "Email already registered.",
+      "failed": "Registration failed, please try again later."
+    },
+    "login": {
+      "invalidCredentials": "Invalid credentials.",
+      "banned": "Account is banned, please contact admin.",
+      "error": "Something went wrong."
+    },
+    "common": {
+      "notLoggedIn": "Not logged in or user info missing.",
+      "userNotFound": "User not found.",
+      "banned": "Account is banned.",
+      "forbidden": "Forbidden.",
+      "invalidParams": "Invalid parameters.",
+      "error": "Operation failed."
+    },
+    "role": {
+      "invalid": "Invalid user role parameters.",
+      "selfDowngrade": "Cannot set yourself as a regular user.",
+      "unchanged": "User role unchanged.",
+      "setAdmin": "User role set to Admin.",
+      "setUser": "User role set to User."
+    },
+    "storage": {
+      "incomplete": "Configuration incomplete.",
+      "notFound": "Storage configuration not found.",
+      "rootPathRequired": "Please enter root path.",
+      "updated": "Storage configuration updated.",
+      "saved": "Storage configuration saved.",
+      "saveFailed": "Failed to save storage configuration.",
+      "disabled": "Storage configuration disabled.",
+      "enabled": "Storage configuration enabled.",
+      "deleted": "Storage configuration and related files deleted.",
+      "scanUnsupported": "Scanning not supported for this storage type.",
+      "configDisabled": "Configuration disabled, please enable first.",
+      "noRootPath": "Root path not configured.",
+      "scanSuccess": "Scan complete, processed {count} items, old records cleared.",
+      "scanFailed": "Scan failed, please check path accessibility.",
+      "published": "All items from this source published.",
+      "hidden": "All items from this source hidden."
+    },
+    "scan": {
+      "title": "Directory Scan",
+      "description": "Scan to choose images for the gallery. Re-scanning clears old records.",
+      "scannedDirs": "Scanned {count} directories...",
+      "foundImages": "Found {count} images...",
+      "readFailed": "Failed to read directory",
+      "complete": "Scan complete, found {count} files.",
+      "processed": "Processed {processed}/{total} images"
+    },
+    "files": {
+      "noStorage": "No available storage configuration found.",
+      "noneSelected": "No items selected.",
+      "statusUpdated": "Gallery status updated.",
+      "selectPublished": "Please select published items.",
+      "heroUpdated": "Hero status updated.",
+      "heroRemoved": "Hero status removed."
+    },
+    "user": {
+      "invalidId": "Invalid User ID.",
+      "selfBan": "Cannot ban yourself.",
+      "banned": "User banned.",
+      "enabled": "User enabled.",
+      "selfDelete": "Cannot delete yourself.",
+      "deleted": "User deleted.",
+      "deleteFailed": "Failed to delete user."
+    },
+    "profile": {
+      "emailTaken": "Email already in use.",
+      "updated": "Profile updated.",
+      "updateFailed": "Update failed, please try again."
+    },
+    "password": {
+      "currentRequired": "Please enter current password.",
+      "newMin": "New password must be at least 6 characters.",
+      "confirmMin": "Please confirm new password.",
+      "mismatch": "Passwords do not match.",
+      "checkInput": "Please check your input.",
+      "success": "Password changed, please sign in with new password.",
+      "failed": "Password change failed.",
+      "verifyCurrent": "Password change failed, please verify current password."
+    }
   }
 }

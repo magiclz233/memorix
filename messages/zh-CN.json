@@ -1,4 +1,9 @@
 {
+  "common": {
+    "theme": {
+      "toggle": "切换主题"
+    }
+  },
   "nav": {
     "items": {
       "home": "首页",
@@ -110,6 +115,7 @@
     "gallery": {
       "eyebrow": "Gallery / Archive",
       "title": "画廊",
+      "unnamed": "未命名",
       "description": "以时间线与媒介切换浏览影像档案，探索每一次拍摄留下的光痕。",
       "loading": "加载中…",
       "scrollMore": "向下滚动加载更多",
@@ -121,9 +127,221 @@
         "timeline": "时间线"
       }
     },
+    "data": {
+      "collections": {
+        "pc-1": "2024 东京街头",
+        "pc-2": "北欧极光计划",
+        "pc-3": "城市夜航",
+        "vs-1": "VLOG: 冰岛之旅",
+        "vs-2": "幕后制作：Lumina",
+        "vs-3": "旅行短片合集"
+      }
+    },
     "media": {
       "photo": "照片",
       "video": "视频"
+    },
+    "data": {
+      "featured": {
+        "fc-01": {
+          "title": "暮色星港",
+          "description": "城市与星光交界的长曝光故事。",
+          "tags": {
+            "0": "夜景",
+            "1": "长曝光",
+            "2": "城市"
+          }
+        },
+        "fc-02": {
+          "title": "轨道碎光",
+          "description": "节奏化剪辑的宇宙旅程片段。",
+          "tags": {
+            "0": "短片",
+            "1": "配乐",
+            "2": "运动"
+          }
+        },
+        "fc-03": {
+          "title": "极光档案",
+          "description": "冰原与光带的冷色调拼贴。",
+          "tags": {
+            "0": "自然",
+            "1": "冷色",
+            "2": "极光"
+          }
+        }
+      },
+      "photo": {
+        "pc-01": {
+          "title": "雾面海岸",
+          "description": "雾气、潮汐与灰度层次的平衡。",
+          "tags": {
+            "0": "海岸",
+            "1": "灰度"
+          }
+        },
+        "pc-02": {
+          "title": "夜行光轨",
+          "description": "霓虹与车流构成的光线地图。",
+          "tags": {
+            "0": "光轨",
+            "1": "霓虹"
+          }
+        },
+        "pc-03": {
+          "title": "晨曦静域",
+          "description": "黎明时分的柔光与留白。",
+          "tags": {
+            "0": "日出",
+            "1": "极简"
+          }
+        },
+        "pc-04": {
+          "title": "镜像森林",
+          "description": "雨后森林的折射与倒影。",
+          "tags": {
+            "0": "森林",
+            "1": "倒影"
+          }
+        },
+        "pc-05": {
+          "title": "线性实验",
+          "description": "几何构图的极简实验室。",
+          "tags": {
+            "0": "几何",
+            "1": "线条"
+          }
+        },
+        "pc-06": {
+          "title": "薄暮航线",
+          "description": "以空气感描绘的长航轨迹。",
+          "tags": {
+            "0": "旅行",
+            "1": "云层"
+          }
+        }
+      },
+      "video": {
+        "vc-01": {
+          "title": "切片宇宙",
+          "description": "多机位拼贴成的叙事。",
+          "tags": {
+            "0": "多机位",
+            "1": "叙事"
+          }
+        },
+        "vc-02": {
+          "title": "蓝光航标",
+          "description": "蓝色调色的情绪短片。",
+          "tags": {
+            "0": "情绪",
+            "1": "蓝调"
+          }
+        },
+        "vc-03": {
+          "title": "静默工坊",
+          "description": "工作室日常的慢节奏观察。",
+          "tags": {
+            "0": "纪录",
+            "1": "慢镜"
+          }
+        },
+        "vc-04": {
+          "title": "磁场回声",
+          "description": "电子音乐驱动的视觉节拍。",
+          "tags": {
+            "0": "电子",
+            "1": "节拍"
+          }
+        }
+      },
+      "gallery": {
+        "gm-01": {
+          "title": "零点云层",
+          "tags": {
+            "0": "冷调",
+            "1": "云层"
+          }
+        },
+        "gm-02": {
+          "title": "引力回廊",
+          "tags": {
+            "0": "慢动作",
+            "1": "节奏"
+          }
+        },
+        "gm-03": {
+          "title": "幽光街区",
+          "tags": {
+            "0": "街景",
+            "1": "霓虹"
+          }
+        },
+        "gm-04": {
+          "title": "暗场节拍",
+          "tags": {
+            "0": "夜景",
+            "1": "节拍"
+          }
+        },
+        "gm-05": {
+          "title": "晨雾质感",
+          "tags": {
+            "0": "雾气",
+            "1": "质感"
+          }
+        },
+        "gm-06": {
+          "title": "极夜回声",
+          "tags": {
+            "0": "极夜",
+            "1": "光晕"
+          }
+        },
+        "gm-07": {
+          "title": "穿梭引擎",
+          "tags": {
+            "0": "运动",
+            "1": "剪辑"
+          }
+        },
+        "gm-08": {
+          "title": "静谧桅灯",
+          "tags": {
+            "0": "海岸",
+            "1": "蓝调"
+          }
+        },
+        "gm-09": {
+          "title": "星屑轨迹",
+          "tags": {
+            "0": "星光",
+            "1": "短片"
+          }
+        }
+      },
+      "fallback": {
+        "1": {
+          "title": "仪表盘预览",
+          "description": "仪表盘界面的全景预览。"
+        },
+        "2": {
+          "title": "霓虹之夜",
+          "description": "雨中倒映的城市灯火。"
+        },
+        "3": {
+          "title": "城市几何",
+          "description": "现代建筑的线条与阴影。"
+        },
+        "4": {
+          "title": "静谧自然",
+          "description": "透过树林洒落的柔和晨光。"
+        },
+        "5": {
+          "title": "海平面",
+          "description": "无尽海洋上的平静日落。"
+        }
+      }
     },
     "collections": {
       "itemCount": "{count} 项内容",
@@ -243,7 +461,552 @@
       }
     }
   },
+  "api": {
+    "errors": {
+      "paramError": "参数错误。",
+      "fileNotFound": "文件不存在。",
+      "fileNotPublished": "文件未发布。",
+      "rootNotConfigured": "根目录未配置。",
+      "pathInvalid": "路径非法。",
+      "readFailed": "读取文件失败。",
+      "adminCreateFailed": "默认管理员创建失败"
+    }
+  },
   "dashboard": {
-    "navigation": "导航"
+    "shell": {
+      "title": "后台管理"
+    },
+    "status": {
+      "online": "在线",
+      "scanning": "扫描中",
+      "error": "错误",
+      "disabled": "已停用",
+      "offline": "离线"
+    },
+    "sidebar": {
+      "overview": "概览",
+      "media": "资源库",
+      "collections": "集合管理",
+      "upload": "上传中心",
+      "storage": "存储配置",
+      "systemSettings": "系统设置",
+      "userManagement": "用户管理",
+      "adminConsole": "管理控制台",
+      "signOut": "退出登录"
+    },
+    "overview": {
+      "title": "概览",
+      "description": "这里汇总 Memorix 当前的核心资源状态，方便快速检查与管理。",
+      "stats": {
+        "storage": "存储源",
+        "storageDesc": "已连接的存储配置数量",
+        "assets": "资源总数",
+        "assetsDesc": "已索引的图片与视频数量",
+        "published": "已发布",
+        "publishedDesc": "当前前台可见的媒体数量",
+        "photoCollections": "图片合集",
+        "photoCollectionsDesc": "已创建的照片专题数量",
+        "videoCollections": "视频合集",
+        "videoCollectionsDesc": "已创建的视频专题数量"
+      },
+      "quickLinks": {
+        "title": "快捷入口",
+        "storage": "存储连接管理",
+        "gallery": "前台画廊预览"
+      },
+      "loginRequired": "请先登录后查看系统概览。",
+      "goToLogin": "前往登录",
+      "userNotFound": "未找到用户信息。"
+    },
+    "media": {
+      "mockTitle": "媒体素材 {index}",
+      "title": "资源库",
+      "description": "资源库仅负责展示与发布，扫描操作请前往存储配置。",
+      "loginRequired": "请先登录后再管理资源库。",
+      "goToLogin": "前往登录",
+      "userNotFound": "未找到用户信息。",
+      "filters": {
+        "searchPlaceholder": "搜索标题 / 路径 / 描述",
+        "apply": "应用筛选",
+        "clear": "清空筛选",
+        "source": "来源筛选",
+        "advanced": "高级筛选",
+        "type": {
+          "all": "全部类型",
+          "image": "图片",
+          "video": "视频"
+        },
+        "status": {
+          "all": "全部状态",
+          "published": "已发布",
+          "unpublished": "未发布"
+        },
+        "dateShot": "拍摄时间",
+        "to": "至",
+        "size": "文件大小（MB）",
+        "min": "最小",
+        "max": "最大",
+        "resolutionWidth": "分辨率宽度",
+        "resolutionHeight": "分辨率高度",
+        "orientation": {
+          "label": "画面方向",
+          "all": "全部",
+          "landscape": "横幅",
+          "portrait": "竖幅",
+          "square": "方形"
+        },
+        "gps": {
+          "label": "GPS",
+          "all": "全部",
+          "yes": "有 GPS",
+          "no": "无 GPS"
+        },
+        "camera": "相机型号",
+        "maker": "制造商",
+        "lens": "镜头",
+        "example": "例如: {value}"
+      },
+      "sort": {
+        "dateShotDesc": "拍摄时间（最新）",
+        "dateShotAsc": "拍摄时间（最早）",
+        "sizeDesc": "文件大小（大到小）",
+        "sizeAsc": "文件大小（小到大）",
+        "resolutionDesc": "分辨率（高到低）",
+        "resolutionAsc": "分辨率（低到高）",
+        "titleAsc": "标题（A-Z）",
+        "titleDesc": "标题（Z-A）"
+      },
+      "storageLabels": {
+        "local": "本地存储",
+        "nas": "NAS 存储",
+        "s3": "S3 兼容",
+        "qiniu": "七牛云"
+      },
+      "disabledLabel": "（已禁用）",
+      "disabledWarning": "来源已禁用的资源将以灰度展示，发布操作不可用，请前往存储配置重新启用。",
+      "empty": {
+        "noMatches": "没有符合条件的资源，请调整筛选条件。",
+        "noContent": "资源库暂无内容，请先在存储配置中完成扫描或同步。",
+        "goToStorage": "前往存储配置"
+      },
+      "pagination": "第 {current} / {total} 页",
+      "library": {
+        "selectAllPage": "全选当前页",
+        "clearSelection": "清空选择",
+        "publishSelected": "发布选中",
+        "unpublishSelected": "取消发布",
+        "setHero": "设为首页",
+        "unsetHero": "取消首页",
+        "selectedCount": "已选 {count} 项",
+        "selectableCount": "当前页可选 {count} 项",
+        "totalCount": "资源总数 {count} 项",
+        "selectFirst": "请先选择要操作的资源。",
+        "unknownSize": "未知大小",
+        "unknownTime": "未知时间",
+        "unknownResolution": "未知分辨率",
+        "video": "视频",
+        "image": "图片",
+        "source": "来源：{label}",
+        "sourceDisabled": "来源已禁用",
+      "disabled": "（已禁用）",
+      "configureStorage": "去存储配置启用",
+        "unnamed": "未命名",
+        "published": "已发布",
+        "unpublished": "未发布"
+      }
+    },
+    "collections": {
+      "title": "集合管理",
+      "description": "统一管理图集与视频集，支持创建与编辑集合。",
+      "data": {
+        "photo": {
+          "pc-1": "2024 东京街头",
+          "pc-2": "北欧极光计划",
+          "pc-3": "城市夜航"
+        },
+        "video": {
+          "vs-1": "VLOG: 冰岛之旅",
+          "vs-2": "幕后制作：Lumina",
+          "vs-3": "旅行短片合集"
+        }
+      },
+      "tabs": {
+        "photos": "图集",
+        "videos": "视频集"
+      },
+      "create": "新建集合",
+      "status": {
+        "ongoing": "更新中",
+        "completed": "已完结",
+        "planning": "策划中"
+      },
+      "photoItem": {
+        "count": "包含 {count} 张图片",
+        "manage": "管理图集"
+      },
+      "videoItem": {
+        "episodes": "{count} 集",
+        "edit": "编辑剧集"
+      }
+    },
+    "storage": {
+      "title": "存储配置",
+      "description": "管理文件存储源，支持本地、NAS、S3 与七牛云。",
+      "loginRequired": "请先登录后再管理存储配置。",
+      "goToLogin": "前往登录",
+      "userNotFound": "未找到用户信息。",
+      "add": "添加存储",
+      "view": {
+        "headers": {
+          "name": "名称/别名",
+          "type": "类型",
+          "path": "路径/配置",
+          "status": "状态",
+          "actions": "操作"
+        },
+        "actions": {
+          "add": "新增数据源",
+          "edit": "编辑配置",
+          "scan": "扫描目录获取图片",
+          "enable": "启用",
+          "disable": "停用",
+          "publishAll": "全部发布",
+          "hideAll": "全部隐藏",
+          "delete": "删除"
+        },
+        "alerts": {
+          "confirmPublish": "确定要发布该数据源下的所有图片吗？",
+          "confirmHide": "确定要隐藏该数据源下的所有图片吗？",
+          "deleteTitle": "确认删除",
+          "disableTitle": "确认停用",
+          "deleteDesc": "删除该数据源将永久删除其下的所有文件，并从以下集合中移除相关引用。",
+          "disableDesc": "停用该数据源将导致以下集合中的相关图片不再显示。"
+        },
+        "types": {
+          "local": "本地存储",
+          "nas": "NAS 存储",
+          "s3": "S3 兼容",
+          "qiniu": "七牛云"
+        },
+        "modal": {
+          "addTitle": "新增存储配置",
+          "editTitle": "编辑存储配置",
+          "addDesc": "添加新的图片存储源。",
+          "editDesc": "修改现有存储源的连接信息。",
+          "labels": {
+            "type": "存储类型",
+            "alias": "别名 (可选)",
+            "rootPath": "根目录路径",
+            "endpoint": "Endpoint (S3 必填)",
+            "region": "Region",
+            "bucket": "Bucket 名称",
+            "accessKey": "Access Key",
+            "secretKey": "Secret Key",
+            "prefix": "路径前缀 (可选)"
+          },
+          "placeholders": {
+            "alias": "例如：我的摄影作品",
+            "rootPathNas": "/mnt/nas/photos",
+            "rootPathLocal": "D:/photos",
+            "endpoint": "s3.region.amazonaws.com",
+            "region": "us-east-1",
+            "prefix": "photos/"
+          },
+          "hints": {
+            "permission": "请确保服务器有权限访问该路径。"
+          },
+          "save": "保存配置",
+          "saving": "保存中...",
+          "cancel": "取消",
+          "error": "保存失败"
+        },
+        "dependency": {
+          "title": "存在依赖项",
+          "description": "以下集合正在使用该数据源中的图片。继续操作将导致这些集合中的相关图片无法显示（停用）或被永久删除（删除）。",
+          "cancel": "取消",
+          "confirm": "确认继续",
+          "processing": "处理中..."
+        }
+      },
+      "form": {
+        "types": {
+          "local": "本地存储",
+          "nas": "NAS 存储",
+          "qiniu": "七牛云",
+          "s3": "S3 兼容"
+        },
+        "labels": {
+          "rootPath": "目录路径",
+          "alias": "别名（可选）",
+          "endpoint": "Endpoint",
+          "bucket": "Bucket",
+          "region": "Region",
+          "accessKey": "Access Key",
+          "secretKey": "Secret Key",
+          "prefix": "前缀（可选）",
+          "disabled": "暂停该存储的扫描与展示"
+        },
+        "placeholders": {
+          "rootPath": "例如 /data/photos 或 D:\\Photos",
+          "alias": "例如 工作室 NAS",
+          "endpoint": "https://s3.example.com",
+          "bucket": "your-bucket",
+          "region": "ap-east-1",
+          "prefix": "photos/"
+        },
+        "hints": {
+          "rootPath": "填写容器内或本机可访问的路径。",
+          "cloudNote": "云存储扫描与展示后续再接入，目前仅保存配置。",
+          "disabled": "启用前请确保路径或访问凭据有效。"
+        },
+        "warnings": {
+          "disabled": "当前配置已禁用，启用后才能扫描与展示。"
+        },
+        "buttons": {
+          "update": "更新配置",
+          "save": "保存配置",
+          "create": "新建配置"
+        }
+      },
+      "files": {
+        "scan": {
+          "scanning": "扫描中...",
+          "rescan": "重新扫描",
+          "scanNow": "立即扫描",
+          "processed": "已处理 {processed}/{total}",
+          "processedSimple": "已处理 {processed}",
+          "scannedDirs": "已扫描 {count} 个目录",
+          "foundImages": "已发现 {count} 张图片",
+          "readFailed": "读取失败",
+          "scanComplete": "扫描完成，共处理 {count} 张图片，旧记录已清空。",
+          "scanCompleteConsole": "扫描完成，共处理 {count} 张图片。",
+          "scanFailedMessage": "扫描目录失败，请检查路径是否可访问。",
+          "clearedMissing": "已清除 {count} 条失效记录。",
+          "logs": "扫描日志",
+          "waitingLogs": "等待扫描日志...",
+          "empty": "暂无图片，点击“立即扫描”开始读取目录。",
+          "scanFailed": "扫描失败或连接中断。",
+          "scanInterrupted": "扫描连接已中断。",
+          "complete": "扫描完成。"
+        },
+        "actions": {
+          "selectAll": "全选",
+          "clearSelection": "清空选择",
+          "publishSelected": "发布选中",
+          "unpublishSelected": "取消发布",
+          "setHero": "设为首页",
+          "unsetHero": "取消首页",
+          "publishAll": "全部发布",
+          "unpublishAll": "全部取消"
+        },
+        "status": {
+          "published": "已发布",
+          "unpublished": "未发布",
+          "hero": "首页展示",
+          "notHero": "未设为首页",
+          "unknownSize": "未知大小"
+        },
+        "messages": {
+          "disabled": "当前配置已禁用，请先启用。",
+          "selectFirst": "请先选择要更新的图片。",
+          "selectedCount": "已选 {count} 张"
+        }
+      }
+    },
+    "upload": {
+      "title": "上传中心",
+      "description": "选择目标存储后拖拽上传，系统会提供进度反馈。",
+      "loginRequired": "请先登录后再进行上传操作。",
+      "goToLogin": "前往登录",
+      "userNotFound": "未找到用户信息。",
+      "unnamed": "未命名",
+      "noPath": "未配置路径",
+      "noConnection": "未配置连接信息",
+      "defaultLabel": "存储",
+      "queue": {
+        "title": "上传队列",
+        "description": "选择上传目标后拖拽文件，系统会显示实时上传进度。",
+        "uploadTo": "上传到",
+        "noStorage": "暂无可用存储",
+        "empty": "暂无上传任务，请从右侧拖拽文件或点击选择文件。",
+        "status": {
+          "waiting": "等待中",
+          "uploading": "上传中",
+          "done": "上传完成",
+          "error": "上传失败"
+        }
+      },
+      "drag": {
+        "title": "拖拽上传",
+        "description": "支持批量上传图片与视频，上传前请确认目标存储。",
+        "dropHere": "拖拽文件到此处",
+        "selectStorageFirst": "请先选择存储源",
+        "formats": "支持 JPG、PNG、MP4 等常见格式",
+        "selectFile": "选择文件"
+      }
+    },
+    "settings": {
+      "profile": {
+        "title": "用户设置",
+        "description": "更新管理员资料与登录密码。",
+        "basicInfo": "基本资料",
+        "changePassword": "修改密码",
+        "userNotFound": "用户不存在",
+        "form": {
+          "nameLabel": "姓名",
+          "namePlaceholder": "请输入姓名",
+          "emailLabel": "邮箱",
+          "emailPlaceholder": "请输入邮箱",
+          "saving": "保存中...",
+          "save": "保存资料"
+        },
+        "passwordForm": {
+          "currentPassword": "当前密码",
+          "currentPasswordPlaceholder": "请输入当前密码",
+          "newPassword": "新密码",
+          "newPasswordPlaceholder": "请输入新密码（至少6位）",
+          "confirmPassword": "确认密码",
+          "confirmPasswordPlaceholder": "再次输入新密码",
+          "cancel": "取消",
+          "saving": "保存中...",
+          "submit": "修改密码"
+        }
+      },
+      "system": {
+        "title": "系统设置",
+        "description": "管理站点名称、SEO 描述与公共访问权限。",
+        "siteName": "站点名称",
+        "seoDescription": "SEO 描述",
+        "seoPlaceholder": "填写站点的核心关键词与简介，用于搜索展示。",
+        "publicAccess": "开启公共访问权限",
+        "publicAccessDesc": "关闭后访客将无法浏览前台画廊。",
+        "save": "保存设置"
+      },
+      "users": {
+        "title": "用户管理",
+        "description": "管理用户角色，仅管理员可访问此页面。",
+        "noUsers": "暂无用户数据。",
+        "table": {
+          "user": "用户",
+          "status": "状态",
+          "registeredAt": "注册时间",
+          "actions": "操作"
+        },
+        "role": {
+          "admin": "管理员",
+          "user": "普通用户"
+        },
+        "status": {
+          "banned": "已禁用"
+        },
+        "actions": {
+          "enableUser": "启用用户",
+          "disableUser": "禁用用户",
+          "confirmEnable": "确定要启用该用户吗？用户将恢复登录权限。",
+          "confirmDisable": "确定要禁用该用户吗？禁用后用户将无法登录。",
+          "deleteUser": "删除用户",
+          "confirmDelete": "确定要删除该用户吗？此操作不可恢复，用户数据将被永久清除。",
+          "setAdmin": "设为管理员",
+          "setUser": "设为普通用户",
+          "cannotDowngrade": "当前账号不可降级",
+          "confirmRoleChange": "确定要将该用户{action}吗？",
+          "cancel": "取消",
+          "confirm": "确定",
+          "processing": "处理中...",
+          "deleting": "删除中..."
+        }
+      }
+    }
+  },
+  "actions": {
+    "signup": {
+      "nameRequired": "请输入姓名。",
+      "emailInvalid": "请输入有效邮箱。",
+      "passwordMin": "密码至少需要 6 位。",
+      "confirmPasswordMin": "请再次输入至少 6 位密码。",
+      "passwordMismatch": "两次输入的密码不一致。",
+      "checkForm": "请检查表单信息。",
+      "emailTaken": "该邮箱已注册。",
+      "failed": "注册失败，请稍后重试。"
+    },
+    "login": {
+      "invalidCredentials": "登录凭据无效。",
+      "banned": "该账户已被禁用，请联系管理员。",
+      "error": "发生了错误。"
+    },
+    "common": {
+      "notLoggedIn": "未登录或缺少用户信息。",
+      "userNotFound": "用户不存在。",
+      "banned": "账户已禁用。",
+      "forbidden": "权限不足。",
+      "invalidParams": "参数无效。",
+      "error": "操作失败。"
+    },
+    "role": {
+      "invalid": "无效的用户角色参数。",
+      "selfDowngrade": "不能将自己设置为普通用户。",
+      "unchanged": "用户角色未改变。",
+      "setAdmin": "用户角色已设置为管理员。",
+      "setUser": "用户角色已设置为普通用户。"
+    },
+    "storage": {
+      "incomplete": "配置参数不完整。",
+      "notFound": "存储配置不存在。",
+      "rootPathRequired": "请填写根目录路径。",
+      "updated": "存储配置已更新。",
+      "saved": "存储配置已保存。",
+      "saveFailed": "保存存储配置失败。",
+      "disabled": "已禁用存储配置。",
+      "enabled": "已启用存储配置。",
+      "deleted": "存储配置及相关文件已删除。",
+      "scanUnsupported": "当前存储类型暂不支持扫描。",
+      "configDisabled": "当前配置已禁用，请先启用。",
+      "noRootPath": "根目录路径未配置。",
+      "scanSuccess": "扫描完成，共处理 {count} 张图片，旧记录已清空。",
+      "scanFailed": "扫描目录失败，请检查路径是否可访问。",
+      "published": "已发布该数据源下的所有图片。",
+      "hidden": "已隐藏该数据源下的所有图片。"
+    },
+    "scan": {
+      "title": "目录扫描",
+      "description": "扫描后可以选择哪些图片进入图库，重新扫描会清空旧记录。",
+      "scannedDirs": "已扫描 {count} 个目录...",
+      "foundImages": "已发现 {count} 张图片...",
+      "readFailed": "读取目录失败",
+      "complete": "扫描完成，共找到 {count} 个文件。",
+      "processed": "已处理 {processed}/{total} 张图片"
+    },
+    "files": {
+      "noStorage": "未找到可用的存储配置。",
+      "noneSelected": "未选择任何图片。",
+      "statusUpdated": "图库展示状态已更新。",
+      "selectPublished": "请选择已发布的图片。",
+      "heroUpdated": "首页展示状态已更新。",
+      "heroRemoved": "已取消首页展示。"
+    },
+    "user": {
+      "invalidId": "无效的用户 ID。",
+      "selfBan": "不能禁用自己。",
+      "banned": "用户已禁用。",
+      "enabled": "用户已启用。",
+      "selfDelete": "不能删除自己。",
+      "deleted": "用户已删除。",
+      "deleteFailed": "删除用户失败。"
+    },
+    "profile": {
+      "emailTaken": "该邮箱已被使用。",
+      "updated": "个人资料已更新。",
+      "updateFailed": "更新失败，请稍后重试。"
+    },
+    "password": {
+      "currentRequired": "请输入当前密码。",
+      "newMin": "新密码至少需要 6 位。",
+      "confirmMin": "请再次输入新密码。",
+      "mismatch": "两次输入的密码不一致。",
+      "checkInput": "请检查输入。",
+      "success": "密码已修改，请使用新密码登录。",
+      "failed": "密码修改失败。",
+      "verifyCurrent": "密码修改失败，请确认当前密码是否正确。"
+    }
   }
 }
