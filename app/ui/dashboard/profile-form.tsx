@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { useTranslations } from 'next-intl';
 import { updateProfile } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,20 +13,21 @@ export function ProfileForm({
 }: { 
   user: { name: string; email: string } 
 }) {
+  const t = useTranslations('dashboard.settings.profile.form');
   const [state, action, isPending] = useActionState(updateProfile, undefined);
 
   return (
     <form action={action} className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="name">姓名</Label>
+          <Label htmlFor="name">{t('nameLabel')}</Label>
           <div className="relative">
             <User className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
             <Input
               id="name"
               name="name"
               defaultValue={user.name}
-              placeholder="请输入姓名"
+              placeholder={t('namePlaceholder')}
               required
               className="pl-9"
             />
@@ -35,7 +37,7 @@ export function ProfileForm({
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email">邮箱</Label>
+          <Label htmlFor="email">{t('emailLabel')}</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
             <Input
@@ -43,7 +45,7 @@ export function ProfileForm({
               name="email"
               type="email"
               defaultValue={user.email}
-              placeholder="请输入邮箱"
+              placeholder={t('emailPlaceholder')}
               required
               className="pl-9"
             />
@@ -61,7 +63,7 @@ export function ProfileForm({
       )}
 
       <Button type="submit" disabled={isPending}>
-        {isPending ? '保存中...' : '保存资料'}
+        {isPending ? t('saving') : t('save')}
       </Button>
     </form>
   );
