@@ -1,4 +1,3 @@
-import { spaceGrotesk } from '@/app/ui/fonts';
 import { GalleryFilter } from '@/app/ui/front/gallery-filter';
 import type { MediaItem } from '@/app/lib/definitions';
 import { cn } from '@/lib/utils';
@@ -19,7 +18,7 @@ export async function FrontGallery({ items }: FrontGalleryProps) {
         </p>
         <h1
           className={cn(
-            spaceGrotesk.className,
+            'font-serif',
             'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-5xl'
           )}
         >

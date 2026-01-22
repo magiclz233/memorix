@@ -1,6 +1,5 @@
 'use client';
 
-import { spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
@@ -14,7 +13,7 @@ export function GalleryHeader() {
       </p>
       <h1
         className={cn(
-          spaceGrotesk.className,
+          'font-serif',
           'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-5xl',
         )}
       >

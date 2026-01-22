@@ -2,7 +2,6 @@
 
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
-import { spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
 
 const footerLinks = [
@@ -22,7 +21,7 @@ export function FrontFooter() {
         <div className='space-y-2'>
           <p
             className={cn(
-              spaceGrotesk.className,
+              'font-serif',
               'text-base text-zinc-900 dark:text-white',
             )}
           >

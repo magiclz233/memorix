@@ -8,7 +8,6 @@ import {
   featuredCollections,
   videoCollections,
 } from '@/app/lib/front-data';
-import { spaceGrotesk } from '@/app/ui/fonts';
 import { SpotlightCard } from '@/app/ui/front/spotlight-card';
 import { SectionHeader } from '@/app/ui/front/section-header';
 import { Button } from '@/components/ui/button';
@@ -263,7 +262,7 @@ export function FrontHome() {
           </p>
           <h1
             className={cn(
-              spaceGrotesk.className,
+              'font-serif',
               'text-4xl font-semibold md:text-6xl lg:text-7xl',
               heroTitleClass,
             )}

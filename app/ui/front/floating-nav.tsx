@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { LogIn, ShieldCheck, UserCircle, KeyRound, LogOut } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { spaceGrotesk } from '@/app/ui/fonts';
 import { ModeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -122,7 +121,7 @@ export function FloatingNav() {
         <Link href='/' className='pointer-events-auto flex items-center gap-3'>
           <span
             className={cn(
-              spaceGrotesk.className,
+              'font-serif',
               'text-base font-semibold tracking-[0.35em] md:text-lg',
               isHome ? 'text-white/80' : 'text-zinc-800/90 dark:text-white/85',
             )}

@@ -1,5 +1,4 @@
 import { Link } from '@/i18n/navigation';
-import { spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
 
 type SectionHeaderProps = {
@@ -20,7 +19,7 @@ export function SectionHeader({
       <div className='space-y-2'>
         <h2
           className={cn(
-            spaceGrotesk.className,
+            'font-serif',
             'text-2xl font-semibold text-zinc-900 dark:text-white md:text-3xl'
           )}
         >
