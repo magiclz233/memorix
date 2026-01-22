@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { changePasswordAction, signOutAction } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ export function ChangePasswordForm({
   onSuccess?: () => void;
   onCancel?: () => void;
 }) {
+  const t = useTranslations('dashboard.settings.profile.passwordForm');
   const [state, action, isPending] = useActionState(changePasswordAction, undefined);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -34,14 +36,14 @@ export function ChangePasswordForm({
     <form ref={formRef} action={action} className="space-y-4">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="currentPassword">当前密码</Label>
+          <Label htmlFor="currentPassword">{t('currentPassword')}</Label>
           <div className="relative">
             <KeyRound className="absolute left-3 top-3 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
             <Input
               id="currentPassword"
               name="currentPassword"
               type="password"
-              placeholder="请输入当前密码"
+              placeholder={t('currentPasswordPlaceholder')}
               required
               className="pl-9 h-10"
               autoComplete="current-password"
@@ -50,14 +52,14 @@ export function ChangePasswordForm({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="newPassword">新密码</Label>
+          <Label htmlFor="newPassword">{t('newPassword')}</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
             <Input
               id="newPassword"
               name="newPassword"
               type="password"
-              placeholder="请输入新密码（至少6位）"
+              placeholder={t('newPasswordPlaceholder')}
               required
               minLength={6}
               className="pl-9 h-10"
@@ -67,14 +69,14 @@ export function ChangePasswordForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">确认密码</Label>
+          <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
           <div className="relative">
             <ShieldCheck className="absolute left-3 top-3 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
             <Input
               id="confirmPassword"
               name="confirmPassword"
               type="password"
-              placeholder="再次输入新密码"
+              placeholder={t('confirmPasswordPlaceholder')}
               required
               minLength={6}
               className="pl-9 h-10"
@@ -101,11 +103,11 @@ export function ChangePasswordForm({
             className="flex-1"
             onClick={onCancel}
           >
-            取消
+            {t('cancel')}
           </Button>
         )}
         <Button type="submit" disabled={isPending} className="flex-1">
-          {isPending ? '保存中...' : '修改密码'}
+          {isPending ? t('saving') : t('submit')}
         </Button>
       </div>
     </form>
