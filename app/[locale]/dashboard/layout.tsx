@@ -3,17 +3,26 @@ import { redirect } from '@/i18n/navigation';
 import { auth } from '@/auth';
 import DashboardShell from '@/components/dashboard-shell';
 
-export default async function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
-    redirect('/login');
+    redirect({ href: '/login', locale });
+    return null;
   }
 
   if (session.user.role !== 'admin') {
-    redirect('/gallery');
+    redirect({ href: '/gallery', locale });
+    return null;
   }
 
   return <DashboardShell>{children}</DashboardShell>;

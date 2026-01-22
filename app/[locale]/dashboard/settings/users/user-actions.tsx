@@ -1,6 +1,7 @@
 'use client';
 
 import { useTransition, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Trash2, Ban, CheckCircle, ShieldCheck, UserCircle } from 'lucide-react';
 import { toggleUserBan, deleteUser, setUserRole } from '@/app/lib/actions';
@@ -28,6 +29,7 @@ interface SetRoleProps extends UserActionProps {
 }
 
 export function ToggleBanButton({ userId, isBanned, disabled }: ToggleBanProps) {
+  const t = useTranslations('dashboard.settings.users.actions');
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
 
@@ -52,7 +54,7 @@ export function ToggleBanButton({ userId, isBanned, disabled }: ToggleBanProps) 
           variant="ghost"
           size="icon"
           disabled={disabled || isPending}
-          title={isBanned ? '启用用户' : '禁用用户'}
+          title={isBanned ? t('enableUser') : t('disableUser')}
           className={isBanned ? 'text-green-600 hover:text-green-700' : 'text-orange-600 hover:text-orange-700'}
         >
           {isBanned ? <CheckCircle className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
@@ -60,17 +62,17 @@ export function ToggleBanButton({ userId, isBanned, disabled }: ToggleBanProps) 
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isBanned ? '启用用户' : '禁用用户'}</DialogTitle>
+          <DialogTitle>{isBanned ? t('enableUser') : t('disableUser')}</DialogTitle>
           <DialogDescription>
             {isBanned 
-              ? '确定要启用该用户吗？用户将恢复登录权限。' 
-              : '确定要禁用该用户吗？禁用后用户将无法登录。'}
+              ? t('confirmEnable')
+              : t('confirmDisable')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>取消</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>{t('cancel')}</Button>
           <Button onClick={handleToggle} disabled={isPending} variant={!isBanned ? "destructive" : "default"}>
-            {isPending ? '处理中...' : '确定'}
+            {isPending ? t('processing') : t('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -79,6 +81,7 @@ export function ToggleBanButton({ userId, isBanned, disabled }: ToggleBanProps) 
 }
 
 export function DeleteUserButton({ userId, disabled }: UserActionProps) {
+  const t = useTranslations('dashboard.settings.users.actions');
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
 
@@ -102,7 +105,7 @@ export function DeleteUserButton({ userId, disabled }: UserActionProps) {
           variant="ghost"
           size="icon"
           disabled={disabled || isPending}
-          title="删除用户"
+          title={t('deleteUser')}
           className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
         >
           <Trash2 className="h-4 w-4" />
@@ -110,15 +113,15 @@ export function DeleteUserButton({ userId, disabled }: UserActionProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>删除用户</DialogTitle>
+          <DialogTitle>{t('deleteUser')}</DialogTitle>
           <DialogDescription>
-            确定要删除该用户吗？此操作不可恢复，用户数据将被永久清除。
+            {t('confirmDelete')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>取消</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>{t('cancel')}</Button>
           <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
-            {isPending ? '删除中...' : '确认删除'}
+            {isPending ? t('deleting') : t('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -127,6 +130,7 @@ export function DeleteUserButton({ userId, disabled }: UserActionProps) {
 }
 
 export function SetRoleButton({ userId, currentRole, disabled }: SetRoleProps) {
+  const t = useTranslations('dashboard.settings.users.actions');
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const nextRole = currentRole === 'admin' ? 'user' : 'admin';
@@ -145,7 +149,7 @@ export function SetRoleButton({ userId, currentRole, disabled }: SetRoleProps) {
     });
   };
 
-  const actionName = currentRole === 'admin' ? '设为普通用户' : '设为管理员';
+  const actionName = currentRole === 'admin' ? t('setUser') : t('setAdmin');
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -154,7 +158,7 @@ export function SetRoleButton({ userId, currentRole, disabled }: SetRoleProps) {
           variant="ghost"
           size="icon"
           disabled={disabled || isPending}
-          title={disabled ? '当前账号不可降级' : actionName}
+          title={disabled ? t('cannotDowngrade') : actionName}
           className={currentRole === 'admin' ? 'text-zinc-500 hover:text-zinc-700' : 'text-indigo-600 hover:text-indigo-700'}
         >
           {currentRole === 'admin' ? (
@@ -168,13 +172,13 @@ export function SetRoleButton({ userId, currentRole, disabled }: SetRoleProps) {
         <DialogHeader>
           <DialogTitle>{actionName}</DialogTitle>
           <DialogDescription>
-            确定要将该用户{actionName}吗？
+            {t('confirmRoleChange', { action: actionName })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>取消</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>{t('cancel')}</Button>
           <Button onClick={handleSetRole} disabled={isPending}>
-            {isPending ? '处理中...' : '确定'}
+            {isPending ? t('processing') : t('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

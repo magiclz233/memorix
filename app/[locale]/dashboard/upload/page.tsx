@@ -1,5 +1,5 @@
 import { Link } from '@/i18n/navigation';
-
+import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
@@ -14,29 +14,26 @@ type StorageConfig = {
   region?: string | null;
 };
 
-const buildStorageOption = (storage: {
-  id: number;
-  type: string;
-  config: unknown;
-}) => {
+const buildStorageOption = (
+  storage: {
+    id: number;
+    type: string;
+    config: unknown;
+  },
+  t: (key: string) => string
+) => {
   const config = (storage.config ?? {}) as StorageConfig;
-  const labelMap: Record<string, string> = {
-    local: '本地存储',
-    nas: 'NAS',
-    s3: 'S3',
-    qiniu: '七牛云',
-  };
-  const label = labelMap[storage.type] ?? '存储';
+  const label = t(`storage.types.${storage.type}`);
   const name =
     config.alias ||
     config.bucket ||
     config.rootPath ||
     config.endpoint ||
-    '未命名';
+    t('upload.unnamed');
   const description =
     storage.type === 'local' || storage.type === 'nas'
-      ? config.rootPath ?? '未配置路径'
-      : config.endpoint ?? config.region ?? '未配置连接信息';
+      ? config.rootPath ?? t('upload.noPath')
+      : config.endpoint ?? config.region ?? t('upload.noConnection');
   return {
     id: storage.id,
     label: `${label} · ${name}`,
@@ -45,6 +42,7 @@ const buildStorageOption = (storage: {
 };
 
 export default async function Page() {
+  const t = await getTranslations('dashboard');
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -54,13 +52,13 @@ export default async function Page() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          上传中心
+          {t('upload.title')}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          请先登录后再进行上传操作。
+          {t('upload.loginRequired')}
         </p>
         <Button asChild variant="outline">
-          <Link href="/login">前往登录</Link>
+          <Link href="/login">{t('upload.goToLogin')}</Link>
         </Button>
       </div>
     );
@@ -71,26 +69,26 @@ export default async function Page() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          上传中心
+          {t('upload.title')}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          未找到用户信息。
+          {t('upload.userNotFound')}
         </p>
       </div>
     );
   }
 
   const storages = await fetchUserStorages(user.id);
-  const options = storages.map(buildStorageOption);
+  const options = storages.map((s) => buildStorageOption(s, t));
 
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          上传中心
+          {t('upload.title')}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          选择目标存储后拖拽上传，系统会提供进度反馈。
+          {t('upload.description')}
         </p>
       </header>
       <UploadCenter storages={options} />

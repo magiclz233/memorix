@@ -4,8 +4,10 @@ import { auth } from '@/auth';
 import { fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
 import { StorageView } from '@/app/ui/admin/storage/storage-view';
 import { Button } from '@/components/ui/button';
+import { getTranslations } from 'next-intl/server';
 
 export default async function Page() {
+  const t = await getTranslations('dashboard.storage');
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -15,13 +17,13 @@ export default async function Page() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          存储配置
+          {t('title')}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          请先登录后再管理存储配置。
+          {t('loginRequired')}
         </p>
         <Button asChild variant="outline">
-          <Link href="/login">前往登录</Link>
+          <Link href="/login">{t('goToLogin')}</Link>
         </Button>
       </div>
     );
@@ -32,10 +34,10 @@ export default async function Page() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          存储配置
+          {t('title')}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          未找到用户信息。
+          {t('userNotFound')}
         </p>
       </div>
     );
@@ -47,7 +49,7 @@ export default async function Page() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          存储配置
+          {t('title')}
         </h1>
       </div>
       

@@ -12,6 +12,7 @@ import { generatePagination } from '@/app/lib/utils';
 import { MediaLibraryManager } from '@/app/ui/admin/media/media-library';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getTranslations } from 'next-intl/server';
 
 type PageProps = {
   searchParams?: Promise<{
@@ -39,24 +40,6 @@ type PageProps = {
 
 const ITEMS_PER_PAGE = 24;
 
-const STORAGE_LABELS: Record<string, string> = {
-  local: '本地存储',
-  nas: 'NAS 存储',
-  s3: 'S3 兼容',
-  qiniu: '七牛云',
-};
-
-const SORT_OPTIONS: { value: MediaLibrarySort; label: string }[] = [
-  { value: 'dateShotDesc', label: '拍摄时间（最新）' },
-  { value: 'dateShotAsc', label: '拍摄时间（最早）' },
-  { value: 'sizeDesc', label: '文件大小（大到小）' },
-  { value: 'sizeAsc', label: '文件大小（小到大）' },
-  { value: 'resolutionDesc', label: '分辨率（高到低）' },
-  { value: 'resolutionAsc', label: '分辨率（低到高）' },
-  { value: 'titleAsc', label: '标题（A-Z）' },
-  { value: 'titleDesc', label: '标题（Z-A）' },
-];
-
 const parseStringArray = (value?: string | string[]) => {
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -73,6 +56,7 @@ const parseNumber = (value?: string | string[]) => {
 };
 
 export default async function Page({ searchParams }: PageProps) {
+  const t = await getTranslations('dashboard.media');
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -82,13 +66,13 @@ export default async function Page({ searchParams }: PageProps) {
     return (
       <main className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          资源库
+          {t('title')}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          请先登录后再管理资源库。
+          {t('loginRequired')}
         </p>
         <Button asChild variant="outline">
-          <Link href="/login">前往登录</Link>
+          <Link href="/login">{t('goToLogin')}</Link>
         </Button>
       </main>
     );
@@ -99,12 +83,30 @@ export default async function Page({ searchParams }: PageProps) {
     return (
       <main className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          资源库
+          {t('title')}
         </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">未找到用户信息。</p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('userNotFound')}</p>
       </main>
     );
   }
+
+  const STORAGE_LABELS: Record<string, string> = {
+    local: t('storageLabels.local'),
+    nas: t('storageLabels.nas'),
+    s3: t('storageLabels.s3'),
+    qiniu: t('storageLabels.qiniu'),
+  };
+
+  const SORT_OPTIONS: { value: MediaLibrarySort; label: string }[] = [
+    { value: 'dateShotDesc', label: t('sort.dateShotDesc') },
+    { value: 'dateShotAsc', label: t('sort.dateShotAsc') },
+    { value: 'sizeDesc', label: t('sort.sizeDesc') },
+    { value: 'sizeAsc', label: t('sort.sizeAsc') },
+    { value: 'resolutionDesc', label: t('sort.resolutionDesc') },
+    { value: 'resolutionAsc', label: t('sort.resolutionAsc') },
+    { value: 'titleAsc', label: t('sort.titleAsc') },
+    { value: 'titleDesc', label: t('sort.titleDesc') },
+  ];
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const page = parseNumber(resolvedSearchParams?.page ?? '1') ?? 1;
@@ -217,10 +219,10 @@ export default async function Page({ searchParams }: PageProps) {
     <main className="space-y-6">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          资源库
+          {t('title')}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          资源库仅负责展示与发布，扫描操作请前往存储配置。
+          {t('description')}
         </p>
       </header>
 
@@ -233,7 +235,7 @@ export default async function Page({ searchParams }: PageProps) {
             type="text"
             name="q"
             defaultValue={resolvedSearchParams?.q ?? ''}
-            placeholder="搜索标题 / 路径 / 描述"
+            placeholder={t('filters.searchPlaceholder')}
             className="min-w-[220px] flex-1 rounded-full border border-zinc-200 bg-white/80 px-4 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
           />
           <select
@@ -241,18 +243,18 @@ export default async function Page({ searchParams }: PageProps) {
             defaultValue={mediaType}
             className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
           >
-            <option value="all">全部类型</option>
-            <option value="image">图片</option>
-            <option value="video">视频</option>
+            <option value="all">{t('filters.type.all')}</option>
+            <option value="image">{t('filters.type.image')}</option>
+            <option value="video">{t('filters.type.video')}</option>
           </select>
           <select
             name="status"
             defaultValue={publishStatus}
             className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
           >
-            <option value="all">全部状态</option>
-            <option value="published">已发布</option>
-            <option value="unpublished">未发布</option>
+            <option value="all">{t('filters.status.all')}</option>
+            <option value="published">{t('filters.status.published')}</option>
+            <option value="unpublished">{t('filters.status.unpublished')}</option>
           </select>
           <select
             name="sort"
@@ -267,17 +269,17 @@ export default async function Page({ searchParams }: PageProps) {
           </select>
           <input type="hidden" name="page" value="1" />
           <Button type="submit" size="sm">
-            应用筛选
+            {t('filters.apply')}
           </Button>
           {hasFilters ? (
             <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/media">清空筛选</Link>
+              <Link href="/dashboard/media">{t('filters.clear')}</Link>
             </Button>
           ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">来源筛选</span>
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('filters.source')}</span>
           {storages.map((storage) => {
             const config = (storage.config ?? {}) as { alias?: string | null; isDisabled?: boolean };
             const label =
@@ -304,7 +306,7 @@ export default async function Page({ searchParams }: PageProps) {
                   className="absolute inset-0 cursor-pointer opacity-0"
                 />
                 {label}
-                {config.isDisabled ? '（已禁用）' : ''}
+                {config.isDisabled ? t('filters.disabled') : ''}
               </label>
             );
           })}
@@ -312,11 +314,11 @@ export default async function Page({ searchParams }: PageProps) {
 
         <details className="rounded-xl border border-dashed border-zinc-200 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
           <summary className="cursor-pointer text-sm font-medium text-zinc-700 dark:text-zinc-200">
-            高级筛选
+            {t('filters.advanced')}
           </summary>
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500">拍摄时间</p>
+              <p className="text-xs text-zinc-500">{t('filters.dateShot')}</p>
               <div className="flex items-center gap-2">
                 <input
                   type="date"
@@ -324,7 +326,7 @@ export default async function Page({ searchParams }: PageProps) {
                   defaultValue={resolvedSearchParams?.dateFrom ?? ''}
                   className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
                 />
-                <span className="text-xs text-zinc-400">至</span>
+                <span className="text-xs text-zinc-400">{t('filters.to')}</span>
                 <input
                   type="date"
                   name="dateTo"
@@ -334,123 +336,123 @@ export default async function Page({ searchParams }: PageProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500">文件大小（MB）</p>
+              <p className="text-xs text-zinc-500">{t('filters.size')}</p>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   min="0"
                   name="sizeMin"
                   defaultValue={resolvedSearchParams?.sizeMin ?? ''}
-                  placeholder="最小"
+                  placeholder={t('filters.min')}
                   className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
                 />
-                <span className="text-xs text-zinc-400">至</span>
+                <span className="text-xs text-zinc-400">{t('filters.to')}</span>
                 <input
                   type="number"
                   min="0"
                   name="sizeMax"
                   defaultValue={resolvedSearchParams?.sizeMax ?? ''}
-                  placeholder="最大"
+                  placeholder={t('filters.max')}
                   className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500">分辨率宽度</p>
+              <p className="text-xs text-zinc-500">{t('filters.resolutionWidth')}</p>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   min="0"
                   name="widthMin"
                   defaultValue={resolvedSearchParams?.widthMin ?? ''}
-                  placeholder="最小"
+                  placeholder={t('filters.min')}
                   className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
                 />
-                <span className="text-xs text-zinc-400">至</span>
+                <span className="text-xs text-zinc-400">{t('filters.to')}</span>
                 <input
                   type="number"
                   min="0"
                   name="widthMax"
                   defaultValue={resolvedSearchParams?.widthMax ?? ''}
-                  placeholder="最大"
+                  placeholder={t('filters.max')}
                   className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500">分辨率高度</p>
+              <p className="text-xs text-zinc-500">{t('filters.resolutionHeight')}</p>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   min="0"
                   name="heightMin"
                   defaultValue={resolvedSearchParams?.heightMin ?? ''}
-                  placeholder="最小"
+                  placeholder={t('filters.min')}
                   className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
                 />
-                <span className="text-xs text-zinc-400">至</span>
+                <span className="text-xs text-zinc-400">{t('filters.to')}</span>
                 <input
                   type="number"
                   min="0"
                   name="heightMax"
                   defaultValue={resolvedSearchParams?.heightMax ?? ''}
-                  placeholder="最大"
+                  placeholder={t('filters.max')}
                   className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500">画面方向</p>
+              <p className="text-xs text-zinc-500">{t('filters.orientation.label')}</p>
               <select
                 name="orientation"
                 defaultValue={orientation}
                 className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
               >
-                <option value="all">全部</option>
-                <option value="landscape">横幅</option>
-                <option value="portrait">竖幅</option>
-                <option value="square">方形</option>
+                <option value="all">{t('filters.orientation.all')}</option>
+                <option value="landscape">{t('filters.orientation.landscape')}</option>
+                <option value="portrait">{t('filters.orientation.portrait')}</option>
+                <option value="square">{t('filters.orientation.square')}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500">GPS</p>
+              <p className="text-xs text-zinc-500">{t('filters.gps.label')}</p>
               <select
                 name="hasGps"
                 defaultValue={hasGps}
                 className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
               >
-                <option value="all">全部</option>
-                <option value="yes">有 GPS</option>
-                <option value="no">无 GPS</option>
+                <option value="all">{t('filters.gps.all')}</option>
+                <option value="yes">{t('filters.gps.yes')}</option>
+                <option value="no">{t('filters.gps.no')}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500">相机型号</p>
+              <p className="text-xs text-zinc-500">{t('filters.camera')}</p>
               <input
                 type="text"
                 name="camera"
                 defaultValue={resolvedSearchParams?.camera ?? ''}
-                placeholder="例如: Sony"
+                placeholder={t('filters.example', { value: 'Sony' })}
                 className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
               />
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500">制造商</p>
+              <p className="text-xs text-zinc-500">{t('filters.maker')}</p>
               <input
                 type="text"
                 name="maker"
                 defaultValue={resolvedSearchParams?.maker ?? ''}
-                placeholder="例如: Canon"
+                placeholder={t('filters.example', { value: 'Canon' })}
                 className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
               />
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-zinc-500">镜头</p>
+              <p className="text-xs text-zinc-500">{t('filters.lens')}</p>
               <input
                 type="text"
                 name="lens"
                 defaultValue={resolvedSearchParams?.lens ?? ''}
-                placeholder="例如: 24-70mm"
+                placeholder={t('filters.example', { value: '24-70mm' })}
                 className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
               />
             </div>
@@ -459,22 +461,22 @@ export default async function Page({ searchParams }: PageProps) {
       </form>
 
       <div className="rounded-2xl border border-zinc-200 bg-white/70 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
-        来源已禁用的资源将以灰度展示，发布操作不可用，请前往存储配置重新启用。
+        {t('disabledWarning')}
       </div>
 
       {totalCount === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-10 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
           {hasFilters
-            ? '没有符合条件的资源，请调整筛选条件。'
-            : '资源库暂无内容，请先在存储配置中完成扫描或同步。'}
+            ? t('empty.noMatches')
+            : t('empty.noContent')}
           <div className="mt-4 flex justify-center gap-3">
             {hasFilters ? (
               <Button asChild variant="ghost">
-                <Link href="/dashboard/media">清空筛选</Link>
+                <Link href="/dashboard/media">{t('filters.clear')}</Link>
               </Button>
             ) : null}
             <Button asChild variant="outline">
-              <Link href="/dashboard/storage">前往存储配置</Link>
+              <Link href="/dashboard/storage">{t('empty.goToStorage')}</Link>
             </Button>
           </div>
         </div>
@@ -485,7 +487,7 @@ export default async function Page({ searchParams }: PageProps) {
       {totalPages > 1 ? (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white/70 px-4 py-3 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
           <span className="text-zinc-500 dark:text-zinc-400">
-            第 {safePage} / {totalPages} 页
+            {t('pagination', { current: safePage, total: totalPages })}
           </span>
           <div className="flex items-center gap-2">
             {allPages.map((pageItem, index) => {

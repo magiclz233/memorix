@@ -2,6 +2,7 @@ import { Link } from '@/i18n/navigation';
 import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { fetchDashboardOverview, fetchUserByEmail } from '@/app/lib/data';
+import { getTranslations } from 'next-intl/server';
 
 type StatCardProps = {
   label: string;
@@ -18,6 +19,7 @@ const StatCard = ({ label, value, description }: StatCardProps) => (
 );
 
 export default async function Page() {
+  const t = await getTranslations('dashboard.overview');
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -27,14 +29,14 @@ export default async function Page() {
     return (
       <main className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">概览</h1>
-          <p className="text-base text-zinc-500">请先登录后查看系统概览。</p>
+          <h1 className="text-2xl font-semibold text-zinc-900">{t('title')}</h1>
+          <p className="text-base text-zinc-500">{t('loginRequired')}</p>
         </div>
         <Link
           href="/login"
           className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
         >
-          前往登录
+          {t('goToLogin')}
         </Link>
       </main>
     );
@@ -45,8 +47,8 @@ export default async function Page() {
     return (
       <main className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">概览</h1>
-          <p className="text-base text-zinc-500">未找到用户信息。</p>
+          <h1 className="text-2xl font-semibold text-zinc-900">{t('title')}</h1>
+          <p className="text-base text-zinc-500">{t('userNotFound')}</p>
         </div>
       </main>
     );
@@ -55,38 +57,38 @@ export default async function Page() {
   const overview = await fetchDashboardOverview(user.id);
   const stats = [
     {
-      label: '存储源',
+      label: t('stats.storage'),
       value: overview.storageCount,
-      description: '已连接的存储配置数量',
+      description: t('stats.storageDesc'),
     },
     {
-      label: '资源总数',
+      label: t('stats.assets'),
       value: overview.fileCount,
-      description: '已索引的图片与视频数量',
+      description: t('stats.assetsDesc'),
     },
     {
-      label: '已发布',
+      label: t('stats.published'),
       value: overview.publishedCount,
-      description: '当前前台可见的媒体数量',
+      description: t('stats.publishedDesc'),
     },
     {
-      label: '图片合集',
+      label: t('stats.photoCollections'),
       value: overview.photoCollectionsCount,
-      description: '已创建的照片专题数量',
+      description: t('stats.photoCollectionsDesc'),
     },
     {
-      label: '视频合集',
+      label: t('stats.videoCollections'),
       value: overview.videoSeriesCount,
-      description: '已创建的视频专题数量',
+      description: t('stats.videoCollectionsDesc'),
     },
   ];
 
   return (
     <main className="space-y-10">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900">概览</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900">{t('title')}</h1>
         <p className="text-base text-zinc-500">
-          这里汇总 Memorix 当前的核心资源状态，方便快速检查与管理。
+          {t('description')}
         </p>
       </div>
 
@@ -97,19 +99,19 @@ export default async function Page() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-zinc-900">快捷入口</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">{t('quickLinks.title')}</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Link
             href="/dashboard/storage"
             className="rounded-xl border border-zinc-200/70 bg-white/70 px-4 py-3 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:text-zinc-900"
           >
-            存储连接管理
+            {t('quickLinks.storage')}
           </Link>
           <Link
             href="/gallery"
             className="rounded-xl border border-zinc-200/70 bg-white/70 px-4 py-3 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:text-zinc-900"
           >
-            前台画廊预览
+            {t('quickLinks.gallery')}
           </Link>
         </div>
       </section>

@@ -1,18 +1,21 @@
 import { headers } from 'next/headers';
+import { getTranslations, getLocale } from 'next-intl/server';
 import { auth } from '@/auth';
 import { fetchUsers } from '@/app/lib/data';
 import { cn } from '@/lib/utils';
 import { ToggleBanButton, DeleteUserButton, SetRoleButton } from './user-actions';
 
-const formatDate = (value?: Date | null) => {
+const formatDate = (value: Date | null | undefined, locale: string) => {
   if (!value) return '-';
-  return new Intl.DateTimeFormat('zh-CN', {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(value);
 };
 
 export default async function Page() {
+  const t = await getTranslations('dashboard.settings.users');
+  const locale = await getLocale();
   const requestHeaders = await headers();
   const [session, users] = await Promise.all([
     auth.api.getSession({ headers: requestHeaders }),
@@ -24,27 +27,27 @@ export default async function Page() {
     <div className="space-y-6">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          用户管理
+          {t('title')}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          管理用户角色，仅管理员可访问此页面。
+          {t('description')}
         </p>
       </header>
 
       <div className="rounded-2xl border border-zinc-200 bg-white/80 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
         {users.length === 0 ? (
           <div className="p-6 text-sm text-zinc-500 dark:text-zinc-400">
-            暂无用户数据。
+            {t('noUsers')}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
                 <tr>
-                  <th className="px-6 py-3">用户</th>
-                  <th className="px-6 py-3">状态</th>
-                  <th className="px-6 py-3">注册时间</th>
-                  <th className="px-6 py-3 text-right">操作</th>
+                  <th className="px-6 py-3">{t('table.user')}</th>
+                  <th className="px-6 py-3">{t('table.status')}</th>
+                  <th className="px-6 py-3">{t('table.registeredAt')}</th>
+                  <th className="px-6 py-3 text-right">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -53,7 +56,7 @@ export default async function Page() {
                   const isBanned = user.banned;
                   const isSelf = currentUserId !== null && currentUserId === user.id;
                   const isSelfAdmin = isSelf && role === 'admin';
-                  const roleLabel = role === 'admin' ? '管理员' : '普通用户';
+                  const roleLabel = role === 'admin' ? t('role.admin') : t('role.user');
 
                   return (
                     <tr
@@ -84,13 +87,13 @@ export default async function Page() {
                           </span>
                           {isBanned && (
                             <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
-                              已禁用
+                              {t('status.banned')}
                             </span>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
-                        {formatDate(user.createdAt)}
+                        {formatDate(user.createdAt, locale)}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end items-center gap-2">
