@@ -6,12 +6,16 @@ import { db } from '@/app/lib/drizzle';
 import { userStorages, users } from '@/app/lib/schema';
 import { runStorageScan, type StorageScanLog } from '@/app/lib/storage-scan';
 
+import { getTranslations } from 'next-intl/server';
+
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const storageId = Number(searchParams.get('storageId'));
   const encoder = new TextEncoder();
+  const tCommon = await getTranslations('common');
+  const tStorage = await getTranslations('dashboard.storage');
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -37,7 +41,7 @@ export async function GET(request: Request) {
 
       try {
         if (!Number.isFinite(storageId) || storageId <= 0) {
-          sendError('参数错误。');
+          sendError(tCommon('invalidParams'));
           return;
         }
 
@@ -46,12 +50,12 @@ export async function GET(request: Request) {
         });
         const email = session?.user?.email;
         if (!email) {
-          sendError('未登录或缺少用户信息。');
+          sendError(tCommon('notLoggedIn'));
           return;
         }
 
         if (session?.user?.role !== 'admin') {
-          sendError('Forbidden');
+          sendError(tCommon('forbidden'));
           return;
         }
 
@@ -59,7 +63,7 @@ export async function GET(request: Request) {
           where: eq(users.email, email),
         });
         if (!user) {
-          sendError('用户不存在。');
+          sendError(tCommon('userNotFound'));
           return;
         }
 
@@ -67,12 +71,12 @@ export async function GET(request: Request) {
           where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
         });
         if (!storage) {
-          sendError('存储配置不存在。');
+          sendError(tStorage('notFound'));
           return;
         }
 
         if (storage.type !== 'local' && storage.type !== 'nas') {
-          sendError('当前存储类型暂不支持扫描。');
+          sendError(tStorage('scanUnsupported'));
           return;
         }
 
@@ -82,18 +86,18 @@ export async function GET(request: Request) {
         };
 
         if (storageConfig.isDisabled) {
-          sendError('当前配置已禁用，请先启用。');
+          sendError(tStorage('configDisabled'));
           return;
         }
 
         const rootPath = storageConfig.rootPath;
         if (!rootPath) {
-          sendError('根目录路径未配置。');
+          sendError(tStorage('noRootPath'));
           return;
         }
 
-        send('log', { level: 'info', message: `开始扫描：${rootPath}` });
-        logToConsole({ level: 'info', message: `开始扫描：${rootPath}` });
+        send('log', { level: 'info', message: `${tStorage('files.scan.scanning')} ${rootPath}` });
+        logToConsole({ level: 'info', message: `Start scanning: ${rootPath}` });
 
         const { processed } = await runStorageScan({
           storageId: storage.id,
@@ -110,11 +114,11 @@ export async function GET(request: Request) {
 
         revalidatePathForAllLocales('/dashboard/media');
         revalidatePathForAllLocales('/gallery');
-        send('done', { message: `扫描完成，共处理 ${processed} 张图片，旧记录已清空。` });
-        logToConsole({ level: 'info', message: `扫描完成，共处理 ${processed} 张图片。` });
+        send('done', { message: tStorage('files.scan.scanComplete', { count: processed }) });
+        logToConsole({ level: 'info', message: tStorage('files.scan.scanCompleteConsole', { count: processed }) });
       } catch (error) {
-        console.error('扫描目录失败：', error);
-        send('error', { message: '扫描目录失败，请检查路径是否可访问。' });
+        console.error(tStorage('files.scan.scanFailedMessage'), error);
+        send('error', { message: tStorage('files.scan.scanFailedMessage') });
       } finally {
         controller.close();
       }

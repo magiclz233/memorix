@@ -7,6 +7,7 @@ import { auth } from '@/auth';
 import { db } from '@/app/lib/drizzle';
 import { files, userStorages, users } from '@/app/lib/schema';
 import { eq } from 'drizzle-orm';
+import { getTranslations } from 'next-intl/server';
 
 export const runtime = 'nodejs';
 
@@ -15,10 +16,11 @@ type Params = {
 };
 
 export async function GET(_request: Request, { params }: Params) {
+  const t = await getTranslations('api.errors');
   const { id } = await params;
   const fileId = Number(id);
   if (!Number.isFinite(fileId)) {
-    return NextResponse.json({ message: '参数错误。' }, { status: 400 });
+    return NextResponse.json({ message: t('paramError') }, { status: 400 });
   }
 
   const result = await db
@@ -36,7 +38,7 @@ export async function GET(_request: Request, { params }: Params) {
 
   const item = result[0];
   if (!item || !item.path) {
-    return NextResponse.json({ message: '文件不存在。' }, { status: 404 });
+    return NextResponse.json({ message: t('fileNotFound') }, { status: 404 });
   }
 
   if (!item.isPublished) {
@@ -45,19 +47,19 @@ export async function GET(_request: Request, { params }: Params) {
     });
     const email = session?.user?.email;
     if (!email) {
-      return NextResponse.json({ message: '文件未发布。' }, { status: 403 });
+      return NextResponse.json({ message: t('fileNotPublished') }, { status: 403 });
     }
     const user = await db.query.users.findFirst({
       where: eq(users.email, email),
     });
     if (!user || user.id !== item.userId) {
-      return NextResponse.json({ message: '文件未发布。' }, { status: 403 });
+      return NextResponse.json({ message: t('fileNotPublished') }, { status: 403 });
     }
   }
 
   const rootPath = (item.config as { rootPath?: string })?.rootPath;
   if (!rootPath) {
-    return NextResponse.json({ message: '根目录未配置。' }, { status: 400 });
+    return NextResponse.json({ message: t('rootNotConfigured') }, { status: 400 });
   }
 
   const normalizedRoot = path.resolve(rootPath);
@@ -66,7 +68,7 @@ export async function GET(_request: Request, { params }: Params) {
     !resolvedPath.startsWith(normalizedRoot + path.sep) &&
     resolvedPath !== normalizedRoot
   ) {
-    return NextResponse.json({ message: '路径非法。' }, { status: 403 });
+    return NextResponse.json({ message: t('pathInvalid') }, { status: 403 });
   }
 
   try {
@@ -80,9 +82,9 @@ export async function GET(_request: Request, { params }: Params) {
     });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return NextResponse.json({ message: '文件不存在。' }, { status: 404 });
+      return NextResponse.json({ message: t('fileNotFound') }, { status: 404 });
     }
     console.error('读取本地文件失败：', error);
-    return NextResponse.json({ message: '读取文件失败。' }, { status: 500 });
+    return NextResponse.json({ message: t('readFailed') }, { status: 500 });
   }
 }
