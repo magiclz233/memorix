@@ -1,5 +1,4 @@
 import { videoCollections } from '@/app/lib/front-data';
-import { spaceGrotesk } from '@/app/ui/fonts';
 import { CollectionCard } from '@/app/ui/front/collection-card';
 import { cn } from '@/lib/utils';
 import { getTranslations } from 'next-intl/server';
@@ -23,7 +22,7 @@ export default async function Page() {
         </p>
         <h1
           className={cn(
-            spaceGrotesk.className,
+            'font-serif',
             'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-5xl'
           )}
         >

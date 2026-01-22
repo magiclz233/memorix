@@ -1,4 +1,3 @@
-import { lusitana, spaceGrotesk } from '@/app/ui/fonts';
 import { cn } from '@/lib/utils';
 import { getTranslations } from 'next-intl/server';
 
@@ -25,7 +24,7 @@ export default async function Page() {
           </p>
           <h1
             className={cn(
-              lusitana.className,
+              'font-serif',
               'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-6xl'
             )}
           >
@@ -39,7 +38,7 @@ export default async function Page() {
           <div className='rounded-3xl border border-zinc-200 bg-white/80 p-6 shadow-lg shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900/60 dark:shadow-black/50'>
             <h2
               className={cn(
-                spaceGrotesk.className,
+                'font-serif',
                 'text-lg font-semibold text-zinc-800/90 dark:text-white/85'
               )}
             >
@@ -72,7 +71,7 @@ export default async function Page() {
           </p>
           <h2
             className={cn(
-              lusitana.className,
+              'font-serif',
               'text-3xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-4xl'
             )}
           >
