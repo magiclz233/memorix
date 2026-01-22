@@ -8,7 +8,7 @@ import { authAccounts, users } from '@/app/lib/schema';
 export const dynamic = 'force-dynamic';
 
 const DEFAULT_ADMIN = {
-  name: '管理员',
+  name: 'Admin',
   email: 'admin@memorix.com',
   password: '123456',
 };
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 
   if (!target) {
     return NextResponse.json(
-      { success: false, message: '默认管理员创建失败' },
+      { success: false, message: 'Failed to create default admin' },
       { status: 500 },
     );
   }
