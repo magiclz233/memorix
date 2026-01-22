@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface DependencyAlertProps {
   open: boolean;
@@ -27,19 +28,21 @@ export function DependencyAlert({
   dependencies,
   onConfirm,
   isConfirming,
-  title = '存在依赖项',
-  description = '以下集合正在使用该数据源中的图片。继续操作将导致这些集合中的相关图片无法显示（停用）或被永久删除（删除）。',
+  title,
+  description,
 }: DependencyAlertProps) {
+  const t = useTranslations('dashboard.storage.dependency');
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <div className="flex items-center gap-2 text-amber-600">
             <AlertTriangle className="h-5 w-5" />
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle>{title || t('title')}</DialogTitle>
           </div>
           <DialogDescription className="pt-2">
-            {description}
+            {description || t('description')}
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[200px] overflow-y-auto rounded-md bg-zinc-50 p-3 text-sm dark:bg-zinc-900">
@@ -57,14 +60,14 @@ export function DependencyAlert({
             onClick={() => onOpenChange(false)}
             disabled={isConfirming}
           >
-            取消
+            {t('cancel')}
           </Button>
           <Button
             variant="destructive"
             onClick={onConfirm}
             disabled={isConfirming}
           >
-            {isConfirming ? '处理中...' : '确认继续'}
+            {isConfirming ? t('processing') : t('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

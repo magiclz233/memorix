@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import {
   Eye,
@@ -17,15 +18,8 @@ import type { MediaLibraryItem } from '@/app/lib/data';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const STORAGE_LABELS: Record<string, string> = {
-  local: '本地存储',
-  nas: 'NAS 存储',
-  s3: 'S3 兼容',
-  qiniu: '七牛云',
-};
-
-const formatSize = (size: number | null) => {
-  if (!size && size !== 0) return '未知大小';
+const formatSize = (size: number | null, unknownLabel: string) => {
+  if (!size && size !== 0) return unknownLabel;
   if (size < 1024) return `${size} B`;
   const kb = size / 1024;
   if (kb < 1024) return `${kb.toFixed(1)} KB`;
@@ -35,19 +29,23 @@ const formatSize = (size: number | null) => {
   return `${gb.toFixed(1)} GB`;
 };
 
-const formatDate = (value?: Date | null) => {
-  if (!value) return '未知时间';
+const formatDate = (value: Date | null | undefined, unknownLabel: string, locale: string) => {
+  if (!value) return unknownLabel;
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '未知时间';
-  return new Intl.DateTimeFormat('zh-CN', {
+  if (Number.isNaN(date.getTime())) return unknownLabel;
+  return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   }).format(date);
 };
 
-const formatResolution = (width: number | null, height: number | null) => {
-  if (!width || !height) return '未知分辨率';
+const formatResolution = (
+  width: number | null,
+  height: number | null,
+  unknownLabel: string,
+) => {
+  if (!width || !height) return unknownLabel;
   return `${width}×${height}`;
 };
 
@@ -69,6 +67,9 @@ export function MediaLibraryManager({
   heroIds,
   totalCount,
 }: MediaLibraryManagerProps) {
+  const t = useTranslations('dashboard.media');
+  const tData = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -81,7 +82,10 @@ export function MediaLibraryManager({
   );
 
   useEffect(() => {
-    setSelectedIds((prev) => prev.filter((id) => selectableIds.includes(id)));
+    // 使用 flushSync 避免同步 setState 导致的级联渲染问题
+    queueMicrotask(() => {
+      setSelectedIds((prev) => prev.filter((id) => selectableIds.includes(id)));
+    });
   }, [selectableIds]);
 
   const toggleSelect = (id: number) => {
@@ -93,7 +97,7 @@ export function MediaLibraryManager({
 
   const handlePublish = (publish: boolean) => {
     if (!selectedIds.length) {
-      setMessage('请先选择要操作的资源。');
+      setMessage(t('library.selectFirst'));
       return;
     }
     setMessage(null);
@@ -107,7 +111,7 @@ export function MediaLibraryManager({
 
   const handleHero = (isHero: boolean) => {
     if (!selectedIds.length) {
-      setMessage('请先选择要操作的资源。');
+      setMessage(t('library.selectFirst'));
       return;
     }
     setMessage(null);
@@ -132,7 +136,7 @@ export function MediaLibraryManager({
             onClick={() => setSelectedIds(selectableIds)}
             disabled={isPending || selectableIds.length === 0}
           >
-            全选当前页
+            {t('library.selectAllPage')}
           </Button>
           <Button
             type="button"
@@ -141,7 +145,7 @@ export function MediaLibraryManager({
             onClick={() => setSelectedIds([])}
             disabled={isPending || selectedCount === 0}
           >
-            清空选择
+            {t('library.clearSelection')}
           </Button>
           <Button
             type="button"
@@ -150,7 +154,7 @@ export function MediaLibraryManager({
             disabled={isPending || selectedCount === 0}
           >
             <Eye className="mr-1.5 h-4 w-4" />
-            发布选中
+            {t('library.publishSelected')}
           </Button>
           <Button
             type="button"
@@ -160,7 +164,7 @@ export function MediaLibraryManager({
             disabled={isPending || selectedCount === 0}
           >
             <EyeOff className="mr-1.5 h-4 w-4" />
-            取消发布
+            {t('library.unpublishSelected')}
           </Button>
           <Button
             type="button"
@@ -170,7 +174,7 @@ export function MediaLibraryManager({
             disabled={isPending || selectedCount === 0}
           >
             <Star className="mr-1.5 h-4 w-4" />
-            设为首页
+            {t('library.setHero')}
           </Button>
           <Button
             type="button"
@@ -180,13 +184,13 @@ export function MediaLibraryManager({
             disabled={isPending || selectedCount === 0}
           >
             <StarOff className="mr-1.5 h-4 w-4" />
-            取消首页
+            {t('library.unsetHero')}
           </Button>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-          <span>已选 {selectedCount} 项</span>
-          <span>当前页可选 {selectableIds.length} 项</span>
-          <span>资源总数 {totalCount} 项</span>
+          <span>{t('library.selectedCount', { count: selectedCount })}</span>
+          <span>{t('library.selectableCount', { count: selectableIds.length })}</span>
+          <span>{t('library.totalCount', { count: totalCount })}</span>
         </div>
       </div>
 
@@ -203,14 +207,20 @@ export function MediaLibraryManager({
           const isSelected = selectedIds.includes(item.id);
           const sourceLabel =
             item.storage.alias ||
-            STORAGE_LABELS[item.storage.type] ||
+            t(`storageLabels.${item.storage.type}`) ||
             item.storage.type.toUpperCase();
-          const statusLabel = item.isPublished ? '已发布' : '未发布';
+          const statusLabel = item.isPublished
+            ? t('library.published')
+            : t('library.unpublished');
           const shotAt = item.dateShot ?? item.mtime ?? item.createdAt;
           const meta = [
-            formatDate(shotAt),
-            formatSize(item.size ?? null),
-            formatResolution(item.resolutionWidth, item.resolutionHeight),
+            formatDate(shotAt, t('library.unknownTime'), locale),
+            formatSize(item.size ?? null, t('library.unknownSize')),
+            formatResolution(
+              item.resolutionWidth,
+              item.resolutionHeight,
+              t('library.unknownResolution'),
+            ),
           ].join(' · ');
 
           return (
@@ -233,7 +243,7 @@ export function MediaLibraryManager({
                 {heroIdSet.has(item.id) ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/90 px-2 py-0.5 text-xs text-white">
                     <Sparkles className="h-3 w-3" />
-                    首页
+                    {t('library.hero')}
                   </span>
                 ) : null}
               </div>
@@ -242,13 +252,17 @@ export function MediaLibraryManager({
                 {src ? (
                   <img
                     src={src}
-                    alt={item.title ?? item.path}
+                    alt={item.title ? tData(item.title) : (item.path ?? '')}
                     loading="lazy"
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-zinc-400">
-                    {isVideo ? <Film className="h-8 w-8" /> : <ImageIcon className="h-8 w-8" />}
+                    {isVideo ? (
+                      <Film className="h-8 w-8" />
+                    ) : (
+                      <ImageIcon className="h-8 w-8" />
+                    )}
                   </div>
                 )}
                 {isVideo ? (
@@ -262,15 +276,15 @@ export function MediaLibraryManager({
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {item.title ?? item.path ?? '未命名'}
+                      {item.title ?? item.path ?? t('library.unnamed')}
                     </h3>
                     <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                      {isVideo ? '视频' : '图片'}
+                      {isVideo ? t('library.video') : t('library.image')}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">{meta}</p>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    来源：{sourceLabel}
+                    {t('library.source', { label: sourceLabel })}
                   </p>
                 </div>
 
@@ -287,7 +301,7 @@ export function MediaLibraryManager({
                   </span>
                   {item.storage.isDisabled ? (
                     <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
-                      来源已禁用
+                      {t('library.sourceDisabled')}
                     </span>
                   ) : null}
                 </div>
@@ -297,7 +311,7 @@ export function MediaLibraryManager({
                     href="/dashboard/storage"
                     className="text-xs text-indigo-600 hover:text-indigo-700"
                   >
-                    去存储配置启用
+                    {t('library.configureStorage')}
                   </Link>
                 ) : null}
               </div>

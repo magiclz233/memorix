@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import {
   deleteUserStorage,
@@ -66,14 +67,8 @@ const STORAGE_ICONS = {
   qiniu: Server,
 } as const;
 
-const STORAGE_LABELS = {
-  local: '本地存储',
-  nas: 'NAS 存储',
-  s3: 'S3 兼容',
-  qiniu: '七牛云',
-} as const;
-
 export function StorageView({ storages }: { storages: StorageItem[] }) {
+  const t = useTranslations('dashboard.storage');
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isPending, startTransition] = useTransition();
@@ -124,8 +119,8 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
     if (
       !confirm(
         publish
-          ? '确定要发布该数据源下的所有图片吗？'
-          : '确定要隐藏该数据源下的所有图片吗？',
+          ? t('view.alerts.confirmPublish')
+          : t('view.alerts.confirmHide'),
       )
     ) {
       return;
@@ -204,7 +199,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
               <ListIcon className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={handleAdd}>新增数据源</Button>
+          <Button onClick={handleAdd}>{t('view.actions.add')}</Button>
         </div>
 
         {viewMode === 'grid' ? (
@@ -225,11 +220,11 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
         ) : (
           <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
             <div className="grid grid-cols-12 gap-4 border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-              <div className="col-span-3">名称/别名</div>
-              <div className="col-span-2">类型</div>
-              <div className="col-span-4">路径/配置</div>
-              <div className="col-span-1">状态</div>
-              <div className="col-span-2 text-right">操作</div>
+              <div className="col-span-3">{t('view.headers.name')}</div>
+              <div className="col-span-2">{t('view.headers.type')}</div>
+              <div className="col-span-4">{t('view.headers.path')}</div>
+              <div className="col-span-1">{t('view.headers.status')}</div>
+              <div className="col-span-2 text-right">{t('view.headers.actions')}</div>
             </div>
             {storages.map((storage) => (
               <StorageRow
@@ -258,11 +253,11 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
           dependencies={alertDependencies}
           onConfirm={confirmAlert}
           isConfirming={isPending}
-          title={pendingAction?.type === 'delete' ? '确认删除' : '确认停用'}
+          title={pendingAction?.type === 'delete' ? t('view.alerts.deleteTitle') : t('view.alerts.disableTitle')}
           description={
             pendingAction?.type === 'delete'
-              ? '删除该数据源将永久删除其下的所有文件，并从以下集合中移除相关引用。'
-              : '停用该数据源将导致以下集合中的相关图片不再显示。'
+              ? t('view.alerts.deleteDesc')
+              : t('view.alerts.disableDesc')
           }
         />
       </div>
@@ -279,9 +274,10 @@ function StorageCard({
   onSetPublish,
   isScanning,
 }: any) {
+  const t = useTranslations('dashboard.storage');
   const config = (storage.config ?? {}) as StorageConfig;
   const Icon = STORAGE_ICONS[storage.type as keyof typeof STORAGE_ICONS] ?? HardDrive;
-  const label = STORAGE_LABELS[storage.type as keyof typeof STORAGE_LABELS] ?? storage.type;
+  const label = t(`view.types.${storage.type}`) || storage.type;
   const isDisabled = !!config.isDisabled;
 
   return (
@@ -318,7 +314,7 @@ function StorageCard({
                     <Edit className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>编辑配置</TooltipContent>
+              <TooltipContent>{t('view.actions.edit')}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -326,7 +322,7 @@ function StorageCard({
                     <RefreshCw className={cn("h-4 w-4", isScanning && "animate-spin")} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>扫描目录获取图片</TooltipContent>
+              <TooltipContent>{t('view.actions.scan')}</TooltipContent>
             </Tooltip>
          </div>
          
@@ -337,23 +333,23 @@ function StorageCard({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuLabel>操作</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('view.headers.actions')}</DropdownMenuLabel>
                 <DropdownMenuItem onClick={onToggleDisable}>
                     {isDisabled ? (
-                        <><Power className="mr-2 h-4 w-4" /> 启用</>
+                        <><Power className="mr-2 h-4 w-4" /> {t('view.actions.enable')}</>
                     ) : (
-                        <><Power className="mr-2 h-4 w-4" /> 停用</>
+                        <><Power className="mr-2 h-4 w-4" /> {t('view.actions.disable')}</>
                     )}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onSetPublish(true)}>
-                    <Eye className="mr-2 h-4 w-4" /> 全部发布
+                    <Eye className="mr-2 h-4 w-4" /> {t('view.actions.publishAll')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onSetPublish(false)}>
-                    <EyeOff className="mr-2 h-4 w-4" /> 全部隐藏
+                    <EyeOff className="mr-2 h-4 w-4" /> {t('view.actions.hideAll')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onDelete} className="text-red-600 dark:text-red-400">
-                    <Trash2 className="mr-2 h-4 w-4" /> 删除
+                    <Trash2 className="mr-2 h-4 w-4" /> {t('view.actions.delete')}
                 </DropdownMenuItem>
             </DropdownMenuContent>
          </DropdownMenu>
@@ -363,8 +359,9 @@ function StorageCard({
 }
 
 function StorageRow({ storage, onEdit, onScan, onDelete, onToggleDisable, onSetPublish, isScanning }: any) {
+    const t = useTranslations('dashboard.storage');
     const config = (storage.config ?? {}) as StorageConfig;
-    const label = STORAGE_LABELS[storage.type as keyof typeof STORAGE_LABELS] ?? storage.type;
+    const label = t(`view.types.${storage.type}`) || storage.type;
     const isDisabled = !!config.isDisabled;
 
     return (
@@ -391,7 +388,7 @@ function StorageRow({ storage, onEdit, onScan, onDelete, onToggleDisable, onSetP
                       <Edit className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>编辑配置</TooltipContent>
+                  <TooltipContent>{t('view.actions.edit')}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -399,7 +396,7 @@ function StorageRow({ storage, onEdit, onScan, onDelete, onToggleDisable, onSetP
                         <RefreshCw className={cn("h-4 w-4", isScanning && "animate-spin")} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>扫描目录获取图片</TooltipContent>
+                  <TooltipContent>{t('view.actions.scan')}</TooltipContent>
                 </Tooltip>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -410,22 +407,22 @@ function StorageRow({ storage, onEdit, onScan, onDelete, onToggleDisable, onSetP
                     <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={onToggleDisable}>
                             {isDisabled ? (
-                                <><Power className="mr-2 h-4 w-4" /> 启用</>
+                                <><Power className="mr-2 h-4 w-4" /> {t('view.actions.enable')}</>
                             ) : (
-                                <><Power className="mr-2 h-4 w-4" /> 停用</>
+                                <><Power className="mr-2 h-4 w-4" /> {t('view.actions.disable')}</>
                             )}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onSetPublish(true)}>
-                            <Eye className="mr-2 h-4 w-4" /> 全部发布
+                            <Eye className="mr-2 h-4 w-4" /> {t('view.actions.publishAll')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onSetPublish(false)}>
-                            <EyeOff className="mr-2 h-4 w-4" /> 全部隐藏
+                            <EyeOff className="mr-2 h-4 w-4" /> {t('view.actions.hideAll')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={onEdit}>
-                            <Edit className="mr-2 h-4 w-4" /> 编辑配置
+                            <Edit className="mr-2 h-4 w-4" /> {t('view.actions.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={onDelete} className="text-red-600">
-                            <Trash2 className="mr-2 h-4 w-4" /> 删除
+                            <Trash2 className="mr-2 h-4 w-4" /> {t('view.actions.delete')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

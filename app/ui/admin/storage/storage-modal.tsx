@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { saveUserStorage } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,21 +40,15 @@ interface StorageModalProps {
   storage: StorageItem | null; // null for add mode
 }
 
-const STORAGE_TYPES = [
-  { value: 'local', label: '本地存储' },
-  { value: 'nas', label: 'NAS 存储' },
-  { value: 's3', label: 'S3 兼容' },
-  { value: 'qiniu', label: '七牛云' },
-] as const;
-
 export function StorageModal({ open, onOpenChange, storage }: StorageModalProps) {
+  const t = useTranslations('dashboard.storage.modal');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{storage ? '编辑存储配置' : '新增存储配置'}</DialogTitle>
+          <DialogTitle>{storage ? t('editTitle') : t('addTitle')}</DialogTitle>
           <DialogDescription>
-            {storage ? '修改现有存储源的连接信息。' : '添加新的图片存储源。'}
+            {storage ? t('editDesc') : t('addDesc')}
           </DialogDescription>
         </DialogHeader>
         <StorageForm 
@@ -75,11 +70,21 @@ function StorageForm({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations('dashboard.storage.modal');
+  const tTypes = useTranslations('dashboard.storage.form.types');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [type, setType] = useState(storage?.type ?? 'local');
   const [formData, setFormData] = useState<StorageConfig>((storage?.config ?? {}) as StorageConfig);
   const [message, setMessage] = useState<string | null>(null);
+
+  const STORAGE_TYPES = [
+    { value: 'local', label: tTypes('local') },
+    { value: 'nas', label: tTypes('nas') },
+    { value: 's3', label: tTypes('s3') },
+    { value: 'qiniu', label: tTypes('qiniu') },
+  ] as const;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +97,7 @@ function StorageForm({
     };
 
     startTransition(async () => {
-      // 清理 payload，去除 null 值并确保类型匹配
+      // Clean payload, remove nulls
       const cleanPayload = {
         ...Object.fromEntries(
           Object.entries(formData).map(([k, v]) => [k, v ?? undefined])
@@ -106,7 +111,7 @@ function StorageForm({
         onSuccess();
         router.refresh();
       } else {
-        setMessage(result.message ?? '保存失败');
+        setMessage(result.message ?? tCommon('error'));
       }
     });
   };
@@ -121,7 +126,7 @@ function StorageForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 py-4">
       <div className="grid gap-2">
-        <Label htmlFor="type">存储类型</Label>
+        <Label htmlFor="type">{t('labels.type')}</Label>
         <select
           id="type"
           className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:ring-offset-zinc-950 dark:focus-visible:ring-zinc-300"
@@ -138,26 +143,26 @@ function StorageForm({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="alias">别名 (可选)</Label>
+        <Label htmlFor="alias">{t('labels.alias')}</Label>
         <Input
           id="alias"
           value={formData.alias ?? ''}
           onChange={(e) => updateField('alias', e.target.value)}
-          placeholder="例如：我的摄影作品"
+          placeholder={t('placeholders.alias')}
         />
       </div>
 
       {isLocal && (
         <div className="grid gap-2">
-          <Label htmlFor="rootPath">根目录路径</Label>
+          <Label htmlFor="rootPath">{t('labels.rootPath')}</Label>
           <Input
             id="rootPath"
             value={formData.rootPath ?? ''}
             onChange={(e) => updateField('rootPath', e.target.value)}
-            placeholder={type === 'nas' ? '/mnt/nas/photos' : 'D:/photos'}
+            placeholder={type === 'nas' ? t('placeholders.rootPathNas') : t('placeholders.rootPathLocal')}
           />
           <p className="text-xs text-zinc-500">
-            请确保服务器有权限访问该路径。
+            {t('hints.permission')}
           </p>
         </div>
       )}
@@ -166,26 +171,26 @@ function StorageForm({
         <>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="endpoint">Endpoint (S3 必填)</Label>
+              <Label htmlFor="endpoint">{t('labels.endpoint')}</Label>
               <Input
                 id="endpoint"
                 value={formData.endpoint ?? ''}
                 onChange={(e) => updateField('endpoint', e.target.value)}
-                placeholder="s3.region.amazonaws.com"
+                placeholder={t('placeholders.endpoint')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="region">Region</Label>
+              <Label htmlFor="region">{t('labels.region')}</Label>
               <Input
                 id="region"
                 value={formData.region ?? ''}
                 onChange={(e) => updateField('region', e.target.value)}
-                placeholder="us-east-1"
+                placeholder={t('placeholders.region')}
               />
             </div>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="bucket">Bucket 名称</Label>
+            <Label htmlFor="bucket">{t('labels.bucket')}</Label>
             <Input
               id="bucket"
               value={formData.bucket ?? ''}
@@ -194,7 +199,7 @@ function StorageForm({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="accessKey">Access Key</Label>
+              <Label htmlFor="accessKey">{t('labels.accessKey')}</Label>
               <Input
                 id="accessKey"
                 value={formData.accessKey ?? ''}
@@ -203,7 +208,7 @@ function StorageForm({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="secretKey">Secret Key</Label>
+              <Label htmlFor="secretKey">{t('labels.secretKey')}</Label>
               <Input
                 id="secretKey"
                 value={formData.secretKey ?? ''}
@@ -213,12 +218,12 @@ function StorageForm({
             </div>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="prefix">路径前缀 (可选)</Label>
+            <Label htmlFor="prefix">{t('labels.prefix')}</Label>
             <Input
               id="prefix"
               value={formData.prefix ?? ''}
               onChange={(e) => updateField('prefix', e.target.value)}
-              placeholder="photos/"
+              placeholder={t('placeholders.prefix')}
             />
           </div>
         </>
@@ -236,10 +241,10 @@ function StorageForm({
           variant="outline"
           onClick={onCancel}
         >
-          取消
+          {t('cancel')}
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending ? '保存中...' : '保存配置'}
+          {isPending ? t('saving') : t('save')}
         </Button>
       </DialogFooter>
     </form>

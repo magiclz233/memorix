@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { CheckCircle2, FileText, UploadCloud, XCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ const formatBytes = (value: number) => {
 };
 
 export function UploadCenter({ storages }: UploadCenterProps) {
+  const t = useTranslations('dashboard.upload');
   const [selectedStorageId, setSelectedStorageId] = useState<number | null>(
     storages[0]?.id ?? null,
   );
@@ -116,16 +118,16 @@ export function UploadCenter({ storages }: UploadCenterProps) {
       <section className="space-y-5">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            上传队列
+            {t('queue.title')}
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            选择上传目标后拖拽文件，系统会显示实时上传进度。
+            {t('queue.description')}
           </p>
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white/80 p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-            上传到
+            {t('queue.uploadTo')}
           </label>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <select
@@ -138,7 +140,7 @@ export function UploadCenter({ storages }: UploadCenterProps) {
               className="min-w-[220px] rounded-full border border-zinc-200 bg-white/80 px-4 py-2 text-sm text-zinc-700 shadow-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
             >
               {storages.length === 0 ? (
-                <option value="">暂无可用存储</option>
+                <option value="">{t('queue.noStorage')}</option>
               ) : null}
               {storages.map((storage) => (
                 <option key={storage.id} value={storage.id}>
@@ -157,7 +159,7 @@ export function UploadCenter({ storages }: UploadCenterProps) {
         <div className="space-y-4">
           {uploads.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
-              暂无上传任务，请从右侧拖拽文件或点击选择文件。
+              {t('queue.empty')}
             </div>
           ) : (
             uploads.map((item) => (
@@ -202,10 +204,10 @@ export function UploadCenter({ storages }: UploadCenterProps) {
                 <div className="mt-2 flex justify-between text-xs text-zinc-500 dark:text-zinc-400">
                   <span>
                     {item.status === 'done'
-                      ? '上传完成'
+                      ? t('queue.status.done')
                       : item.status === 'error'
-                        ? '上传失败'
-                        : '上传中'}
+                        ? t('queue.status.error')
+                        : t('queue.status.uploading')}
                   </span>
                   <span>{item.progress}%</span>
                 </div>
@@ -218,10 +220,10 @@ export function UploadCenter({ storages }: UploadCenterProps) {
       <section className="space-y-5">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            拖拽上传
+            {t('drag.title')}
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            支持批量上传图片与视频，上传前请确认目标存储。
+            {t('drag.description')}
           </p>
         </div>
 
@@ -243,10 +245,10 @@ export function UploadCenter({ storages }: UploadCenterProps) {
           <UploadCloud className="h-8 w-8" />
           <div className="space-y-1">
             <p className="text-base font-medium text-zinc-800 dark:text-zinc-100">
-              {canUpload ? '拖拽文件到此处' : '请先选择存储源'}
+              {canUpload ? t('drag.dropHere') : t('drag.selectStorageFirst')}
             </p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              支持 JPG、PNG、MP4 等常见格式
+              {t('drag.formats')}
             </p>
           </div>
           <input
@@ -263,7 +265,7 @@ export function UploadCenter({ storages }: UploadCenterProps) {
             disabled={!canUpload}
           />
           <Button type="button" variant="outline" onClick={handlePickFiles} disabled={!canUpload}>
-            选择文件
+            {t('drag.selectFile')}
           </Button>
         </div>
       </section>
