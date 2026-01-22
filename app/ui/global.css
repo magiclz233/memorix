@@ -121,3 +121,15 @@ input[type='number']::-webkit-outer-spin-button {
 body.gallery-modal-open .front-footer {
   display: none !important;
 }
+
+body.gallery-chrome-hidden .front-floating-nav {
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+  max-height: 0;
+  overflow: hidden;
+}
+
+body.gallery-chrome-hidden .front-floating-nav * {
+  pointer-events: none;
+}
