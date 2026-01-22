@@ -84,9 +84,9 @@ export function AdminSidebar({
       </SidebarContent>
       <SidebarFooter className="gap-3">
         <div className="flex items-center gap-2 rounded-xl border border-zinc-200/70 bg-white/70 p-2 text-zinc-900 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 dark:text-zinc-100">
-          <Avatar className="h-9 w-9 rounded-lg">
+          <Avatar className="h-9 w-9 rounded-full">
             <AvatarImage src={ADMIN_USER.avatar} alt={ADMIN_USER.name} />
-            <AvatarFallback className="rounded-lg">
+            <AvatarFallback className="rounded-full">
               {ADMIN_USER.name.slice(0, 1)}
             </AvatarFallback>
           </Avatar>
@@ -98,11 +98,11 @@ export function AdminSidebar({
           </div>
           <div className="flex items-center gap-2">
             <LocaleSwitcher
-              className="rounded-full border border-zinc-200/70 bg-white/80 px-1 text-[10px] uppercase tracking-[0.25em] text-zinc-600 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-white/70"
-              itemClassName="rounded-full px-2 py-1 transition hover:text-zinc-900 dark:hover:text-white"
+              className="h-9 w-9 rounded-full border border-zinc-200/70 bg-white/80 text-[10px] font-semibold text-zinc-700 shadow-sm dark:border-zinc-700 dark:bg-black/40 dark:text-zinc-100"
+              itemClassName="rounded-md px-2 py-1 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
               activeItemClassName="bg-zinc-100 text-zinc-900 dark:bg-white/15 dark:text-white"
             />
-            <ModeToggle />
+            <ModeToggle className="h-9 w-9" />
           </div>
         </div>
         <form action={signOutAction}>

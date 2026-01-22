@@ -3,10 +3,16 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocale, useTranslations, type TranslationValues } from 'next-intl';
+import {
+  useLocale,
+  useMessages,
+  useTranslations,
+  type TranslationValues,
+} from 'next-intl';
 import { createPortal } from 'react-dom';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
+import { resolveMessage } from '@/app/lib/i18n';
 import { cn } from '@/lib/utils';
 import { GalleryHeader } from '@/app/ui/front/gallery-header';
 
@@ -171,7 +177,7 @@ const buildDetails = (
 const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   const locale = useLocale();
   const t = useTranslations('front.galleryGrid');
-  const tData = useTranslations();
+  const messages = useMessages();
   const [selectedId, setSelectedId] = useState<GalleryId | null>(null);
   const [isFullBleed, setIsFullBleed] = useState(false);
   const [columnCount, setColumnCount] = useState(() =>
@@ -222,6 +228,12 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     if (!selectedId) return null;
     return visibleItems.find((item) => item.id === selectedId) ?? null;
   }, [selectedId, visibleItems]);
+  const selectedTitle = selected
+    ? resolveMessage(messages, selected.title)
+    : '';
+  const selectedDescription = selected
+    ? resolveMessage(messages, selected.description)
+    : '';
   const selectedDetails = useMemo(
     () => (selected ? buildDetails(selected, t, locale) : []),
     [locale, selected, t],
@@ -475,7 +487,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                     fill
                     sizes='(max-width: 768px) 90vw, 60vw'
                     src={selected.src}
-                    alt={selected.title}
+                    alt={selectedTitle}
                     blurHash={selected.blurHash}
                     className={cn(
                       viewMode === 'crop' ? 'object-cover' : 'object-contain',
@@ -515,9 +527,11 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
               </div>
               <div className='max-h-full space-y-4 overflow-y-auto text-sm text-muted-foreground'>
                 <div>
-                  <p className='text-base font-semibold text-foreground'>{selected.title}</p>
-                  {selected.description ? (
-                    <p className='mt-2 text-sm text-muted-foreground'>{selected.description}</p>
+                  <p className='text-base font-semibold text-foreground'>{selectedTitle}</p>
+                  {selectedDescription ? (
+                    <p className='mt-2 text-sm text-muted-foreground'>
+                      {selectedDescription}
+                    </p>
                   ) : null}
                 </div>
                 <div className='space-y-2'>
@@ -628,56 +642,59 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
 
             return (
               <div key={columnIndex} className='flex min-w-0 flex-1 flex-col gap-4'>
-                {columnItems.map((item, itemIndex) => (
-                  <motion.article
-                    key={item.id}
-                    initial={{ opacity: 0, scale: 0.96, y: yOffset }}
-                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ duration: 0.45, delay: itemIndex * 0.08 }}
-                    className='group relative w-full overflow-hidden rounded-2xl border border-border bg-card'
-                  >
-                    <button
-                      type='button'
-                      onClick={() => setSelectedId(item.id)}
-                      className='block w-full text-left'
+                {columnItems.map((item, itemIndex) => {
+                  const itemTitle = resolveMessage(messages, item.title);
+                  return (
+                    <motion.article
+                      key={item.id}
+                      initial={{ opacity: 0, scale: 0.96, y: yOffset }}
+                      whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ duration: 0.45, delay: itemIndex * 0.08 }}
+                      className='group relative w-full overflow-hidden rounded-2xl border border-border bg-card'
                     >
-                      <div
-                        className='relative w-full'
-                        style={{ aspectRatio: getAspectRatioValue(item, ratioMap) }}
+                      <button
+                        type='button'
+                        onClick={() => setSelectedId(item.id)}
+                        className='block w-full text-left'
                       >
-                        <BlurImage
-                          fill
-                          sizes={gridSizes}
-                          className='object-cover transition duration-300 group-hover:scale-105'
-                          src={item.src}
-                          alt={tData(item.title)}
-                          blurHash={item.blurHash}
-                          onLoadingComplete={(image) => {
-                            const ratioKey = getRatioKey(item.id);
-                            if (ratioMap[ratioKey]) return;
-                            if (!image.naturalWidth || !image.naturalHeight) return;
-                            const ratio = image.naturalWidth / image.naturalHeight;
-                            setRatioMap((prev) => ({
-                              ...prev,
-                              [ratioKey]: ratio,
-                            }));
-                          }}
-                        />
-                        <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100' />
-                        <div className='absolute inset-x-0 bottom-0 px-4 pb-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100'>
-                          <p className='truncate text-sm font-medium text-white'>
-                            {tData(item.title)}
-                          </p>
-                          {item.resolution || (item.width && item.height) ? (
-                            <p className='text-xs text-white/60'>
-                              {item.resolution ?? `${item.width}×${item.height}`}
+                        <div
+                          className='relative w-full'
+                          style={{ aspectRatio: getAspectRatioValue(item, ratioMap) }}
+                        >
+                          <BlurImage
+                            fill
+                            sizes={gridSizes}
+                            className='object-cover transition duration-300 group-hover:scale-105'
+                            src={item.src}
+                            alt={itemTitle}
+                            blurHash={item.blurHash}
+                            onLoadingComplete={(image) => {
+                              const ratioKey = getRatioKey(item.id);
+                              if (ratioMap[ratioKey]) return;
+                              if (!image.naturalWidth || !image.naturalHeight) return;
+                              const ratio = image.naturalWidth / image.naturalHeight;
+                              setRatioMap((prev) => ({
+                                ...prev,
+                                [ratioKey]: ratio,
+                              }));
+                            }}
+                          />
+                          <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100' />
+                          <div className='absolute inset-x-0 bottom-0 px-4 pb-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100'>
+                            <p className='truncate text-sm font-medium text-white'>
+                              {itemTitle}
                             </p>
-                          ) : null}
+                            {item.resolution || (item.width && item.height) ? (
+                              <p className='text-xs text-white/60'>
+                                {item.resolution ?? `${item.width}?${item.height}`}
+                              </p>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  </motion.article>
-                ))}
+                      </button>
+                    </motion.article>
+                  );
+                })}
               </div>
             );
           })}
