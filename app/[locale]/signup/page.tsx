@@ -26,8 +26,8 @@ export default async function SignupPage() {
             {t('appName')}
           </Link>
           <LocaleSwitcher
-            className='rounded-full border border-zinc-200/70 bg-white/80 px-1 text-[10px] uppercase tracking-[0.25em] text-zinc-600 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-white/70'
-            itemClassName='rounded-full px-2 py-1 transition hover:text-zinc-900 dark:hover:text-white'
+            className='h-8 w-8 rounded-full border border-zinc-200/70 bg-white/80 text-[10px] font-semibold text-zinc-700 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-white/80'
+            itemClassName='rounded-md px-2 py-1 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-white/10'
             activeItemClassName='bg-zinc-100 text-zinc-900 dark:bg-white/15 dark:text-white'
           />
         </div>
