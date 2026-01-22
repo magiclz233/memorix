@@ -23,7 +23,7 @@ const buildStorageOption = (
   t: (key: string) => string
 ) => {
   const config = (storage.config ?? {}) as StorageConfig;
-  const label = t(`storage.types.${storage.type}`);
+  const label = t(`storage.view.types.${storage.type}`);
   const name =
     config.alias ||
     config.bucket ||
