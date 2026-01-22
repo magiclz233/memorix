@@ -163,13 +163,13 @@ export function FloatingNav() {
           </nav>
           <LocaleSwitcher
             className={cn(
-              'rounded-full border px-1 text-[10px] uppercase tracking-[0.25em] shadow-sm',
+              'h-9 w-9 rounded-full border text-[10px] font-semibold shadow-sm backdrop-blur-xl',
               isHome
-                ? 'border-white/30 bg-white/10 text-white/70'
-                : 'border-zinc-200/70 bg-white/80 text-zinc-600 dark:border-white/15 dark:bg-white/10 dark:text-white/70',
+                ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                : 'border-zinc-200/70 bg-white/80 text-zinc-800 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
             )}
-            itemClassName='rounded-full px-2 py-1 transition'
-            activeItemClassName={isHome ? 'bg-white/15 text-white' : 'bg-zinc-100 text-zinc-900 dark:bg-white/15 dark:text-white'}
+            itemClassName='rounded-md px-2 py-1 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-white/10'
+            activeItemClassName='bg-zinc-100 text-zinc-900 dark:bg-white/15 dark:text-white'
           />
           <ModeToggle
             className={cn(
