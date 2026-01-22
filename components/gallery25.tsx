@@ -171,6 +171,7 @@ const buildDetails = (
 const Gallery25 = ({ items = [], className }: Gallery25Props) => {
   const locale = useLocale();
   const t = useTranslations('front.galleryGrid');
+  const tData = useTranslations();
   const [selectedId, setSelectedId] = useState<GalleryId | null>(null);
   const [isFullBleed, setIsFullBleed] = useState(false);
   const [columnCount, setColumnCount] = useState(() =>
@@ -649,7 +650,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                           sizes={gridSizes}
                           className='object-cover transition duration-300 group-hover:scale-105'
                           src={item.src}
-                          alt={item.title}
+                          alt={tData(item.title)}
                           blurHash={item.blurHash}
                           onLoadingComplete={(image) => {
                             const ratioKey = getRatioKey(item.id);
@@ -665,7 +666,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                         <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100' />
                         <div className='absolute inset-x-0 bottom-0 px-4 pb-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100'>
                           <p className='truncate text-sm font-medium text-white'>
-                            {item.title}
+                            {tData(item.title)}
                           </p>
                           {item.resolution || (item.width && item.height) ? (
                             <p className='text-xs text-white/60'>
