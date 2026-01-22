@@ -31,7 +31,7 @@ export function DependencyAlert({
   title,
   description,
 }: DependencyAlertProps) {
-  const t = useTranslations('dashboard.storage.dependency');
+  const t = useTranslations('dashboard.storage.view.dependency');
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

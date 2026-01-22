@@ -41,7 +41,7 @@ interface StorageModalProps {
 }
 
 export function StorageModal({ open, onOpenChange, storage }: StorageModalProps) {
-  const t = useTranslations('dashboard.storage.modal');
+  const t = useTranslations('dashboard.storage.view.modal');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -70,9 +70,8 @@ function StorageForm({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
-  const t = useTranslations('dashboard.storage.modal');
+  const t = useTranslations('dashboard.storage.view.modal');
   const tTypes = useTranslations('dashboard.storage.form.types');
-  const tCommon = useTranslations('common');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [type, setType] = useState(storage?.type ?? 'local');
@@ -111,7 +110,7 @@ function StorageForm({
         onSuccess();
         router.refresh();
       } else {
-        setMessage(result.message ?? tCommon('error'));
+        setMessage(result.message ?? t('error'));
       }
     });
   };
