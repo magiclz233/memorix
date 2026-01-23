@@ -1,11 +1,10 @@
 import {
-  Playfair_Display,
-  Plus_Jakarta_Sans,
+  Manrope,
   Noto_Sans_SC,
-  Noto_Serif_SC,
+  Syne,
 } from 'next/font/google';
 
-export const plusJakartaSans = Plus_Jakarta_Sans({
+export const manrope = Manrope({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-sans',
@@ -19,16 +18,9 @@ export const notoSansSC = Noto_Sans_SC({
   display: 'swap',
 });
 
-export const playfairDisplay = Playfair_Display({
+export const syne = Syne({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-serif',
-  display: 'swap',
-});
-
-export const notoSerifSC = Noto_Serif_SC({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-serif-sc',
   display: 'swap',
 });
