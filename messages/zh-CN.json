@@ -495,7 +495,8 @@
       "systemSettings": "系统设置",
       "userManagement": "用户管理",
       "adminConsole": "管理控制台",
-      "signOut": "退出登录"
+      "signOut": "退出",
+      "backToFront": "前台"
     },
     "overview": {
       "title": "概览",

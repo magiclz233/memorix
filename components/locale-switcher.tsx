@@ -84,7 +84,7 @@ export function LocaleSwitcher({
         align='end'
         side='bottom'
         sideOffset={8}
-        avoidCollisions={false}
+        collisionPadding={12}
         onMouseEnter={handleOpen}
         onMouseLeave={handleClose}
       >

@@ -116,7 +116,7 @@ export function FloatingNav() {
   }, []);
 
   return (
-    <div className='fixed inset-x-0 top-0 z-50 pointer-events-none'>
+    <div className='front-floating-nav fixed inset-x-0 top-0 z-50 pointer-events-none transition duration-200 ease-out'>
       <div className='flex items-center justify-between px-6 pt-6'>
         <Link href='/' className='pointer-events-auto flex items-center gap-3'>
           <span

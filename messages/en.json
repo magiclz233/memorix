@@ -485,7 +485,8 @@
       "systemSettings": "System Settings",
       "userManagement": "Users",
       "adminConsole": "Admin Console",
-      "signOut": "Sign out"
+      "signOut": "Exit",
+      "backToFront": "Back"
     },
     "overview": {
       "title": "Overview",

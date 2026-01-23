@@ -310,6 +310,9 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
         if (delta > 6) {
           setIsChromeVisible(false);
         }
+        if (delta < -6) {
+          setIsChromeVisible(true);
+        }
         lastScrollY.current = current;
       });
     };
@@ -332,6 +335,15 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
       window.removeEventListener('wheel', onWheel);
     };
   }, [isFullBleed]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const shouldHide = isFullBleed && !isChromeVisible;
+    document.body.classList.toggle('gallery-chrome-hidden', shouldHide);
+    return () => {
+      document.body.classList.remove('gallery-chrome-hidden');
+    };
+  }, [isFullBleed, isChromeVisible]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -636,7 +648,13 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
             </div>
           </>
         ) : null}
-        <div ref={gridRef} className='flex gap-4'>
+        <div
+          ref={gridRef}
+          className={cn(
+            'flex gap-4',
+            isFullBleed && 'pt-4 md:pt-6',
+          )}
+        >
           {columns.map((columnItems, columnIndex) => {
             const yOffset = columnIndex % 2 === 0 ? 40 : -40;
 
@@ -686,7 +704,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                             </p>
                             {item.resolution || (item.width && item.height) ? (
                               <p className='text-xs text-white/60'>
-                                {item.resolution ?? `${item.width}?${item.height}`}
+                                {item.resolution ?? `${item.width}×${item.height}`}
                               </p>
                             ) : null}
                           </div>
