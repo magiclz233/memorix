@@ -21,12 +21,12 @@ const config: Config = {
   				'sans-serif'
   			],
   			serif: [
-				'var(--font-serif)',
-				'var(--font-sans-sc)',
-				'ui-serif',
-				'Georgia',
-				'serif'
-			]
+  				'var(--font-serif)',
+  				'var(--font-sans-sc)',
+  				'ui-serif',
+  				'Georgia',
+  				'serif'
+  			]
   		},
   		colors: {
   			blue: {
