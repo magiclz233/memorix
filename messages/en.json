@@ -343,12 +343,12 @@
       },
       "photo": {
         "eyebrow": "Collections / Photo",
-        "title": "Photo Collections",
+        "title": "Albums",
         "description": "Each theme is a standalone journey of light and composition."
       },
       "video": {
         "eyebrow": "Collections / Video",
-        "title": "Video Collections",
+        "title": "Series",
         "description": "Dynamic stories of rhythm, music, and space."
       }
     },
