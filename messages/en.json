@@ -8,8 +8,8 @@
     "items": {
       "home": "Home",
       "gallery": "Gallery",
-      "photoCollections": "Photo Collections",
-      "videoCollections": "Video Collections",
+      "photoCollections": "Albums",
+      "videoCollections": "Series",
       "about": "About"
     },
     "account": {
@@ -80,8 +80,8 @@
       "links": {
         "home": "Home",
         "gallery": "Gallery",
-        "photoCollections": "Photo Collections",
-        "videoCollections": "Video Collections",
+        "photoCollections": "Albums",
+        "videoCollections": "Series",
         "about": "About"
       }
     },
