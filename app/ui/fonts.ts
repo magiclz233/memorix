@@ -1,10 +1,10 @@
 import {
-  Manrope,
+  Lora,
   Noto_Sans_SC,
-  Syne,
+  Open_Sans,
 } from 'next/font/google';
 
-export const manrope = Manrope({
+export const openSans = Open_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-sans',
@@ -13,14 +13,14 @@ export const manrope = Manrope({
 
 export const notoSansSC = Noto_Sans_SC({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '700'],
   variable: '--font-sans-sc',
   display: 'swap',
 });
 
-export const syne = Syne({
+export const lora = Lora({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-serif',
   display: 'swap',
 });
