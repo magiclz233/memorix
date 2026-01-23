@@ -1,8 +1,8 @@
 import '@/app/ui/global.css';
 import {
-  manrope,
+  lora,
   notoSansSC,
-  syne,
+  openSans,
 } from '@/app/ui/fonts';
 import type { Metadata } from 'next';
 import { getLocale } from 'next-intl/server';
@@ -26,7 +26,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
-        className={`${manrope.variable} ${notoSansSC.variable} ${syne.variable} font-sans font-medium antialiased`}
+        className={`${openSans.variable} ${notoSansSC.variable} ${lora.variable} font-sans font-medium antialiased`}
       >
         {children}
       </body>
