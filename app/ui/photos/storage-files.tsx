@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { setHeroPhotos, setFilesPublished, setStoragePublished } from '@/app/lib/actions';
-import { Button } from '@/app/ui/button';
+import { Button } from '@/components/ui/button';
 
 type StorageFile = {
   id: number;
@@ -249,70 +249,86 @@ export function StorageFilesManager({
       </div>
 
       <div className='flex flex-wrap items-center gap-3 text-sm'>
-        <button
+        <Button
           type='button'
-          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          variant='outline'
+          size='sm'
+          className='rounded-full'
           onClick={() => setSelectedIds(allIds)}
           disabled={isActionDisabled}
         >
           {t('actions.selectAll')}
-        </button>
-        <button
+        </Button>
+        <Button
           type='button'
-          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          variant='outline'
+          size='sm'
+          className='rounded-full'
           onClick={() => setSelectedIds([])}
           disabled={isActionDisabled}
         >
           {t('actions.clearSelection')}
-        </button>
-        <button
+        </Button>
+        <Button
           type='button'
-          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          variant='outline'
+          size='sm'
+          className='rounded-full'
           onClick={() => updateSelected(true)}
           disabled={isActionDisabled}
         >
           {t('actions.publishSelected')}
-        </button>
-        <button
+        </Button>
+        <Button
           type='button'
-          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          variant='outline'
+          size='sm'
+          className='rounded-full'
           onClick={() => updateSelected(false)}
           disabled={isActionDisabled}
         >
           {t('actions.unpublishSelected')}
-        </button>
-        <button
+        </Button>
+        <Button
           type='button'
-          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          variant='outline'
+          size='sm'
+          className='rounded-full'
           onClick={() => updateSelectedHero(true)}
           disabled={isActionDisabled}
         >
           {t('actions.setHero')}
-        </button>
-        <button
+        </Button>
+        <Button
           type='button'
-          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          variant='outline'
+          size='sm'
+          className='rounded-full'
           onClick={() => updateSelectedHero(false)}
           disabled={isActionDisabled}
         >
           {t('actions.unsetHero')}
-        </button>
-        <button
+        </Button>
+        <Button
           type='button'
-          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          variant='outline'
+          size='sm'
+          className='rounded-full'
           onClick={() => updateAll(true)}
           disabled={isActionDisabled}
         >
           {t('actions.publishAll')}
-        </button>
-        <button
+        </Button>
+        <Button
           type='button'
-          className='rounded-full border border-gray-200 px-3 py-1 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+          variant='outline'
+          size='sm'
+          className='rounded-full'
           onClick={() => updateAll(false)}
           disabled={isActionDisabled}
         >
           {t('actions.unpublishAll')}
-        </button>
+        </Button>
         <span className='text-gray-500'>{t('messages.selectedCount', { count: selectedCount })}</span>
         {message ? <span className='text-gray-500'>{message}</span> : null}
       </div>
