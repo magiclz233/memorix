@@ -87,7 +87,7 @@
     },
     "home": {
       "carousel": {
-        "previous": "上一张",
+        "prev": "上一张",
         "next": "下一张"
       },
       "hero": {
