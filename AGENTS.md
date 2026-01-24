@@ -15,7 +15,7 @@
   - `auth.ts`：Better Auth 配置（位于根目录或 `app/lib` 中引用）
 - **UI 组件（`app/ui/`）**
   - 按功能域拆分：`admin`（后台组件）、`dashboard`（仪表盘组件）、`front`（前台组件）、`gallery`（画廊组件）、`photos`（照片管理组件）
-  - 通用组件：`acme-logo.tsx`、`button.tsx`、`modal.tsx` 等
+  - 通用组件：`acme-logo.tsx`、`modal.tsx` 等（注：基础 UI 组件如 Button 统一使用 `@/components/ui/`）
 - **API 路由**
   - `app/api/auth/[...all]`：Better Auth 处理
   - `app/api/gallery`、`app/api/local-files/[id]`、`app/api/storage/scan`：业务 API
@@ -86,6 +86,10 @@
   - **媒体交互**：实况图与视频支持 Hover-to-Play，并有明确角标
 
 ## UI 组件与 Block 使用规则
+- **风格统一原则**：
+  - 严格遵循 **Shadcn UI** 设计规范：极简、干净、组件化。
+  - **禁止**随意创建自定义样式的 Button/Input 等基础组件，必须使用 `@/components/ui/` 下的标准组件。
+  - 需要不同样式时，优先通过 `variant`（如 `ghost`, `outline`, `secondary`）或 `className` 微调实现，而不是重写组件。
 - 优先选择 **Shadcn 兼容** 的组件或 Block，避免引入新设计系统造成割裂
 - 使用 Magic UI / Aceternity / React Bits / Animata / Kibo UI / Shadcn Blocks 等 Block 时需：
   - 对齐现有色板与材质（zinc + indigo、玻璃拟态、Light/Dark 双模态）
