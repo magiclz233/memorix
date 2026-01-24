@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { MediaItem } from '@/app/lib/definitions';
 import { MediaCard } from '@/app/ui/front/media-card';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
 
 type GalleryFilterProps = {
@@ -41,19 +42,21 @@ export function GalleryFilter({ items }: GalleryFilterProps) {
     <div className='space-y-8'>
       <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
         {filters.map((tab) => (
-          <button
+          <Button
             key={tab.value}
             type='button'
+            variant={filter === tab.value ? 'secondary' : 'ghost'}
+            size='sm'
             onClick={() => setFilter(tab.value)}
             className={cn(
-              'rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] transition',
+              'rounded-full px-4 text-xs uppercase tracking-[0.3em]',
               filter === tab.value
-                ? 'bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white'
-                : 'text-zinc-600/80 hover:text-zinc-900 dark:text-white/60 dark:hover:text-white'
+                ? 'bg-zinc-100 dark:bg-white/10'
+                : 'text-muted-foreground'
             )}
           >
             {t(tab.key)}
-          </button>
+          </Button>
         ))}
       </div>
       <div className='columns-1 gap-x-6 md:columns-2 xl:columns-3'>
