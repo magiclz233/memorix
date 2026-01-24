@@ -148,26 +148,27 @@ export function FrontHome() {
   }, [viewportSize.width]);
   const safeIndex = heroImages.length ? activeIndex % heroImages.length : 0;
   const heroImageSrc = heroImages[safeIndex] ?? heroImages[0];
+  
+  const scrollPrev = () => setActiveIndex((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+  const scrollNext = () => setActiveIndex((prev) => (prev + 1) % heroImages.length);
+  const canScrollPrev = heroImages.length > 1;
+  const canScrollNext = heroImages.length > 1;
+
   const isHeroLight = heroTone === 'light';
   const heroTitleClass = isHeroLight ? 'text-white/85' : 'text-zinc-900/80';
   const heroLabelClass = isHeroLight ? 'text-white/60' : 'text-zinc-700/80';
   const heroBodyClass = isHeroLight ? 'text-white/60' : 'text-zinc-800/85';
-  const heroButtonTextClass = isHeroLight
-    ? 'text-white/80 hover:text-white'
-    : 'text-zinc-800/80 hover:text-zinc-900';
   const heroPrimaryButtonClass = cn(
-    'rounded-full transition',
-    heroButtonTextClass,
+    'h-11 rounded-full px-8 text-sm font-medium backdrop-blur-md transition-all hover:scale-105',
     isHeroLight
-      ? 'border border-white/40 bg-white/18 shadow-[0_6px_16px_rgba(0,0,0,0.14)] hover:bg-white/26'
-      : 'border border-zinc-300/70 bg-white/52 text-zinc-800/85 shadow-[0_6px_16px_rgba(0,0,0,0.1)] hover:bg-white/52 hover:text-zinc-800/85',
+      ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20'
+      : 'border border-black/10 bg-black/5 text-zinc-900 hover:bg-black/10'
   );
   const heroSecondaryButtonClass = cn(
-    'rounded-full transition',
-    heroButtonTextClass,
+    'h-11 rounded-full px-8 text-sm font-medium backdrop-blur-md transition-all hover:scale-105',
     isHeroLight
-      ? 'border border-white/25 bg-white/8 hover:bg-white/12'
-      : 'border border-zinc-300/45 bg-white/52 hover:bg-white/62',
+      ? 'border border-white/20 text-white hover:bg-white/10'
+      : 'border border-black/10 text-zinc-900 hover:bg-black/5'
   );
 
   useEffect(() => {
@@ -227,30 +228,30 @@ export function FrontHome() {
         <div className='absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent' />
         <div className='pointer-events-none absolute inset-0 z-10'>
           <div className='group/edge-left pointer-events-auto absolute inset-y-0 left-0 flex w-[20%] min-w-[72px] items-center justify-start px-4'>
-            <button
+            <Button
               type='button'
-              onClick={() =>
-                setActiveIndex((prev) =>
-                  (prev - 1 + heroImages.length) % heroImages.length,
-                )
-              }
-              className='inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white opacity-0 backdrop-blur transition group-hover/edge-left:opacity-100'
-              aria-label={t('carousel.previous')}
+              variant='ghost'
+              size='icon'
+              onClick={scrollPrev}
+              disabled={!canScrollPrev}
+              className='h-12 w-12 rounded-full border border-white/30 bg-white/10 text-white opacity-0 backdrop-blur transition hover:bg-white/20 hover:text-white disabled:opacity-30 group-hover/edge-left:opacity-100'
+              aria-label={t('carousel.prev')}
             >
-              <ChevronLeft className='h-5 w-5' />
-            </button>
+              <ChevronLeft className='h-6 w-6' />
+            </Button>
           </div>
           <div className='group/edge-right pointer-events-auto absolute inset-y-0 right-0 flex w-[20%] min-w-[72px] items-center justify-end px-4'>
-            <button
+            <Button
               type='button'
-              onClick={() =>
-                setActiveIndex((prev) => (prev + 1) % heroImages.length)
-              }
-              className='inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white opacity-0 backdrop-blur transition group-hover/edge-right:opacity-100'
+              variant='ghost'
+              size='icon'
+              onClick={scrollNext}
+              disabled={!canScrollNext}
+              className='h-12 w-12 rounded-full border border-white/30 bg-white/10 text-white opacity-0 backdrop-blur transition hover:bg-white/20 hover:text-white disabled:opacity-30 group-hover/edge-right:opacity-100'
               aria-label={t('carousel.next')}
             >
-              <ChevronRight className='h-5 w-5' />
-            </button>
+              <ChevronRight className='h-6 w-6' />
+            </Button>
           </div>
         </div>
         <div
