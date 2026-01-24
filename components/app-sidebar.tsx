@@ -55,7 +55,6 @@ export function AdminSidebar({
   return (
     <Sidebar
       collapsible="icon"
-      contentClassName="border-r border-zinc-200/70 bg-white/80 backdrop-blur-xl dark:border-zinc-800 dark:bg-black/40"
       {...props}
     >
       <SidebarHeader className="gap-3">
@@ -63,7 +62,7 @@ export function AdminSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg">
               <Link href="/dashboard">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-sm">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-sm">
                   <LayoutDashboard className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -84,26 +83,26 @@ export function AdminSidebar({
         <NavMain items={navItems} />
       </SidebarContent>
       <SidebarFooter className="gap-3">
-        <div className="flex items-center gap-2 rounded-xl border border-zinc-200/70 bg-white/70 p-2 text-zinc-900 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 dark:text-zinc-100">
-          <Avatar className="h-9 w-9 rounded-full">
+        <div className="flex items-center gap-2 p-2">
+          <Avatar className="h-8 w-8 rounded-lg">
             <AvatarImage src={ADMIN_USER.avatar} alt={ADMIN_USER.name} />
-            <AvatarFallback className="rounded-full">
+            <AvatarFallback className="rounded-lg">
               {ADMIN_USER.name.slice(0, 1)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{ADMIN_USER.name}</p>
-            <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="truncate text-xs text-muted-foreground">
               {ADMIN_USER.email}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <LocaleSwitcher
-              className="h-9 w-9 rounded-full border border-zinc-200/70 bg-white/80 text-[10px] font-semibold text-zinc-700 shadow-sm dark:border-zinc-700 dark:bg-black/40 dark:text-zinc-100"
-              itemClassName="rounded-md px-2 py-1 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
-              activeItemClassName="bg-zinc-100 text-zinc-900 dark:bg-white/15 dark:text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-input bg-background text-[10px] font-semibold text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"
+              itemClassName="rounded-sm px-2 py-1 text-sm transition hover:bg-accent hover:text-accent-foreground"
+              activeItemClassName="bg-accent text-accent-foreground"
             />
-            <ModeToggle className="h-9 w-9" />
+            <ModeToggle className="h-8 w-8 rounded-lg border border-input bg-background text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground" />
           </div>
         </div>
         <SidebarMenu className="w-full flex-row gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1">
