@@ -55,7 +55,7 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
       )}
       <div className='absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent' />
       {isVideo ? (
-        <div className='absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white shadow-lg shadow-black/40 dark:border-white/20 dark:bg-black/40 dark:shadow-[0_0_18px_rgba(99,102,241,0.7)]'>
+        <div className='absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white shadow-lg shadow-black/40 dark:border-white/20 dark:bg-black/40 dark:shadow-[0_0_18px_rgba(99,102,241,0.7)]'>
           <Play className='h-4 w-4 fill-white text-white' />
         </div>
       ) : null}
