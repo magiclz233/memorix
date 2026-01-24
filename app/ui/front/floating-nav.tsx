@@ -53,42 +53,33 @@ export function FloatingNav() {
   const avatarFallback = displayName.trim().slice(0, 1);
   const isAdmin =
     (user as { role?: string } | null | undefined)?.role === 'admin';
-  const accountButtonClass = cn(
-    'h-9 w-9 rounded-full border shadow-sm backdrop-blur-xl transition-colors',
-    isHome
-      ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
-      : 'border-zinc-200/70 bg-white/80 text-zinc-700 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
-  );
   const accountPanelClass = cn(
-    'w-64 rounded-xl border p-4 shadow-xl backdrop-blur-xl',
+    'w-64 p-4 shadow-xl backdrop-blur-md',
     isHome
       ? 'border-white/20 bg-black/70 text-white'
-      : 'border-zinc-200/80 bg-white/95 text-zinc-900 dark:border-white/15 dark:bg-zinc-950/80 dark:text-white',
+      : 'border-input bg-background/95 text-foreground'
   );
-  const accountMutedTextClass = isHome
-    ? 'text-white/60'
-    : 'text-zinc-600 dark:text-white/60';
-  const accountSubtleTextClass = isHome
-    ? 'text-white/45'
-    : 'text-zinc-500 dark:text-white/50';
+  
+  const menuItemClass = cn(
+    'flex w-full justify-start gap-3 px-3 py-2 text-sm font-medium transition-colors',
+    isHome
+      ? 'hover:bg-white/10 hover:text-white'
+      : 'hover:bg-accent hover:text-accent-foreground'
+  );
+
+  const accountMutedTextClass = isHome ? 'text-white/60' : 'text-muted-foreground';
+  const accountSubtleTextClass = isHome ? 'text-white/45' : 'text-muted-foreground/70';
   const accountBadgeClass = cn(
     'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.25em]',
     isHome
       ? 'border-white/20 text-white/70'
-      : 'border-zinc-200 text-zinc-600 dark:border-white/15 dark:text-white/60',
+      : 'border-input text-muted-foreground'
   );
   const loginButtonClass = cn(
-    'h-9 w-full rounded-full text-xs uppercase tracking-[0.2em]',
+    'h-9 w-full text-xs uppercase tracking-[0.2em]',
     isHome
-      ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
-      : 'border-zinc-200/80 bg-white text-zinc-700 hover:bg-white dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
-  );
-
-  const menuItemClass = cn(
-    'flex w-full items-center justify-start gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900',
-    isHome
-      ? 'border-white/10 bg-white/6 text-white/80 hover:bg-white/12 hover:text-white'
-      : 'border-zinc-200/50 bg-zinc-50/60 text-zinc-600 hover:bg-zinc-100/80 hover:text-zinc-900 dark:border-white/10 dark:bg-white/4 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white',
+      ? 'border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white'
+      : 'bg-primary text-primary-foreground hover:bg-primary/90'
   );
 
   const clearAccountCloseTimer = () => {
@@ -163,20 +154,20 @@ export function FloatingNav() {
           </nav>
           <LocaleSwitcher
             className={cn(
-              'h-9 w-9 rounded-full border text-[10px] font-semibold shadow-sm backdrop-blur-xl',
+              'flex h-8 w-8 items-center justify-center rounded-full border text-[10px] font-semibold shadow-sm backdrop-blur-md transition-colors',
               isHome
-                ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
-                : 'border-zinc-200/70 bg-white/80 text-zinc-800 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
+                ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                : 'border-input bg-background/80 text-foreground hover:bg-accent hover:text-accent-foreground'
             )}
-            itemClassName='rounded-md px-2 py-1 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-white/10'
-            activeItemClassName='bg-zinc-100 text-zinc-900 dark:bg-white/15 dark:text-white'
+            itemClassName="rounded-sm px-2 py-1 text-sm transition hover:bg-accent hover:text-accent-foreground"
+            activeItemClassName="bg-accent text-accent-foreground"
           />
           <ModeToggle
             className={cn(
-              'h-9 w-9 border shadow-sm backdrop-blur-xl',
+              'h-8 w-8 rounded-full border shadow-sm backdrop-blur-md transition-colors',
               isHome
-                ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
-                : 'border-zinc-200/70 bg-white/80 text-zinc-800 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20',
+                ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                : 'border-input bg-background/80 text-foreground hover:bg-accent hover:text-accent-foreground'
             )}
           />
           <DropdownMenu
@@ -186,9 +177,14 @@ export function FloatingNav() {
           >
             <DropdownMenuTrigger asChild>
               <Button
-                variant='outline'
+                variant='ghost'
                 size='icon'
-                className={accountButtonClass}
+                className={cn(
+                  'h-8 w-8 rounded-full border shadow-sm backdrop-blur-md transition-colors',
+                  isHome
+                    ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                    : 'border-input bg-background/80 text-foreground hover:bg-accent hover:text-accent-foreground'
+                )}
                 aria-label={user ? t('account.userInfo') : t('account.login')}
                 onMouseEnter={handleAccountOpen}
                 onMouseLeave={handleAccountClose}
