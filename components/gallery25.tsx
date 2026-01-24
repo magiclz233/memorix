@@ -10,6 +10,7 @@ import {
   type TranslationValues,
 } from 'next-intl';
 import { createPortal } from 'react-dom';
+import { Button } from '@/components/ui/button';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
 import { resolveMessage } from '@/app/lib/i18n';
@@ -426,10 +427,11 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
           exit={{ opacity: 0 }}
           className='fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 py-6'
         >
-          <button
+          <Button
             type='button'
+            variant='ghost'
             onClick={() => setSelectedId(null)}
-            className='absolute inset-0'
+            className='absolute inset-0 h-full w-full rounded-none hover:bg-transparent'
             aria-label={t('modal.closeAria')}
           />
           <motion.div
@@ -455,39 +457,41 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
             }
           >
             <div className='flex flex-wrap items-center justify-between gap-3 pb-4'>
-              <div className='inline-flex rounded-full border border-border bg-muted/60 p-1 text-xs text-muted-foreground'>
-                <button
+              <div className='inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 p-1 text-xs text-muted-foreground'>
+                <Button
                   type='button'
+                  variant={viewMode === 'fit' ? 'secondary' : 'ghost'}
+                  size='sm'
                   onClick={() => setViewMode('fit')}
                   className={cn(
-                    'rounded-full px-3 py-1 transition',
-                    viewMode === 'fit'
-                      ? 'bg-card text-foreground shadow-sm'
-                      : 'hover:text-foreground',
+                    'h-7 rounded-full px-3 text-xs',
+                    viewMode === 'fit' && 'bg-background shadow-sm hover:bg-background'
                   )}
                 >
                   {t('modal.viewFit')}
-                </button>
-                <button
+                </Button>
+                <Button
                   type='button'
+                  variant={viewMode === 'crop' ? 'secondary' : 'ghost'}
+                  size='sm'
                   onClick={() => setViewMode('crop')}
                   className={cn(
-                    'rounded-full px-3 py-1 transition',
-                    viewMode === 'crop'
-                      ? 'bg-card text-foreground shadow-sm'
-                      : 'hover:text-foreground',
+                    'h-7 rounded-full px-3 text-xs',
+                    viewMode === 'crop' && 'bg-background shadow-sm hover:bg-background'
                   )}
                 >
                   {t('modal.viewCrop')}
-                </button>
+                </Button>
               </div>
-              <button
+              <Button
                 type='button'
+                variant='outline'
+                size='sm'
                 onClick={() => setSelectedId(null)}
-                className='rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground'
+                className='h-7 rounded-full border-border px-3 text-xs'
               >
                 {t('modal.close')}
-              </button>
+              </Button>
             </div>
             <div className='grid min-h-0 flex-1 gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]'>
               <div className='relative flex min-h-0 flex-col rounded-2xl bg-muted/60 p-3'>
@@ -516,26 +520,36 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
                     }}
                   />
                 </div>
-                {canNavigate ? (
+                {canNavigate && (
                   <>
-                    <button
+                    <Button
                       type='button'
-                      onClick={() => handleNavigate('prev')}
-                      className='absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
-                      aria-label={t('modal.previous')}
+                      variant='ghost'
+                      size='icon'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate('prev');
+                      }}
+                      className='absolute left-2 top-1/2 z-20 h-10 w-10 -translate-y-1/2 rounded-full bg-black/20 text-white/70 backdrop-blur-md transition hover:bg-black/40 hover:text-white disabled:opacity-50'
+                      aria-label={t('modal.prev')}
                     >
-                      <ChevronLeft className='h-5 w-5' />
-                    </button>
-                    <button
+                      <ChevronLeft className='h-6 w-6' />
+                    </Button>
+                    <Button
                       type='button'
-                      onClick={() => handleNavigate('next')}
-                      className='absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/40 bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60'
+                      variant='ghost'
+                      size='icon'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate('next');
+                      }}
+                      className='absolute right-2 top-1/2 z-20 h-10 w-10 -translate-y-1/2 rounded-full bg-black/20 text-white/70 backdrop-blur-md transition hover:bg-black/40 hover:text-white disabled:opacity-50'
                       aria-label={t('modal.next')}
                     >
-                      <ChevronRight className='h-5 w-5' />
-                    </button>
+                      <ChevronRight className='h-6 w-6' />
+                    </Button>
                   </>
-                ) : null}
+                )}
               </div>
               <div className='max-h-full space-y-4 overflow-y-auto text-sm text-muted-foreground'>
                 <div>
