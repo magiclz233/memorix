@@ -434,7 +434,7 @@
         "viewFit": "Fit",
         "viewCrop": "Crop",
         "close": "Close",
-        "previous": "Previous",
+        "prev": "Previous",
         "next": "Next"
       },
       "details": {
@@ -531,11 +531,15 @@
       "userNotFound": "User info not found.",
       "filters": {
         "searchPlaceholder": "Search title / path / description",
+        "search": "Search",
         "apply": "Apply Filter",
         "clear": "Clear Filter",
+        "clearFilters": "Clear Filters",
         "source": "Source Filter",
         "advanced": "Advanced Filter",
+        "allInstances": "All Instances",
         "type": {
+          "label": "Type",
           "all": "All Types",
           "image": "Photo",
           "video": "Video"
@@ -547,6 +551,7 @@
         },
         "disabled": " (Disabled)",
         "dateShot": "Date Shot",
+        "from": "From",
         "to": "to",
         "size": "File Size (MB)",
         "min": "Min",
@@ -569,7 +574,12 @@
         "camera": "Camera Model",
         "maker": "Maker",
         "lens": "Lens",
-        "example": "e.g. {value}"
+        "shutter": "Shutter",
+        "aperture": "Aperture",
+        "iso": "ISO",
+        "focalLength": "Focal Length",
+        "example": "e.g. {value}",
+        "sortLabel": "Sort"
       },
       "sort": {
         "dateShotDesc": "Date Shot (Newest)",
@@ -606,6 +616,13 @@
         "selectedCount": "{count} selected",
         "selectableCount": "{count} selectable on page",
         "totalCount": "Total {count} items",
+        "columns": {
+          "label": "Per row",
+          "aria": "Items per row",
+          "count": "{count} columns"
+        },
+        "perPage": "{count} per page",
+        "perPageOption": "{count} items",
         "selectFirst": "Please select items first.",
         "unknownSize": "Unknown Size",
         "unknownTime": "Unknown Time",
