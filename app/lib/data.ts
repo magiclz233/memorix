@@ -146,6 +146,14 @@ export type MediaLibraryFilters = {
   widthMax?: number;
   heightMin?: number;
   heightMax?: number;
+  exposureMin?: number;
+  exposureMax?: number;
+  apertureMin?: number;
+  apertureMax?: number;
+  isoMin?: number;
+  isoMax?: number;
+  focalLengthMin?: number;
+  focalLengthMax?: number;
   orientation?: 'all' | 'landscape' | 'portrait' | 'square';
   camera?: string;
   maker?: string;
@@ -169,10 +177,16 @@ export type MediaLibraryItem = {
   blurHash: string | null;
   resolutionWidth: number | null;
   resolutionHeight: number | null;
+  description: string | null;
   dateShot: Date | null;
   camera: string | null;
   maker: string | null;
   lens: string | null;
+  exposure: number | null;
+  aperture: number | null;
+  iso: number | null;
+  focalLength: number | null;
+  whiteBalance: string | null;
   gpsLatitude: number | null;
   gpsLongitude: number | null;
   storage: {
@@ -285,6 +299,38 @@ export async function fetchMediaLibraryPage({
     conditions.push(lte(photoMetadata.resolutionHeight, filters.heightMax));
   }
 
+  if (typeof filters.exposureMin === 'number') {
+    conditions.push(gte(photoMetadata.exposure, filters.exposureMin));
+  }
+
+  if (typeof filters.exposureMax === 'number') {
+    conditions.push(lte(photoMetadata.exposure, filters.exposureMax));
+  }
+
+  if (typeof filters.apertureMin === 'number') {
+    conditions.push(gte(photoMetadata.aperture, filters.apertureMin));
+  }
+
+  if (typeof filters.apertureMax === 'number') {
+    conditions.push(lte(photoMetadata.aperture, filters.apertureMax));
+  }
+
+  if (typeof filters.isoMin === 'number') {
+    conditions.push(gte(photoMetadata.iso, filters.isoMin));
+  }
+
+  if (typeof filters.isoMax === 'number') {
+    conditions.push(lte(photoMetadata.iso, filters.isoMax));
+  }
+
+  if (typeof filters.focalLengthMin === 'number') {
+    conditions.push(gte(photoMetadata.focalLength, filters.focalLengthMin));
+  }
+
+  if (typeof filters.focalLengthMax === 'number') {
+    conditions.push(lte(photoMetadata.focalLength, filters.focalLengthMax));
+  }
+
   if (orientation === 'landscape') {
     conditions.push(sql`${photoMetadata.resolutionWidth} > ${photoMetadata.resolutionHeight}`);
   } else if (orientation === 'portrait') {
@@ -368,10 +414,16 @@ export async function fetchMediaLibraryPage({
       blurHash: files.blurHash,
       resolutionWidth: photoMetadata.resolutionWidth,
       resolutionHeight: photoMetadata.resolutionHeight,
+      description: photoMetadata.description,
       dateShot: photoMetadata.dateShot,
       camera: photoMetadata.camera,
       maker: photoMetadata.maker,
       lens: photoMetadata.lens,
+      exposure: photoMetadata.exposure,
+      aperture: photoMetadata.aperture,
+      iso: photoMetadata.iso,
+      focalLength: photoMetadata.focalLength,
+      whiteBalance: photoMetadata.whiteBalance,
       gpsLatitude: photoMetadata.gpsLatitude,
       gpsLongitude: photoMetadata.gpsLongitude,
       storageId: userStorages.id,
@@ -406,10 +458,16 @@ export async function fetchMediaLibraryPage({
       blurHash: record.blurHash ?? null,
       resolutionWidth: record.resolutionWidth ?? null,
       resolutionHeight: record.resolutionHeight ?? null,
+      description: record.description ?? null,
       dateShot: record.dateShot ?? null,
       camera: record.camera ?? null,
       maker: record.maker ?? null,
       lens: record.lens ?? null,
+      exposure: record.exposure ?? null,
+      aperture: record.aperture ?? null,
+      iso: record.iso ?? null,
+      focalLength: record.focalLength ?? null,
+      whiteBalance: record.whiteBalance ?? null,
       gpsLatitude: record.gpsLatitude ?? null,
       gpsLongitude: record.gpsLongitude ?? null,
       storage: {
