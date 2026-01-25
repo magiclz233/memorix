@@ -10,6 +10,7 @@ import {
 } from '@/app/lib/data';
 import { generatePagination } from '@/app/lib/utils';
 import { MediaLibraryManager } from '@/app/ui/admin/media/media-library';
+import { MediaFilterBar } from '@/app/ui/admin/media/media-filter-bar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getTranslations } from 'next-intl/server';
@@ -29,16 +30,24 @@ type PageProps = {
     widthMax?: string;
     heightMin?: string;
     heightMax?: string;
+    exposureMin?: string;
+    exposureMax?: string;
+    apertureMin?: string;
+    apertureMax?: string;
+    isoMin?: string;
+    isoMax?: string;
+    focalLengthMin?: string;
+    focalLengthMax?: string;
     orientation?: string;
     camera?: string;
     maker?: string;
     lens?: string;
     hasGps?: string;
     sort?: string;
+    category?: string;
+    limit?: string;
   }>;
 };
-
-const ITEMS_PER_PAGE = 24;
 
 const parseStringArray = (value?: string | string[]) => {
   if (!value) return [];
@@ -110,6 +119,7 @@ export default async function Page({ searchParams }: PageProps) {
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const page = parseNumber(resolvedSearchParams?.page ?? '1') ?? 1;
+  const perPage = parseNumber(resolvedSearchParams?.limit) ?? 24;
   const selectedStorageIds = parseStringArray(resolvedSearchParams?.storageId)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0);
@@ -140,12 +150,30 @@ export default async function Page({ searchParams }: PageProps) {
   const sizeMaxMb = parseNumber(resolvedSearchParams?.sizeMax);
   const storages = await fetchUserStorages(user.id);
   const heroIds = await fetchHeroPhotoIdsByUser(user.id);
+
+  // Helper to get storage IDs by category
+  const getStorageIdsByCategory = (category: string) => {
+    if (category === 'all') return [];
+    return storages
+      .filter((s) => s.type === category)
+      .map((s) => s.id);
+  };
+
+  const category = resolvedSearchParams?.category ?? 'all';
+  
+  // If storageId is provided, use it. 
+  // If not, but category is provided (and not 'all'), use all storage IDs in that category.
+  let finalStorageIds = selectedStorageIds;
+  if (finalStorageIds.length === 0 && category !== 'all') {
+    finalStorageIds = getStorageIdsByCategory(category);
+  }
+
   const { items, totalPages, totalCount, page: safePage } = await fetchMediaLibraryPage({
     userId: user.id,
     page,
-    perPage: ITEMS_PER_PAGE,
+    perPage,
     filters: {
-      storageIds: selectedStorageIds,
+      storageIds: finalStorageIds,
       mediaType,
       publishStatus,
       keyword: resolvedSearchParams?.q,
@@ -159,6 +187,14 @@ export default async function Page({ searchParams }: PageProps) {
       widthMax: parseNumber(resolvedSearchParams?.widthMax) ?? undefined,
       heightMin: parseNumber(resolvedSearchParams?.heightMin) ?? undefined,
       heightMax: parseNumber(resolvedSearchParams?.heightMax) ?? undefined,
+      exposureMin: parseNumber(resolvedSearchParams?.exposureMin) ?? undefined,
+      exposureMax: parseNumber(resolvedSearchParams?.exposureMax) ?? undefined,
+      apertureMin: parseNumber(resolvedSearchParams?.apertureMin) ?? undefined,
+      apertureMax: parseNumber(resolvedSearchParams?.apertureMax) ?? undefined,
+      isoMin: parseNumber(resolvedSearchParams?.isoMin) ?? undefined,
+      isoMax: parseNumber(resolvedSearchParams?.isoMax) ?? undefined,
+      focalLengthMin: parseNumber(resolvedSearchParams?.focalLengthMin) ?? undefined,
+      focalLengthMax: parseNumber(resolvedSearchParams?.focalLengthMax) ?? undefined,
       orientation,
       camera: resolvedSearchParams?.camera,
       maker: resolvedSearchParams?.maker,
@@ -170,6 +206,7 @@ export default async function Page({ searchParams }: PageProps) {
 
   const hasFilters = Boolean(
     selectedStorageIds.length ||
+      category !== 'all' ||
       mediaType !== 'all' ||
       publishStatus !== 'all' ||
       resolvedSearchParams?.q ||
@@ -181,6 +218,14 @@ export default async function Page({ searchParams }: PageProps) {
       resolvedSearchParams?.widthMax ||
       resolvedSearchParams?.heightMin ||
       resolvedSearchParams?.heightMax ||
+      resolvedSearchParams?.exposureMin ||
+      resolvedSearchParams?.exposureMax ||
+      resolvedSearchParams?.apertureMin ||
+      resolvedSearchParams?.apertureMax ||
+      resolvedSearchParams?.isoMin ||
+      resolvedSearchParams?.isoMax ||
+      resolvedSearchParams?.focalLengthMin ||
+      resolvedSearchParams?.focalLengthMax ||
       orientation !== 'all' ||
       resolvedSearchParams?.camera ||
       resolvedSearchParams?.maker ||
@@ -192,6 +237,7 @@ export default async function Page({ searchParams }: PageProps) {
   const buildPageUrl = (pageNumber: number | string) => {
     const params = new URLSearchParams();
     selectedStorageIds.forEach((id) => params.append('storageId', String(id)));
+    if (category !== 'all') params.set('category', category);
     if (mediaType !== 'all') params.set('type', mediaType);
     if (publishStatus !== 'all') params.set('status', publishStatus);
     if (resolvedSearchParams?.q) params.set('q', resolvedSearchParams.q);
@@ -203,6 +249,14 @@ export default async function Page({ searchParams }: PageProps) {
     if (resolvedSearchParams?.widthMax) params.set('widthMax', resolvedSearchParams.widthMax);
     if (resolvedSearchParams?.heightMin) params.set('heightMin', resolvedSearchParams.heightMin);
     if (resolvedSearchParams?.heightMax) params.set('heightMax', resolvedSearchParams.heightMax);
+    if (resolvedSearchParams?.exposureMin) params.set('exposureMin', resolvedSearchParams.exposureMin);
+    if (resolvedSearchParams?.exposureMax) params.set('exposureMax', resolvedSearchParams.exposureMax);
+    if (resolvedSearchParams?.apertureMin) params.set('apertureMin', resolvedSearchParams.apertureMin);
+    if (resolvedSearchParams?.apertureMax) params.set('apertureMax', resolvedSearchParams.apertureMax);
+    if (resolvedSearchParams?.isoMin) params.set('isoMin', resolvedSearchParams.isoMin);
+    if (resolvedSearchParams?.isoMax) params.set('isoMax', resolvedSearchParams.isoMax);
+    if (resolvedSearchParams?.focalLengthMin) params.set('focalLengthMin', resolvedSearchParams.focalLengthMin);
+    if (resolvedSearchParams?.focalLengthMax) params.set('focalLengthMax', resolvedSearchParams.focalLengthMax);
     if (orientation !== 'all') params.set('orientation', orientation);
     if (resolvedSearchParams?.camera) params.set('camera', resolvedSearchParams.camera);
     if (resolvedSearchParams?.maker) params.set('maker', resolvedSearchParams.maker);
@@ -226,243 +280,7 @@ export default async function Page({ searchParams }: PageProps) {
         </p>
       </header>
 
-      <form
-        method="get"
-        className="space-y-4 rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60"
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="text"
-            name="q"
-            defaultValue={resolvedSearchParams?.q ?? ''}
-            placeholder={t('filters.searchPlaceholder')}
-            className="min-w-[220px] flex-1 rounded-full border border-zinc-200 bg-white/80 px-4 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-          />
-          <select
-            name="type"
-            defaultValue={mediaType}
-            className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-          >
-            <option value="all">{t('filters.type.all')}</option>
-            <option value="image">{t('filters.type.image')}</option>
-            <option value="video">{t('filters.type.video')}</option>
-          </select>
-          <select
-            name="status"
-            defaultValue={publishStatus}
-            className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-          >
-            <option value="all">{t('filters.status.all')}</option>
-            <option value="published">{t('filters.status.published')}</option>
-            <option value="unpublished">{t('filters.status.unpublished')}</option>
-          </select>
-          <select
-            name="sort"
-            defaultValue={sort}
-            className="rounded-full border border-zinc-200 bg-white/80 px-3 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <input type="hidden" name="page" value="1" />
-          <Button type="submit" size="sm">
-            {t('filters.apply')}
-          </Button>
-          {hasFilters ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/media">{t('filters.clear')}</Link>
-            </Button>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('filters.source')}</span>
-          {storages.map((storage) => {
-            const config = (storage.config ?? {}) as { alias?: string | null; isDisabled?: boolean };
-            const label =
-              config.alias?.trim() ||
-              STORAGE_LABELS[storage.type] ||
-              storage.type.toUpperCase();
-            const isChecked = selectedStorageIds.includes(storage.id);
-            return (
-              <label
-                key={storage.id}
-                className={cn(
-                  'relative cursor-pointer rounded-full border px-3 py-1 text-xs transition',
-                  isChecked
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-600'
-                    : 'border-zinc-200 text-zinc-600 hover:border-indigo-300 dark:border-zinc-700 dark:text-zinc-300',
-                  config.isDisabled && 'opacity-70',
-                )}
-              >
-                <input
-                  type="checkbox"
-                  name="storageId"
-                  value={storage.id}
-                  defaultChecked={isChecked}
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                />
-                {label}
-                {config.isDisabled ? t('filters.disabled') : ''}
-              </label>
-            );
-          })}
-        </div>
-
-        <details className="rounded-xl border border-dashed border-zinc-200 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
-          <summary className="cursor-pointer text-sm font-medium text-zinc-700 dark:text-zinc-200">
-            {t('filters.advanced')}
-          </summary>
-          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">{t('filters.dateShot')}</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  name="dateFrom"
-                  defaultValue={resolvedSearchParams?.dateFrom ?? ''}
-                  className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-                />
-                <span className="text-xs text-zinc-400">{t('filters.to')}</span>
-                <input
-                  type="date"
-                  name="dateTo"
-                  defaultValue={resolvedSearchParams?.dateTo ?? ''}
-                  className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">{t('filters.size')}</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  name="sizeMin"
-                  defaultValue={resolvedSearchParams?.sizeMin ?? ''}
-                  placeholder={t('filters.min')}
-                  className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-                />
-                <span className="text-xs text-zinc-400">{t('filters.to')}</span>
-                <input
-                  type="number"
-                  min="0"
-                  name="sizeMax"
-                  defaultValue={resolvedSearchParams?.sizeMax ?? ''}
-                  placeholder={t('filters.max')}
-                  className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">{t('filters.resolutionWidth')}</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  name="widthMin"
-                  defaultValue={resolvedSearchParams?.widthMin ?? ''}
-                  placeholder={t('filters.min')}
-                  className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-                />
-                <span className="text-xs text-zinc-400">{t('filters.to')}</span>
-                <input
-                  type="number"
-                  min="0"
-                  name="widthMax"
-                  defaultValue={resolvedSearchParams?.widthMax ?? ''}
-                  placeholder={t('filters.max')}
-                  className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">{t('filters.resolutionHeight')}</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  name="heightMin"
-                  defaultValue={resolvedSearchParams?.heightMin ?? ''}
-                  placeholder={t('filters.min')}
-                  className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-                />
-                <span className="text-xs text-zinc-400">{t('filters.to')}</span>
-                <input
-                  type="number"
-                  min="0"
-                  name="heightMax"
-                  defaultValue={resolvedSearchParams?.heightMax ?? ''}
-                  placeholder={t('filters.max')}
-                  className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">{t('filters.orientation.label')}</p>
-              <select
-                name="orientation"
-                defaultValue={orientation}
-                className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-              >
-                <option value="all">{t('filters.orientation.all')}</option>
-                <option value="landscape">{t('filters.orientation.landscape')}</option>
-                <option value="portrait">{t('filters.orientation.portrait')}</option>
-                <option value="square">{t('filters.orientation.square')}</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">{t('filters.gps.label')}</p>
-              <select
-                name="hasGps"
-                defaultValue={hasGps}
-                className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-              >
-                <option value="all">{t('filters.gps.all')}</option>
-                <option value="yes">{t('filters.gps.yes')}</option>
-                <option value="no">{t('filters.gps.no')}</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">{t('filters.camera')}</p>
-              <input
-                type="text"
-                name="camera"
-                defaultValue={resolvedSearchParams?.camera ?? ''}
-                placeholder={t('filters.example', { value: 'Sony' })}
-                className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">{t('filters.maker')}</p>
-              <input
-                type="text"
-                name="maker"
-                defaultValue={resolvedSearchParams?.maker ?? ''}
-                placeholder={t('filters.example', { value: 'Canon' })}
-                className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">{t('filters.lens')}</p>
-              <input
-                type="text"
-                name="lens"
-                defaultValue={resolvedSearchParams?.lens ?? ''}
-                placeholder={t('filters.example', { value: '24-70mm' })}
-                className="w-full rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-100"
-              />
-            </div>
-          </div>
-        </details>
-      </form>
-
-      <div className="rounded-2xl border border-zinc-200 bg-white/70 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
-        {t('disabledWarning')}
-      </div>
+      <MediaFilterBar />
 
       {totalCount === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-10 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
@@ -481,7 +299,12 @@ export default async function Page({ searchParams }: PageProps) {
           </div>
         </div>
       ) : (
-        <MediaLibraryManager items={items} heroIds={heroIds} totalCount={totalCount} />
+        <MediaLibraryManager
+          items={items}
+          heroIds={heroIds}
+          totalCount={totalCount}
+          storages={storages}
+        />
       )}
 
       {totalPages > 1 ? (
