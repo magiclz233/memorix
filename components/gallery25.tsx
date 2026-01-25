@@ -11,6 +11,12 @@ import {
 } from 'next-intl';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
 import { resolveMessage } from '@/app/lib/i18n';
@@ -21,11 +27,17 @@ type GalleryId = string | number;
 
 type GalleryItem = BaseGalleryItem & {
   resolution?: string | null;
+  isPublished?: boolean;
 };
 
 type Gallery25Props = {
   items?: GalleryItem[];
   className?: string;
+  showChrome?: boolean;
+  showGrid?: boolean;
+  selectedId?: GalleryId | null;
+  onSelectedIdChange?: (id: GalleryId | null) => void;
+  statusLabels?: { published: string; unpublished: string };
 };
 
 type ViewMode = 'fit' | 'crop';
@@ -175,11 +187,30 @@ const buildDetails = (
   return details.filter((detail) => detail.value);
 };
 
-const Gallery25 = ({ items = [], className }: Gallery25Props) => {
+const Gallery25 = ({
+  items = [],
+  className,
+  showChrome = true,
+  showGrid = true,
+  selectedId: controlledSelectedId,
+  onSelectedIdChange,
+  statusLabels,
+}: Gallery25Props) => {
   const locale = useLocale();
   const t = useTranslations('front.galleryGrid');
   const messages = useMessages();
-  const [selectedId, setSelectedId] = useState<GalleryId | null>(null);
+  const [uncontrolledSelectedId, setUncontrolledSelectedId] =
+    useState<GalleryId | null>(null);
+  const selectedId =
+    controlledSelectedId === undefined
+      ? uncontrolledSelectedId
+      : controlledSelectedId;
+  const setSelectedId = (id: GalleryId | null) => {
+    if (controlledSelectedId === undefined) {
+      setUncontrolledSelectedId(id);
+    }
+    onSelectedIdChange?.(id);
+  };
   const [isFullBleed, setIsFullBleed] = useState(false);
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('gallery25-columns', 4),
@@ -279,7 +310,7 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
     };
   }, [selected, selectedAspectRatio, viewMode, viewport.height, viewport.width]);
 
-  const chromeVisible = !isFullBleed || isChromeVisible;
+  const chromeVisible = showChrome && (!isFullBleed || isChromeVisible);
 
   useEffect(() => {
     window.localStorage.setItem('gallery25-columns', String(columnCount));
@@ -553,7 +584,35 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
               </div>
               <div className='max-h-full space-y-4 overflow-y-auto text-sm text-muted-foreground'>
                 <div>
-                  <p className='text-base font-semibold text-foreground'>{selectedTitle}</p>
+                  <div className='flex items-center gap-2'>
+                    <p className='text-base font-semibold text-foreground'>{selectedTitle}</p>
+                    {statusLabels && selected?.isPublished !== undefined ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              className={cn(
+                                'h-2.5 w-2.5 rounded-full',
+                                selected.isPublished
+                                  ? 'bg-emerald-400'
+                                  : 'bg-zinc-400',
+                              )}
+                              aria-label={
+                                selected.isPublished
+                                  ? statusLabels.published
+                                  : statusLabels.unpublished
+                              }
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent side='top'>
+                            {selected.isPublished
+                              ? statusLabels.published
+                              : statusLabels.unpublished}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : null}
+                  </div>
                   {selectedDescription ? (
                     <p className='mt-2 text-sm text-muted-foreground'>
                       {selectedDescription}
@@ -584,6 +643,12 @@ const Gallery25 = ({ items = [], className }: Gallery25Props) => {
       ) : null}
     </AnimatePresence>
   );
+
+  if (!showGrid) {
+    return typeof document !== 'undefined'
+      ? createPortal(modalNode, document.body)
+      : null;
+  }
 
   return (
     <section
