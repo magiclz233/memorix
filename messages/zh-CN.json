@@ -444,7 +444,7 @@
         "viewFit": "适配",
         "viewCrop": "裁切",
         "close": "关闭",
-        "previous": "上一张",
+        "prev": "上一张",
         "next": "下一张"
       },
       "details": {
@@ -545,22 +545,28 @@
       "userNotFound": "未找到用户信息。",
       "filters": {
         "searchPlaceholder": "搜索标题 / 路径 / 描述",
+        "search": "搜索",
         "apply": "应用筛选",
         "clear": "清空筛选",
+        "clearFilters": "清空筛选",
         "source": "来源筛选",
         "advanced": "高级筛选",
+        "allInstances": "全部实例",
         "type": {
+          "label": "类型",
           "all": "全部类型",
           "image": "图片",
           "video": "视频"
         },
         "status": {
+          "label": "状态",
           "all": "全部状态",
           "published": "已发布",
           "unpublished": "未发布"
         },
         "disabled": "（已停用）",
         "dateShot": "拍摄时间",
+        "from": "从",
         "to": "至",
         "size": "文件大小（MB）",
         "min": "最小",
@@ -583,7 +589,12 @@
         "camera": "相机型号",
         "maker": "制造商",
         "lens": "镜头",
-        "example": "例如: {value}"
+        "shutter": "快门",
+        "aperture": "光圈",
+        "iso": "ISO",
+        "focalLength": "焦距",
+        "example": "例如: {value}",
+        "sortLabel": "排序"
       },
       "sort": {
         "dateShotDesc": "拍摄时间（最新）",
@@ -620,6 +631,13 @@
         "selectedCount": "已选 {count} 项",
         "selectableCount": "当前页可选 {count} 项",
         "totalCount": "资源总数 {count} 项",
+        "columns": {
+          "label": "每行",
+          "aria": "每行显示数量",
+          "count": "{count} 列"
+        },
+        "perPage": "每页 {count} 项",
+        "perPageOption": "{count} 项",
         "selectFirst": "请先选择要操作的资源。",
         "unknownSize": "未知大小",
         "unknownTime": "未知时间",
