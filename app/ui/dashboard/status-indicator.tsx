@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
-import { Wifi, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Wifi, Loader2, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Badge } from '@/components/ui/badge';
 
 interface StatusIndicatorProps {
   status: 'online' | 'scanning' | 'error' | 'disabled' | 'offline';
@@ -12,55 +13,45 @@ export function StatusIndicator({ status, className, showLabel = true }: StatusI
   const t = useTranslations('dashboard.status');
   const config = {
     online: {
-      icon: Wifi,
       color: 'bg-emerald-500',
-      textColor: 'text-emerald-700 dark:text-emerald-400',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+      badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30',
       label: t('online'),
       animate: 'animate-pulse',
     },
     scanning: {
-      icon: Loader2,
       color: 'bg-blue-500',
-      textColor: 'text-blue-700 dark:text-blue-400',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+      badgeClass: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30',
       label: t('scanning'),
       animate: 'animate-spin',
     },
     error: {
-      icon: AlertCircle,
       color: 'bg-red-500',
-      textColor: 'text-red-700 dark:text-red-400',
-      bgColor: 'bg-red-50 dark:bg-red-900/20',
+      badgeClass: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30',
       label: t('error'),
       animate: '',
     },
     disabled: {
-      icon: Wifi,
       color: 'bg-zinc-400',
-      textColor: 'text-zinc-600 dark:text-zinc-400',
-      bgColor: 'bg-zinc-100 dark:bg-zinc-800',
+      badgeClass: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700',
       label: t('disabled'),
       animate: '',
     },
     offline: {
-      icon: Wifi,
       color: 'bg-zinc-400',
-      textColor: 'text-zinc-600 dark:text-zinc-400',
-      bgColor: 'bg-zinc-100 dark:bg-zinc-800',
+      badgeClass: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700',
       label: t('offline'),
       animate: '',
     },
   };
 
-  const { icon: Icon, color, textColor, bgColor, label, animate } = config[status] || config.offline;
+  const { color, badgeClass, label, animate } = config[status] || config.offline;
 
   return (
-    <div
+    <Badge
+      variant="outline"
       className={cn(
-        'inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors',
-        bgColor,
-        textColor,
+        'gap-2 pl-2 pr-2.5 py-1 font-medium transition-colors',
+        badgeClass,
         className
       )}
     >
@@ -71,6 +62,6 @@ export function StatusIndicator({ status, className, showLabel = true }: StatusI
         <span className={`relative inline-flex h-2 w-2 rounded-full ${color}`} />
       </div>
       {showLabel && <span>{label}</span>}
-    </div>
+    </Badge>
   );
 }
