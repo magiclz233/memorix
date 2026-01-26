@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { saveUserStorage } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
