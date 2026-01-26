@@ -26,6 +26,8 @@ import {
   DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export function MediaFilterBar() {
   const t = useTranslations('dashboard.media.filters');
@@ -259,58 +261,48 @@ export function MediaFilterBar() {
     <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white/80 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
       <div className="flex flex-wrap items-center gap-3">
         {/* Type Filter */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9 rounded-full border-dashed gap-2 px-3 bg-white/50 dark:bg-zinc-900/50">
-              <FileType className="h-3.5 w-3.5 text-zinc-500" />
-              <span className="text-xs font-medium">{t('type.label')}</span>
-              {filters.type !== 'all' && (
-                <span className="inline-flex items-center rounded-full border border-transparent font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-secondary/80 h-5 px-1.5 text-[10px] bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300 border-indigo-100 dark:border-indigo-500/20">
-                  {t(`type.${filters.type}`)}
-                </span>
-              )}
-              <ChevronDown className="h-3 w-3 text-zinc-400" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[180px]">
-            <DropdownMenuLabel>{t('type.label')}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup value={filters.type} onValueChange={(v) => updateLocalFilter('type', v)}>
-              <DropdownMenuRadioItem value="all">{t('type.all')}</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="image">{t('type.image')}</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="video">{t('type.video')}</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Select value={filters.type} onValueChange={(v) => updateLocalFilter('type', v)}>
+          <SelectTrigger className="h-9 w-auto min-w-[100px] gap-2 rounded-full border-dashed bg-white/50 px-3 text-xs font-medium dark:bg-zinc-900/50 [&>span]:line-clamp-1">
+             <div className="flex items-center gap-2">
+                <FileType className="h-3.5 w-3.5 text-zinc-500" />
+                <span>{t('type.label')}</span>
+                {filters.type !== 'all' && (
+                  <span className="ml-1 inline-flex h-5 items-center rounded-full bg-indigo-50 px-1.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+                    {t(`type.${filters.type}`)}
+                  </span>
+                )}
+             </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('type.all')}</SelectItem>
+            <SelectItem value="image">{t('type.image')}</SelectItem>
+            <SelectItem value="video">{t('type.video')}</SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* Status Filter */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9 rounded-full border-dashed gap-2 px-3 bg-white/50 dark:bg-zinc-900/50">
+        <Select value={filters.status} onValueChange={(v) => updateLocalFilter('status', v)}>
+          <SelectTrigger className="h-9 w-auto min-w-[100px] gap-2 rounded-full border-dashed bg-white/50 px-3 text-xs font-medium dark:bg-zinc-900/50 [&>span]:line-clamp-1">
+            <div className="flex items-center gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 text-zinc-500" />
-              <span className="text-xs font-medium">{t('status.label')}</span>
+              <span>{t('status.label')}</span>
               {filters.status !== 'all' && (
-                <span className="inline-flex items-center rounded-full border border-transparent font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-secondary/80 h-5 px-1.5 text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 border-emerald-100 dark:border-emerald-500/20">
+                <span className="ml-1 inline-flex h-5 items-center rounded-full bg-emerald-50 px-1.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
                   {t(`status.${filters.status}`)}
                 </span>
               )}
-              <ChevronDown className="h-3 w-3 text-zinc-400" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[180px]">
-            <DropdownMenuLabel>{t('status.label')}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup value={filters.status} onValueChange={(v) => updateLocalFilter('status', v)}>
-              <DropdownMenuRadioItem value="all">{t('status.all')}</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="published">{t('status.published')}</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="unpublished">{t('status.unpublished')}</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('status.all')}</SelectItem>
+            <SelectItem value="published">{t('status.published')}</SelectItem>
+            <SelectItem value="unpublished">{t('status.unpublished')}</SelectItem>
+          </SelectContent>
+        </Select>
 
-        {/* Date Filter (Dropdown with inputs) */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        {/* Date Filter (Popover) */}
+        <Popover>
+          <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-9 rounded-full border-dashed gap-2 px-3 bg-white/50 dark:bg-zinc-900/50">
               <Calendar className="h-3.5 w-3.5 text-zinc-500" />
               <span className="text-xs font-medium">{t('dateShot')}</span>
@@ -319,24 +311,25 @@ export function MediaFilterBar() {
                   {filters.dateFrom || '...'} - {filters.dateTo || '...'}
                 </span>
               )}
-              <ChevronDown className="h-3 w-3 text-zinc-400" />
+              <ChevronDown className="h-3 w-3 text-zinc-400 opacity-50" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[260px] p-3">
-            <DropdownMenuLabel>{t('dateShot')}</DropdownMenuLabel>
-            
-            <div className="flex flex-wrap gap-1 mb-3">
-              <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => setDatePreset(7)}>7 Days</Button>
-              <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => setDatePreset(30)}>30 Days</Button>
-              <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => {
-                const now = new Date();
-                const start = new Date(now.getFullYear(), now.getMonth(), 1);
-                updateLocalFilter('dateFrom', start.toISOString().split('T')[0]);
-                updateLocalFilter('dateTo', now.toISOString().split('T')[0]);
-              }}>This Month</Button>
-            </div>
-
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-[260px] p-3">
             <div className="flex flex-col gap-3">
+              <div className="grid gap-1.5">
+                 <h4 className="font-medium leading-none text-sm">{t('dateShot')}</h4>
+              </div>
+              <div className="flex flex-wrap gap-1 mb-1">
+                 {/* Presets */}
+                 <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => setDatePreset(7)}>7 Days</Button>
+                 <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => setDatePreset(30)}>30 Days</Button>
+                 <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => {
+                  const now = new Date();
+                  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                  updateLocalFilter('dateFrom', start.toISOString().split('T')[0]);
+                  updateLocalFilter('dateTo', now.toISOString().split('T')[0]);
+                }}>This Month</Button>
+              </div>
               <div className="grid gap-1.5">
                 <label className="text-xs text-zinc-500">{t('from')}</label>
                 <Input 
@@ -367,8 +360,8 @@ export function MediaFilterBar() {
                 </Button>
               </div>
             </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </PopoverContent>
+        </Popover>
 
         <Button
           type="button"
@@ -386,26 +379,22 @@ export function MediaFilterBar() {
         </Button>
 
         {/* Sort */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-9 gap-2 text-zinc-500">
-              <ArrowUpDown className="h-3.5 w-3.5" />
-              <span className="text-xs">
-                {filters.sort === 'dateShotDesc' ? t('sortLabel') : sortT(filters.sort)}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[180px]">
-            <DropdownMenuLabel>{t('sortLabel')}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup value={filters.sort} onValueChange={(v) => updateLocalFilter('sort', v)}>
-              <DropdownMenuRadioItem value="dateShotDesc">{sortT('dateShotDesc')}</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="dateShotAsc">{sortT('dateShotAsc')}</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="sizeDesc">{sortT('sizeDesc')}</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="sizeAsc">{sortT('sizeAsc')}</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Select value={filters.sort} onValueChange={(v) => updateLocalFilter('sort', v)}>
+          <SelectTrigger className="h-9 w-auto min-w-[100px] gap-2 border-none bg-transparent px-3 text-xs text-zinc-500 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:ring-0 [&>svg:last-child]:hidden">
+             <div className="flex items-center gap-2">
+               <ArrowUpDown className="h-3.5 w-3.5" />
+               <span>
+                 {filters.sort === 'dateShotDesc' ? t('sortLabel') : sortT(filters.sort)}
+               </span>
+             </div>
+          </SelectTrigger>
+          <SelectContent align="end">
+             <SelectItem value="dateShotDesc">{sortT('dateShotDesc')}</SelectItem>
+             <SelectItem value="dateShotAsc">{sortT('dateShotAsc')}</SelectItem>
+             <SelectItem value="sizeDesc">{sortT('sizeDesc')}</SelectItem>
+             <SelectItem value="sizeAsc">{sortT('sizeAsc')}</SelectItem>
+          </SelectContent>
+        </Select>
 
         <div className="flex-1" />
 
