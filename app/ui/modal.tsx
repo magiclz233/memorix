@@ -1,37 +1,29 @@
 'use client';
 
 import { useRouter } from '@/i18n/navigation';
-import { useEffect, useRef } from 'react'; // 引入 hooks
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 
 export function Modal({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const dialogRef = useRef<HTMLDialogElement>(null);
 
-  useEffect(() => {
-    // 组件挂载时显示模态框
-    if (!dialogRef.current?.open) {
-      dialogRef.current?.showModal();
+  function onOpenChange(open: boolean) {
+    if (!open) {
+      router.back();
     }
-  }, []);
-
-  function onDismiss() {
-    // 关闭时回退路由，这会关闭拦截路由并返回列表页
-    router.back();
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      {/* 点击背景关闭 */}
-      <div className="absolute inset-0" onClick={onDismiss} />
-      
-      {/* 弹窗内容区域 */}
-      <dialog
-        ref={dialogRef}
-        className="relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl"
-        onClose={onDismiss}
-      >
+    <Dialog open={true} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl sm:max-w-2xl">
+        <DialogTitle className="sr-only">Modal</DialogTitle>
+        <DialogDescription className="sr-only">Modal Content</DialogDescription>
         {children}
-      </dialog>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
