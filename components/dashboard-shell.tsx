@@ -26,6 +26,7 @@ export default function DashboardShell({
 }) {
   const pathname = usePathname();
   const t = useTranslations('dashboard.shell');
+  const tSidebar = useTranslations('dashboard.sidebar');
   
   // Generate breadcrumbs from pathname
   // Example: /dashboard/media -> ['dashboard', 'media']
@@ -34,6 +35,27 @@ export default function DashboardShell({
   
   // Helper to capitalize
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  const getBreadcrumbTitle = (segment: string) => {
+    switch (segment) {
+      case 'dashboard':
+        return tSidebar('overview');
+      case 'media':
+        return tSidebar('media');
+      case 'collections':
+        return tSidebar('collections');
+      case 'upload':
+        return tSidebar('upload');
+      case 'storage':
+        return tSidebar('storage');
+      case 'system':
+        return tSidebar('systemSettings');
+      case 'users':
+        return tSidebar('userManagement');
+      default:
+        return capitalize(segment);
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -48,8 +70,7 @@ export default function DashboardShell({
                 const isLast = index === segments.length - 1;
                 const href = `/${segments.slice(0, index + 1).join('/')}`;
                 
-                // Customize title for "dashboard"
-                const title = segment === 'dashboard' ? 'Dashboard' : capitalize(segment);
+                const title = getBreadcrumbTitle(segment);
 
                 return (
                   <React.Fragment key={href}>
