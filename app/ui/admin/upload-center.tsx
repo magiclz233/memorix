@@ -6,6 +6,7 @@ import { CheckCircle2, FileText, UploadCloud, XCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
 
 type UploadStorageOption = {
   id: number;
@@ -190,17 +191,13 @@ export function UploadCenter({ storages }: UploadCenterProps) {
                     ) : null}
                   </div>
                 </div>
-                <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                  <div
-                    className={cn(
-                      'h-full rounded-full transition-all',
-                      item.status === 'error'
-                        ? 'bg-rose-500'
-                        : 'bg-indigo-500',
-                    )}
-                    style={{ width: `${item.progress}%` }}
-                  />
-                </div>
+                <Progress 
+                  value={item.progress} 
+                  className={cn(
+                    "mt-4 h-2 w-full bg-zinc-100 dark:bg-zinc-800",
+                    item.status === 'error' ? "[&>div]:bg-rose-500" : "[&>div]:bg-indigo-500"
+                  )} 
+                />
                 <div className="mt-2 flex justify-between text-xs text-zinc-500 dark:text-zinc-400">
                   <span>
                     {item.status === 'done'
