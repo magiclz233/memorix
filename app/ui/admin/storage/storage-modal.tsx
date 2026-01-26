@@ -15,6 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type StorageItem = {
   id: number;
@@ -126,19 +133,22 @@ function StorageForm({
     <form onSubmit={handleSubmit} className="space-y-4 py-4">
       <div className="grid gap-2">
         <Label htmlFor="type">{t('labels.type')}</Label>
-        <select
-          id="type"
-          className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:ring-offset-zinc-950 dark:focus-visible:ring-zinc-300"
+        <Select
           value={type}
-          onChange={(e) => setType(e.target.value)}
-          disabled={!!storage} 
+          onValueChange={(val) => setType(val)}
+          disabled={!!storage}
         >
-          {STORAGE_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger>
+            <SelectValue placeholder={t('labels.type')} />
+          </SelectTrigger>
+          <SelectContent>
+            {STORAGE_TYPES.map((t) => (
+              <SelectItem key={t.value} value={t.value}>
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-2">
