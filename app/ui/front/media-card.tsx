@@ -21,6 +21,8 @@ const formatDate = (value: string, locale: string) => {
   });
 };
 
+import { SpotlightCard } from '@/components/ui/spotlight-card';
+
 export function MediaCard({ item, showDate }: MediaCardProps) {
   const locale = useLocale();
   const t = useTranslations('front.media');
@@ -32,7 +34,7 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
   const titleText = resolveMessage(messages, item.title);
 
   return (
-    <div
+    <SpotlightCard
       className={cn(
         'group relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-lg shadow-zinc-200/50 transition duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-2xl dark:shadow-black/50',
         isVideo ? 'aspect-video' : 'aspect-[4/5]'
@@ -80,6 +82,6 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
           ) : null}
         </div>
       </div>
-    </div>
+    </SpotlightCard>
   );
 }
