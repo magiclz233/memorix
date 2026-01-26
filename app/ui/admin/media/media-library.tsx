@@ -210,7 +210,7 @@ export function MediaLibraryManager({
       );
       return {
         id: item.id,
-        type: item.mediaType === 'video' ? 'video' : 'photo',
+        type: (item.mediaType === 'video' ? 'video' : 'photo') as 'video' | 'photo',
         src:
           resolveMediaSrc(item) ||
           item.url ||
@@ -238,6 +238,13 @@ export function MediaLibraryManager({
       };
     });
   }, [items, messages, t]);
+
+  const galleryItemsForLightbox = useMemo(() => {
+    return galleryItems.map((item) => ({
+      ...item,
+      id: String(item.id),
+    }));
+  }, [galleryItems]);
 
   const toggleSelect = (id: number) => {
     if (!selectableIds.includes(id)) return;
@@ -644,9 +651,9 @@ export function MediaLibraryManager({
       </div>
 
       <Gallery25
-        items={galleryItems}
+        items={galleryItemsForLightbox}
         showGrid={false}
-        selectedId={viewingItemId}
+        selectedId={viewingItemId !== null ? String(viewingItemId) : null}
         onSelectedIdChange={(id) => {
           if (id === null) {
             setViewingItemId(null);
