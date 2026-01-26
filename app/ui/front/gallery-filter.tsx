@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { MediaItem } from '@/app/lib/definitions';
 import { MediaCard } from '@/app/ui/front/media-card';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslations } from 'next-intl';
 
 type GalleryFilterProps = {
@@ -40,25 +40,23 @@ export function GalleryFilter({ items }: GalleryFilterProps) {
 
   return (
     <div className='space-y-8'>
-      <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
-        {filters.map((tab) => (
-          <Button
-            key={tab.value}
-            type='button'
-            variant={filter === tab.value ? 'secondary' : 'ghost'}
-            size='sm'
-            onClick={() => setFilter(tab.value)}
-            className={cn(
-              'rounded-full px-4 text-xs uppercase tracking-[0.3em]',
-              filter === tab.value
-                ? 'bg-zinc-100 dark:bg-white/10'
-                : 'text-muted-foreground'
-            )}
-          >
-            {t(tab.key)}
-          </Button>
-        ))}
-      </div>
+      <Tabs
+        value={filter}
+        onValueChange={(v) => setFilter(v as FilterValue)}
+        className='flex justify-start'
+      >
+        <TabsList className='h-auto rounded-full border border-zinc-200 bg-white/50 p-1 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/50'>
+          {filters.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className='rounded-full px-4 py-1.5 text-xs uppercase tracking-[0.3em] data-[state=active]:bg-zinc-100 dark:data-[state=active]:bg-white/10'
+            >
+              {t(tab.key)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
       <div className='columns-1 gap-x-6 md:columns-2 xl:columns-3'>
         {visibleItems.map((item) => (
           <div
