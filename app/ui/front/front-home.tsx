@@ -8,7 +8,7 @@ import {
   featuredCollections,
   videoCollections,
 } from '@/app/lib/front-data';
-import { SpotlightCard } from '@/app/ui/front/spotlight-card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { SectionHeader } from '@/app/ui/front/section-header';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
