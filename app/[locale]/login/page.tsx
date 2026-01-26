@@ -4,6 +4,8 @@ import { GalleryVerticalEnd } from 'lucide-react';
 
 import { LoginForm } from '@/components/login-form';
 import { LocaleSwitcher } from '@/components/locale-switcher';
+import { DotPattern } from '@/components/ui/dot-pattern';
+import { cn } from '@/lib/utils';
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -26,15 +28,29 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <div className='grid min-h-svh lg:grid-cols-2'>
-      <div className='bg-muted relative hidden lg:block'>
-        <img
-          src='/hero-desktop.png'
-          alt={t('heroAlt')}
-          className='absolute inset-0 h-full w-full object-cover'
+      <div className='bg-zinc-900 relative hidden lg:flex flex-col items-center justify-center overflow-hidden p-10 text-white'>
+        <DotPattern
+          className={cn(
+            "[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]",
+            "fill-white/20"
+          )}
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/50 to-transparent" />
+        
+        <div className="relative z-10 flex flex-col items-center text-center space-y-4 max-w-lg">
+           <div className="p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl mb-8">
+             <GalleryVerticalEnd className="size-12 text-white" />
+           </div>
+           <h1 className="text-4xl font-serif font-bold tracking-tight">
+             {t('appName')}
+           </h1>
+           <p className="text-lg text-white/70 font-light">
+             {t('heroAlt')}
+           </p>
+        </div>
       </div>
       <div className='flex flex-col gap-4 p-6 md:p-10'>
-        <div className='flex items-center justify-between gap-2'>
+        <div className='flex items-center justify-between gap-2 lg:hidden'>
           <Link href='/' className='flex items-center gap-2 font-medium'>
             <div className='bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md'>
               <GalleryVerticalEnd className='size-4' />
