@@ -4,12 +4,12 @@ import { auth } from '@/auth';
 import { fetchDashboardOverview, fetchUserByEmail } from '@/app/lib/data';
 import { getTranslations } from 'next-intl/server';
 import {
-  Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card"
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 
 type StatCardProps = {
   label: string;
@@ -18,7 +18,7 @@ type StatCardProps = {
 };
 
 const StatCard = ({ label, value, description }: StatCardProps) => (
-  <Card>
+  <SpotlightCard className="flex flex-col">
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle className="text-sm font-medium">
         {label}
@@ -30,7 +30,7 @@ const StatCard = ({ label, value, description }: StatCardProps) => (
         {description}
       </p>
     </CardContent>
-  </Card>
+  </SpotlightCard>
 );
 
 export default async function Page() {
@@ -119,20 +119,20 @@ export default async function Page() {
         <h2 className="text-lg font-semibold tracking-tight">{t('quickLinks.title')}</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Link href="/dashboard/storage">
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+            <SpotlightCard className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
               <CardHeader className="p-6">
                 <CardTitle className="text-base font-medium">{t('quickLinks.storage')}</CardTitle>
                 <CardDescription>Manage your storage and files</CardDescription>
               </CardHeader>
-            </Card>
+            </SpotlightCard>
           </Link>
           <Link href="/gallery">
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+            <SpotlightCard className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
               <CardHeader className="p-6">
                 <CardTitle className="text-base font-medium">{t('quickLinks.gallery')}</CardTitle>
                 <CardDescription>View the public gallery</CardDescription>
               </CardHeader>
-            </Card>
+            </SpotlightCard>
           </Link>
         </div>
       </section>
