@@ -136,9 +136,13 @@ GitHub: https://github.com/photoprism/photoprism
 
 1. **扫描图片文件**
    - 保持现有 `scanImageFiles` 逻辑。
-2. **Motion Photo 探测**
-   - 读取文件末尾若干 KB，探测 `ftyp` 位置，计算偏移。
-   - 结合 EXIF/XMP 标记作为辅助（非硬依赖）。
+2. **Motion Photo 探测（优化策略）**
+   - **XMP 预检（针对远程存储优化）**：
+     - 对于 S3/NAS 等远程存储，先读取头部（如前 64KB）检查 XMP 元数据（如 `GCamera:MicroVideo`）。
+     - 若无标记，则跳过后续偏移探测，避免昂贵的远程 I/O 开销（Range Read）。
+   - **偏移探测**：
+     - 若 XMP 存在标记或为本地文件，读取文件末尾若干 KB，探测 `ftyp` 位置，计算偏移。
+     - 结合 EXIF/XMP 标记作为辅助（非硬依赖）。
 3. **Live Photo 配对**
    - 同目录同 basename 优先匹配 `.mov`。
    - 若存在多个候选，按时长阈值（≤3.1s）优先。
@@ -149,9 +153,13 @@ GitHub: https://github.com/photoprism/photoprism
 
 统一对外为“视频流出接口”，内部按 `liveType` 分支：
 
-- `embedded`：读取原图片文件，从 `videoOffset` 起返回 MP4 流。
-- `paired`：直接读取 MOV 文件（或 S3 key）。
-- `none`：返回 404 或静态占位。
+- **响应头优化**：
+  - 必须计算并返回准确的 `Content-Length` 头（视频总大小）。
+  - 原因：Safari 等浏览器在流式播放时若无法获知总长度，可能会中断播放或无法拖拽。
+- **流出策略**：
+  - `embedded`：读取原图片文件，从 `videoOffset` 起返回 MP4 流。
+  - `paired`：直接读取 MOV 文件（或 S3 key）。
+  - `none`：返回 404 或静态占位。
 
 ### 5.5 存储适配（本地/NAS/S3）
 
@@ -161,6 +169,9 @@ GitHub: https://github.com/photoprism/photoprism
 
 ## 6. 前端播放与交互策略
 
+- **视觉标识**：
+  - 在缩略图或详情页左上角/右上角增加 "Live" 或 "Motion" 图标/角标。
+  - 区分静态图片与实况图片，给予用户明确的交互预期。
 - **触发方式**：桌面端 hover 播放，移动端轻触或长按播放。
 - **回退策略**：播放失败时回退静态图；不阻塞瀑布流布局。
 - **资源加载**：仅在进入视口后拉取视频，避免首屏压力。
@@ -229,3 +240,60 @@ GitHub: https://github.com/photoprism/photoprism
 
 - 建立最小样本集（iOS/Android）用于回归测试。
 - 在 S3 上验证 Range 读取性能与缓存策略。
+
+## 10. 开发任务清单 (Development Tasks)
+
+> **AI 开发助手说明**：
+> 请严格按照以下清单顺序执行开发任务。
+> 1. 每完成一个子任务，请将 `[ ]` 标记为 `[x]`。
+> 2. 如果任务无法完成或需要调整，请在任务下方添加注释说明原因。
+> 3. 每次开发会话开始前，请检查此清单，从第一个未完成的任务开始执行。
+
+### Phase 1: 数据库与 Schema 定义 (Database Schema)
+- [x] 修改 `app/lib/schema.ts`，为 `photo_metadata` 表添加以下字段：
+  - `live_type` (text/enum): 'none', 'embedded', 'paired' (default: 'none')
+  - `video_offset` (integer): 用于存储 Motion Photo 的视频偏移量
+  - `paired_path` (text): 用于存储 Live Photo 的配对视频路径
+  - `video_duration` (real): 视频时长（秒）
+- [x] 执行数据库迁移 (`pnpm drizzle-kit migrate` 或生成迁移文件)。
+
+### Phase 2: 扫描逻辑实现 (Scanning Logic)
+- [x] 在 `app/lib/storage-scan.ts` 中实现 `checkXmpForMotion(headerBuffer)`：
+  - 读取文件头部（64KB），检查 XMP 是否包含 `GCamera:MicroVideo` 等标记。
+- [x] 实现 `detectVideoOffset(filePath)`：
+  - 读取文件尾部，搜索 `ftyp` mp4 签名，计算偏移量。
+  - 结合 XMP 检查结果，优化远程存储的读取（若 XMP 无标记则跳过）。
+- [x] 实现 `findPairedLiveVideo(imagePath)`：
+  - 在同目录下查找同名（basename 相同）的 `.mov` 文件。
+- [x] 更新 `scanImageFiles` 主流程：
+  - 集成上述检测函数。
+  - 将识别到的 `liveType`, `videoOffset`, `pairedPath` 写入数据库。
+
+### Phase 3: 视频流出 API (Video Streaming API)
+- [x] 创建或更新 API 路由 `app/api/media/stream/[id]/route.ts`。
+- [x] 实现基于 `storage` 模块的文件读取适配器（支持 Local/S3）。
+- [x] 实现 `Range` 请求处理逻辑：
+  - 解析 HTTP `Range` 头。
+  - 返回 206 Partial Content。
+- [x] 实现 **Embedded Mode** 流出：
+  - 根据 `video_offset` 计算实际读取起始位置 = `request_start + video_offset`。
+  - 正确计算 `Content-Length` = `file_size - video_offset`。
+- [x] 实现 **Paired Mode** 流出：
+  - 直接读取 `paired_path` 指向的文件。
+- [x] 验证 `Content-Length` 和 `Accept-Ranges` 响应头，确保 Safari 兼容性。
+
+### Phase 4: 前端 UI 实现 (Frontend UI)
+- [x] 更新 `MediaCard` 组件 (`app/ui/media/media-card.tsx` 或类似)：
+  - 接收 `liveType` 属性。
+  - 在卡片角标位置显示 "LIVE" 或 "MOTION" 图标。
+- [x] 实现 **Hover-to-Play** 交互：
+  - 鼠标悬停时，动态加载 `<video>` 标签指向 Stream API。
+  - 鼠标移出时，销毁视频，恢复封面。
+- [x] 更新详情页 `PhotoDetail`：
+  - 支持长按/点击播放实况视频。
+- [x] 优化加载体验：添加 Loading 状态，避免因探测导致的界面卡顿。
+
+### Phase 5: 测试与验证 (Verification)
+- [x] 验证 Android Motion Photo (Pixel/Samsung 样张) 识别与播放。
+- [x] 验证 iOS Live Photo (iPhone HEIC+MOV) 识别与播放。
+- [x] 验证 S3/NAS 远程存储下的流式播放性能与 Range 请求正确性。
