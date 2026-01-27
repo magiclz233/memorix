@@ -719,6 +719,7 @@ export async function fetchPublishedMediaForGallery(
         whiteBalance: photoMetadata.whiteBalance,
         gpsLatitude: photoMetadata.gpsLatitude,
         gpsLongitude: photoMetadata.gpsLongitude,
+        liveType: photoMetadata.liveType,
         storageConfig: userStorages.config,
       })
       .from(files)
