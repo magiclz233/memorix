@@ -60,6 +60,8 @@ type StorageConfig = {
   isDisabled?: boolean;
 };
 
+type ScanMode = 'incremental' | 'full';
+
 const STORAGE_ICONS = {
   local: HardDrive,
   nas: HardDrive,
@@ -97,12 +99,15 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
     setIsModalOpen(true);
   };
 
-  const handleScan = (storageId: number) => {
+  const handleScan = (storageId: number, mode: ScanMode = 'incremental') => {
     if (scanningId) return;
+    if (mode === 'full' && !confirm(t('view.alerts.confirmScanFull'))) {
+      return;
+    }
     setScanningId(storageId);
     startTransition(async () => {
       try {
-        const result = await scanStorage(storageId);
+        const result = await scanStorage(storageId, mode);
         if (!result.success) {
           alert(result.message);
         }
@@ -209,13 +214,13 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
                 key={storage.id}
                 storage={storage}
                 onEdit={() => handleEdit(storage)}
-              onScan={() => handleScan(storage.id)}
-              onDelete={() => handleDelete(storage.id)}
-              onToggleDisable={() => handleToggleDisable(storage)}
-              onSetPublish={(pub: boolean) => handleSetPublish(storage.id, pub)}
-              isScanning={scanningId === storage.id}
-            />
-          ))}
+                onScan={(mode: ScanMode) => handleScan(storage.id, mode)}
+                onDelete={() => handleDelete(storage.id)}
+                onToggleDisable={() => handleToggleDisable(storage)}
+                onSetPublish={(pub: boolean) => handleSetPublish(storage.id, pub)}
+                isScanning={scanningId === storage.id}
+              />
+            ))}
           </div>
         ) : (
           <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
@@ -231,13 +236,13 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
                 key={storage.id}
                 storage={storage}
                 onEdit={() => handleEdit(storage)}
-              onScan={() => handleScan(storage.id)}
-              onDelete={() => handleDelete(storage.id)}
-              onToggleDisable={() => handleToggleDisable(storage)}
-              onSetPublish={(pub: boolean) => handleSetPublish(storage.id, pub)}
-              isScanning={scanningId === storage.id}
-            />
-          ))}
+                onScan={(mode: ScanMode) => handleScan(storage.id, mode)}
+                onDelete={() => handleDelete(storage.id)}
+                onToggleDisable={() => handleToggleDisable(storage)}
+                onSetPublish={(pub: boolean) => handleSetPublish(storage.id, pub)}
+                isScanning={scanningId === storage.id}
+              />
+            ))}
           </div>
         )}
 
@@ -318,11 +323,17 @@ function StorageCard({
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={onScan} disabled={isScanning} className="h-8 px-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onScan('incremental')}
+                  disabled={isScanning}
+                  className="h-8 px-2"
+                >
                     <RefreshCw className={cn("h-4 w-4", isScanning && "animate-spin")} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{t('view.actions.scan')}</TooltipContent>
+              <TooltipContent>{t('view.actions.scanIncremental')}</TooltipContent>
             </Tooltip>
          </div>
          
@@ -334,6 +345,13 @@ function StorageCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{t('view.headers.actions')}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onScan('incremental')} disabled={isScanning}>
+                    <RefreshCw className="mr-2 h-4 w-4" /> {t('view.actions.scanIncremental')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onScan('full')} disabled={isScanning}>
+                    <RefreshCw className="mr-2 h-4 w-4" /> {t('view.actions.scanFull')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onToggleDisable}>
                     {isDisabled ? (
                         <><Power className="mr-2 h-4 w-4" /> {t('view.actions.enable')}</>
@@ -392,11 +410,17 @@ function StorageRow({ storage, onEdit, onScan, onDelete, onToggleDisable, onSetP
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" onClick={onScan} disabled={isScanning} className="h-8 w-8 p-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onScan('incremental')}
+                      disabled={isScanning}
+                      className="h-8 w-8 p-0"
+                    >
                         <RefreshCw className={cn("h-4 w-4", isScanning && "animate-spin")} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{t('view.actions.scan')}</TooltipContent>
+                  <TooltipContent>{t('view.actions.scanIncremental')}</TooltipContent>
                 </Tooltip>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -405,6 +429,13 @@ function StorageRow({ storage, onEdit, onScan, onDelete, onToggleDisable, onSetP
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onScan('incremental')} disabled={isScanning}>
+                            <RefreshCw className="mr-2 h-4 w-4" /> {t('view.actions.scanIncremental')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onScan('full')} disabled={isScanning}>
+                            <RefreshCw className="mr-2 h-4 w-4" /> {t('view.actions.scanFull')}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={onToggleDisable}>
                             {isDisabled ? (
                                 <><Power className="mr-2 h-4 w-4" /> {t('view.actions.enable')}</>
