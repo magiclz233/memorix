@@ -1,10 +1,16 @@
 import { eq, sql, inArray, and } from 'drizzle-orm';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { db } from './drizzle';
 import { files, photoMetadata } from './schema';
 import { readPhotoMetadata, scanImageFiles, type ScanWalkEvent } from './storage';
 import { getTranslations } from 'next-intl/server';
 import sharp from 'sharp';
 import { encode } from 'blurhash';
+
+const LIVE_PHOTO_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.heic', '.heif']);
+const LIVE_PHOTO_VIDEO_EXTENSIONS = ['.mov', '.MOV'];
+const MAX_LIVE_PHOTO_VIDEO_BYTES = 12 * 1024 * 1024;
 
 export type StorageScanLogLevel = 'info' | 'warn' | 'error';
 
@@ -19,10 +25,13 @@ export type StorageScanProgress = {
   total: number;
 };
 
+export type StorageScanMode = 'incremental' | 'full';
+
 type StorageScanOptions = {
   storageId: number;
   storageType: 'local' | 'nas';
   rootPath: string;
+  mode?: StorageScanMode;
   onLog?: (entry: StorageScanLog) => void;
   onProgress?: (progress: StorageScanProgress) => void;
 };
@@ -42,10 +51,42 @@ async function generateBlurHash(path: string): Promise<string | null> {
   }
 }
 
+async function findPairedLiveVideo(
+  imagePath: string,
+  imageMtime?: Date,
+): Promise<string | null> {
+  const parsed = path.parse(imagePath);
+  const candidates = LIVE_PHOTO_VIDEO_EXTENSIONS.map((ext) =>
+    path.join(parsed.dir, `${parsed.name}${ext}`),
+  );
+
+  let bestMatch: { path: string; diff: number } | null = null;
+
+  for (const videoPath of candidates) {
+    if (videoPath === imagePath) continue;
+    try {
+      const stat = await fs.stat(videoPath);
+      if (!stat.isFile()) continue;
+      if (stat.size > MAX_LIVE_PHOTO_VIDEO_BYTES) continue;
+      const diff = imageMtime
+        ? Math.abs(stat.mtime.getTime() - imageMtime.getTime())
+        : 0;
+      if (!bestMatch || diff < bestMatch.diff) {
+        bestMatch = { path: videoPath, diff };
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return bestMatch?.path ?? null;
+}
+
 export async function runStorageScan({
   storageId,
   storageType,
   rootPath,
+  mode = 'incremental',
   onLog,
   onProgress,
 }: StorageScanOptions) {
@@ -84,7 +125,12 @@ export async function runStorageScan({
   await db.transaction(async (tx) => {
     // 1. Get all file paths in DB for this storage
     const existingFiles = await tx
-      .select({ path: files.path, size: files.size, mtime: files.mtime })
+      .select({
+        path: files.path,
+        size: files.size,
+        mtime: files.mtime,
+        mimeType: files.mimeType,
+      })
       .from(files)
       .where(eq(files.userStorageId, storageId));
     
@@ -112,14 +158,22 @@ export async function runStorageScan({
     // 3. Update or insert files
     for (const file of fileList) {
       const existing = existingFileMap.get(file.relativePath);
+      const currentFileName = path.basename(file.relativePath);
+      const existingFileName = existing ? path.basename(existing.path) : null;
+      const hasCurrentMtime = file.mtime instanceof Date;
+      const hasExistingMtime = existing?.mtime instanceof Date;
       const isSameFile =
-        existing &&
-        typeof existing.size === 'number' &&
+        Boolean(existing) &&
+        existing?.path === file.relativePath &&
+        existingFileName === currentFileName &&
+        existing?.mimeType === file.mimeType &&
+        typeof existing?.size === 'number' &&
         existing.size === file.size &&
-        existing.mtime instanceof Date &&
+        hasCurrentMtime &&
+        hasExistingMtime &&
         existing.mtime.getTime() === file.mtime.getTime();
 
-      if (isSameFile) {
+      if (mode === 'incremental' && isSameFile) {
         processed += 1;
         if (processed % 50 === 0 || processed === fileList.length) {
           onProgress?.({ stage: 'save', processed, total: fileList.length });
@@ -160,6 +214,24 @@ export async function runStorageScan({
 
       if (saved?.id) {
         const metadata = await readPhotoMetadata(file.absolutePath);
+        
+        let liveType = 'none';
+        let videoOffset: number | null = null;
+        let pairedPath: string | null = null;
+        const imageExt = path.extname(file.absolutePath).toLowerCase();
+        const canPairLive = LIVE_PHOTO_IMAGE_EXTENSIONS.has(imageExt);
+
+        if (metadata?.motionPhoto && typeof metadata.videoOffset === 'number') {
+          liveType = 'embedded';
+          videoOffset = metadata.videoOffset;
+        } else if (canPairLive) {
+          const paired = await findPairedLiveVideo(file.absolutePath, file.mtime);
+          if (paired) {
+            liveType = 'paired';
+            pairedPath = path.relative(rootPath, paired);
+          }
+        }
+
         if (metadata) {
           await tx
             .insert(photoMetadata)
@@ -182,6 +254,9 @@ export async function runStorageScan({
               resolutionWidth: metadata.resolutionWidth ?? null,
               resolutionHeight: metadata.resolutionHeight ?? null,
               whiteBalance: metadata.whiteBalance ?? null,
+              liveType,
+              videoOffset,
+              pairedPath,
             })
             .onConflictDoUpdate({
               target: [photoMetadata.fileId],
@@ -203,6 +278,9 @@ export async function runStorageScan({
                 resolutionWidth: metadata.resolutionWidth ?? null,
                 resolutionHeight: metadata.resolutionHeight ?? null,
                 whiteBalance: metadata.whiteBalance ?? null,
+                liveType,
+                videoOffset,
+                pairedPath,
               },
             });
         }
