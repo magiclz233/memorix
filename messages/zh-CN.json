@@ -141,7 +141,11 @@
     },
     "media": {
       "photo": "照片",
-      "video": "视频"
+      "video": "视频",
+      "liveBadge": "实况",
+      "motionBadge": "动态",
+      "livePhoto": "实况照片",
+      "motionPhoto": "动态照片"
     },
     "data": {
       "featured": {
@@ -447,6 +451,13 @@
         "prev": "上一张",
         "next": "下一张"
       },
+      "playback": {
+        "failed": "播放失败",
+        "unsupported": "格式不支持（HEVC）",
+        "networkError": "网络错误",
+        "download": "下载视频",
+        "retry": "重试"
+      },
       "details": {
         "resolution": "分辨率",
         "camera": "相机",
@@ -708,6 +719,8 @@
           "add": "新增数据源",
           "edit": "编辑配置",
           "scan": "扫描目录获取图片",
+          "scanIncremental": "增量扫描",
+          "scanFull": "全量扫描",
           "enable": "启用",
           "disable": "停用",
           "publishAll": "全部发布",
@@ -717,6 +730,7 @@
         "alerts": {
           "confirmPublish": "确定要发布该数据源下的所有图片吗？",
           "confirmHide": "确定要隐藏该数据源下的所有图片吗？",
+          "confirmScanFull": "确认执行全量扫描吗？这将重新解析全部图片，耗时更长。",
           "deleteTitle": "确认删除",
           "disableTitle": "确认停用",
           "deleteDesc": "删除该数据源将永久删除其下的所有文件，并从以下集合中移除相关引用。",
@@ -1004,6 +1018,7 @@
       "scanUnsupported": "当前存储类型暂不支持扫描。",
       "configDisabled": "当前配置已禁用，请先启用。",
       "noRootPath": "根目录路径未配置。",
+      "scanPrefix": "存储扫描：{message}",
       "scanSuccess": "扫描完成，共处理 {count} 张图片，旧记录已清空。",
       "scanFailed": "扫描目录失败，请检查路径是否可访问。",
       "published": "已发布该数据源下的所有图片。",

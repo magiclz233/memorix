@@ -131,7 +131,11 @@
     },
     "media": {
       "photo": "Photo",
-      "video": "Video"
+      "video": "Video",
+      "liveBadge": "LIVE",
+      "motionBadge": "MOTION",
+      "livePhoto": "Live Photo",
+      "motionPhoto": "Motion Photo"
     },
     "data": {
       "featured": {
@@ -437,6 +441,13 @@
         "prev": "Previous",
         "next": "Next"
       },
+      "playback": {
+        "failed": "Playback failed",
+        "unsupported": "Format unsupported (HEVC)",
+        "networkError": "Network error",
+        "download": "Download video",
+        "retry": "Retry"
+      },
       "details": {
         "resolution": "Resolution",
         "camera": "Camera",
@@ -694,6 +705,8 @@
           "add": "Add Data Source",
           "edit": "Edit Config",
           "scan": "Scan Directory",
+          "scanIncremental": "Incremental Scan",
+          "scanFull": "Full Scan",
           "enable": "Enable",
           "disable": "Disable",
           "publishAll": "Publish All",
@@ -703,6 +716,7 @@
         "alerts": {
           "confirmPublish": "Are you sure you want to publish all images from this source?",
           "confirmHide": "Are you sure you want to hide all images from this source?",
+          "confirmScanFull": "Confirm full scan? This will reprocess all images and may take longer.",
           "deleteTitle": "Confirm Delete",
           "disableTitle": "Confirm Disable",
           "deleteDesc": "Deleting this source will permanently remove all its files and references from collections.",
@@ -990,6 +1004,7 @@
       "scanUnsupported": "Scanning not supported for this storage type.",
       "configDisabled": "Configuration disabled, please enable first.",
       "noRootPath": "Root path not configured.",
+      "scanPrefix": "Storage scan: {message}",
       "scanSuccess": "Scan complete, processed {count} items, old records cleared.",
       "scanFailed": "Scan failed, please check path accessibility.",
       "published": "All items from this source published.",
