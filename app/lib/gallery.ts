@@ -22,6 +22,7 @@ export type GalleryItem = {
   dateShot?: string | null;
   createdAt?: string | null;
   blurHash?: string | null;
+  liveType?: 'none' | 'embedded' | 'paired';
 };
 
 type GalleryRecord = Awaited<
@@ -73,6 +74,7 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
       dateShot: normalizeDate(shotAt),
       createdAt: normalizeDate(record.mtime),
       blurHash: record.blurHash ?? null,
+      liveType: (record.liveType as 'none' | 'embedded' | 'paired') ?? 'none',
     });
     return acc;
   }, []);

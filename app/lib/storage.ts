@@ -18,6 +18,12 @@ const IMAGE_MIME_BY_EXT: Record<string, string> = {
   '.avif': 'image/avif',
 };
 
+const MOTION_XMP_SCAN_BYTES = 512 * 1024;
+const MIN_EMBEDDED_VIDEO_BYTES = 8 * 1024;
+const MP4_HEADER_SCAN_BYTES = 64;
+const MP4_FTYP = Buffer.from('ftyp');
+const MP4_BRANDS = new Set(['isom', 'iso2', 'mp41', 'mp42', 'mp4v', 'avc1', 'av01']);
+
 export type ImageFileInfo = {
   absolutePath: string;
   relativePath: string;
@@ -45,6 +51,9 @@ export type ParsedPhotoMetadata = {
   resolutionWidth?: number | null;
   resolutionHeight?: number | null;
   whiteBalance?: string | null;
+  // Motion Photo Info
+  motionPhoto?: boolean;
+  videoOffset?: number | null;
 };
 
 export type ScanWalkEvent = {
@@ -138,6 +147,199 @@ function normalizeText(value: unknown) {
   return null;
 }
 
+function normalizeNumber(value: unknown) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === 'bigint') {
+    const asNumber = Number(value);
+    return Number.isFinite(asNumber) ? asNumber : null;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const asNumber = Number(trimmed);
+    return Number.isFinite(asNumber) ? asNumber : null;
+  }
+  return null;
+}
+
+function normalizeBooleanFlag(value: unknown) {
+  if (value === true) return true;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes';
+  }
+  return false;
+}
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const buildXmpNamePattern = (name: string) => {
+  const escaped = escapeRegExp(name);
+  if (name.includes(':')) return escaped;
+  return `(?:[\\w-]+:)?${escaped}`;
+};
+
+const extractXmpSegment = (buffer: Buffer): string | null => {
+  const scanSize = Math.min(buffer.length, MOTION_XMP_SCAN_BYTES);
+  if (scanSize <= 0) return null;
+  const header = buffer.toString('utf8', 0, scanSize);
+  const startIndex = header.indexOf('<x:xmpmeta');
+  if (startIndex === -1) return null;
+  const endIndex = header.indexOf('</x:xmpmeta>');
+  if (endIndex === -1) return null;
+  return header.slice(startIndex, endIndex + '</x:xmpmeta>'.length);
+};
+
+const extractXmpBoolean = (xmp: string, name: string): boolean | null => {
+  const regex = new RegExp(`<${buildXmpNamePattern(name)}>([^<]+)</[^>]+>`, 'i');
+  const match = xmp.match(regex);
+  if (!match) return null;
+  return normalizeBooleanFlag(match[1]);
+};
+
+const extractXmpNumber = (xmp: string, name: string): number | null => {
+  const regex = new RegExp(`<${buildXmpNamePattern(name)}>([^<]+)</[^>]+>`, 'i');
+  const match = xmp.match(regex);
+  if (!match) return null;
+  return normalizeNumber(match[1]);
+};
+
+const extractXmpAttributeBoolean = (xmp: string, name: string): boolean | null => {
+  const regex = new RegExp(`${buildXmpNamePattern(name)}="([^"]+)"`, 'i');
+  const match = xmp.match(regex);
+  if (!match) return null;
+  return normalizeBooleanFlag(match[1]);
+};
+
+const extractXmpAttributeNumber = (xmp: string, name: string): number | null => {
+  const regex = new RegExp(`${buildXmpNamePattern(name)}="([^"]+)"`, 'i');
+  const match = xmp.match(regex);
+  if (!match) return null;
+  return normalizeNumber(match[1]);
+};
+
+const isLikelyMp4Header = (
+  buffer: Buffer,
+  start: number,
+  requireBrand: boolean,
+) => {
+  if (start <= 0 || start >= buffer.length - MIN_EMBEDDED_VIDEO_BYTES) return false;
+  const end = Math.min(buffer.length, start + MP4_HEADER_SCAN_BYTES);
+  const header = buffer.subarray(start, end);
+  const ftypIndex = header.indexOf(MP4_FTYP);
+  if (ftypIndex < 4 || ftypIndex > 16) return false;
+  const sizeOffset = start + ftypIndex - 4;
+  if (sizeOffset + 4 > buffer.length) return false;
+  let boxSize: number;
+  try {
+    boxSize = buffer.readUInt32BE(sizeOffset);
+  } catch {
+    return false;
+  }
+  if (!Number.isFinite(boxSize) || boxSize < 8) return false;
+  if (sizeOffset + boxSize > buffer.length) return false;
+  if (!requireBrand) return true;
+  const brand = header
+    .subarray(ftypIndex + 4, ftypIndex + 8)
+    .toString('ascii')
+    .trim()
+    .toLowerCase();
+  return brand.length > 0 && MP4_BRANDS.has(brand);
+};
+
+const resolveEmbeddedMp4Offset = (
+  buffer: Buffer,
+  offsetCandidates: Iterable<number>,
+  allowFallback: boolean,
+) => {
+  for (const candidate of offsetCandidates) {
+    if (!Number.isFinite(candidate)) continue;
+    const starts = new Set<number>([candidate, buffer.length - candidate]);
+    for (const start of starts) {
+      if (isLikelyMp4Header(buffer, start, false)) {
+        return start;
+      }
+    }
+  }
+
+  if (!allowFallback) return null;
+
+  const searchStart = Math.max(0, buffer.length - 8 * 1024 * 1024);
+  let cursor = buffer.indexOf(MP4_FTYP, searchStart);
+  while (cursor !== -1) {
+    const start = cursor - 4;
+    if (isLikelyMp4Header(buffer, start, true)) {
+      return start;
+    }
+    cursor = buffer.indexOf(MP4_FTYP, cursor + 1);
+  }
+
+  return null;
+};
+
+const detectMotionPhotoInfo = (
+  buffer: Buffer,
+  metadata: Record<string, unknown>,
+): { motionPhoto: boolean; videoOffset: number | null } => {
+  const offsetCandidates = new Set<number>();
+  const motionFlags = [
+    normalizeBooleanFlag((metadata as { MicroVideo?: unknown }).MicroVideo),
+    normalizeBooleanFlag((metadata as { MotionPhoto?: unknown }).MotionPhoto),
+  ];
+
+  const microVideoOffset = normalizeNumber(
+    (metadata as { MicroVideoOffset?: unknown }).MicroVideoOffset,
+  );
+  if (microVideoOffset !== null && microVideoOffset > 0) {
+    offsetCandidates.add(microVideoOffset);
+  }
+
+  const xmpSegment = extractXmpSegment(buffer);
+  if (xmpSegment) {
+    const xmpFlags = [
+      extractXmpBoolean(xmpSegment, 'MotionPhoto'),
+      extractXmpBoolean(xmpSegment, 'GCamera:MotionPhoto'),
+      extractXmpBoolean(xmpSegment, 'MicroVideo'),
+      extractXmpBoolean(xmpSegment, 'GCamera:MicroVideo'),
+      extractXmpAttributeBoolean(xmpSegment, 'MotionPhoto'),
+      extractXmpAttributeBoolean(xmpSegment, 'GCamera:MotionPhoto'),
+      extractXmpAttributeBoolean(xmpSegment, 'MicroVideo'),
+      extractXmpAttributeBoolean(xmpSegment, 'GCamera:MicroVideo'),
+    ].filter((flag) => flag !== null) as boolean[];
+    if (xmpFlags.some(Boolean)) {
+      motionFlags.push(true);
+    }
+
+    const xmpOffsets = [
+      extractXmpNumber(xmpSegment, 'MicroVideoOffset'),
+      extractXmpNumber(xmpSegment, 'GCamera:MicroVideoOffset'),
+      extractXmpAttributeNumber(xmpSegment, 'MicroVideoOffset'),
+      extractXmpAttributeNumber(xmpSegment, 'GCamera:MicroVideoOffset'),
+    ].filter((value) => typeof value === 'number') as number[];
+    xmpOffsets.forEach((offset) => {
+      if (offset > 0) {
+        offsetCandidates.add(offset);
+      }
+    });
+  }
+
+  const hasMotionHint = motionFlags.some(Boolean) || offsetCandidates.size > 0;
+  const videoOffset = resolveEmbeddedMp4Offset(
+    buffer,
+    offsetCandidates,
+    hasMotionHint,
+  );
+
+  return {
+    motionPhoto: hasMotionHint || videoOffset !== null,
+    videoOffset,
+  };
+};
+
 export async function readPhotoMetadata(filePath: string) {
   let fileBuffer: Buffer;
   try {
@@ -153,6 +355,7 @@ export async function readPhotoMetadata(filePath: string) {
       tiff: true,
       exif: true,
       gps: true,
+      xmp: true,
     });
   } catch (error) {
     console.warn('Failed to read EXIF, ignored:', filePath, error);
@@ -243,7 +446,12 @@ export async function readPhotoMetadata(filePath: string) {
     whiteBalance: normalizeWhiteBalance(
       (safeMetadata as { WhiteBalance?: unknown }).WhiteBalance,
     ),
+    motionPhoto: false,
+    videoOffset: null,
   };
+  const motionInfo = detectMotionPhotoInfo(fileBuffer, safeMetadata);
+  result.motionPhoto = motionInfo.motionPhoto;
+  result.videoOffset = motionInfo.videoOffset;
 
   const hasAnyMetadata = Object.values(result).some(
     (value) => value !== null && value !== undefined,

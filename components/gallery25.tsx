@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Loader2, AlertCircle, Download } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useLocale,
@@ -198,6 +198,7 @@ const Gallery25 = ({
 }: Gallery25Props) => {
   const locale = useLocale();
   const t = useTranslations('front.galleryGrid');
+  const tMedia = useTranslations('front.media');
   const messages = useMessages();
   const [uncontrolledSelectedId, setUncontrolledSelectedId] =
     useState<GalleryId | null>(null);
@@ -206,11 +207,15 @@ const Gallery25 = ({
       ? uncontrolledSelectedId
       : controlledSelectedId;
   const setSelectedId = (id: GalleryId | null) => {
+    setIsModalPlaying(false);
+    setIsBuffering(false);
+    setPlaybackError(null);
     if (controlledSelectedId === undefined) {
       setUncontrolledSelectedId(id);
     }
     onSelectedIdChange?.(id);
   };
+
   const [isFullBleed, setIsFullBleed] = useState(false);
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('gallery25-columns', 4),
@@ -222,6 +227,10 @@ const Gallery25 = ({
   const [isChromeVisible, setIsChromeVisible] = useState(true);
   const [ratioMap, setRatioMap] = useState<Record<string, number>>({});
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const [hoveredId, setHoveredId] = useState<GalleryId | null>(null);
+  const [isModalPlaying, setIsModalPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const previousFullBleed = useRef(isFullBleed);
   const lastScrollY = useRef(0);
@@ -266,6 +275,10 @@ const Gallery25 = ({
   const selectedDescription = selected
     ? resolveMessage(messages, selected.description)
     : '';
+  const resolveLiveBadgeLabel = (liveType?: GalleryItem['liveType']) =>
+    liveType === 'embedded' ? tMedia('motionBadge') : tMedia('liveBadge');
+  const resolveLivePhotoLabel = (liveType?: GalleryItem['liveType']) =>
+    liveType === 'embedded' ? tMedia('motionPhoto') : tMedia('livePhoto');
   const selectedDetails = useMemo(
     () => (selected ? buildDetails(selected, t, locale) : []),
     [locale, selected, t],
@@ -550,6 +563,111 @@ const Gallery25 = ({
                       }));
                     }}
                   />
+                  {(selected.liveType === 'embedded' ||
+                    selected.liveType === 'paired') &&
+                  isModalPlaying ? (
+                    <>
+                      <video
+                        src={`/api/media/stream/${selected.id}`}
+                        autoPlay
+                        controls
+                        playsInline
+                        className={cn(
+                          'absolute inset-0 z-10 h-full w-full',
+                          viewMode === 'crop' ? 'object-cover' : 'object-contain',
+                        )}
+                        onLoadStart={() => setIsBuffering(true)}
+                        onWaiting={() => setIsBuffering(true)}
+                        onCanPlay={() => setIsBuffering(false)}
+                        onPlaying={() => setIsBuffering(false)}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          console.error('Video playback failed:', {
+                            error: target.error,
+                            code: target.error?.code,
+                            message: target.error?.message,
+                            networkState: target.networkState,
+                            src: target.src,
+                            currentSrc: target.currentSrc
+                          });
+                          // Don't immediately close, let user see error or fallback
+                          // Actually, reverting to image is safer UX than black screen
+                          setIsModalPlaying(false);
+                          setIsBuffering(false);
+                          
+                          let errorMsg = t('playback.failed');
+                          if (target.error?.code === 4) {
+                            errorMsg = t('playback.unsupported');
+                          } else if (target.error?.code === 2) {
+                            errorMsg = t('playback.networkError');
+                          }
+                          setPlaybackError(errorMsg);
+                        }}
+                      />
+                      {isBuffering && (
+                        <div className='absolute inset-0 z-20 flex items-center justify-center pointer-events-none'>
+                          <Loader2 className='h-12 w-12 animate-spin text-white/80 drop-shadow-md' />
+                        </div>
+                      )}
+                    </>
+                  ) : (selected.liveType === 'embedded' ||
+                      selected.liveType === 'paired') &&
+                    !isModalPlaying ? (
+                    <div className='absolute left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2'>
+                      {playbackError ? (
+                        <div className='flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300'>
+                           <div className='rounded-full bg-red-500/80 p-3 text-white backdrop-blur-sm shadow-lg'>
+                              <AlertCircle className='h-8 w-8' />
+                           </div>
+                           <div className='flex flex-col items-center gap-1'>
+                             <span className='text-xs font-medium text-white/90 drop-shadow-md bg-black/40 px-2 py-1 rounded'>
+                               {playbackError}
+                             </span>
+                             <a 
+                               href={`/api/media/stream/${selected.id}`} 
+                               download 
+                               className='flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-[10px] font-medium text-white hover:bg-white/30 transition-colors backdrop-blur-sm'
+                               onClick={(e) => e.stopPropagation()}
+                             >
+                               <Download className='h-3 w-3' />
+                               {t('playback.download')}
+                             </a>
+                             <Button
+                                type='button'
+                                variant='ghost'
+                                size='sm'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPlaybackError(null);
+                                  setIsModalPlaying(true);
+                                }}
+                                className='h-6 text-[10px] text-white/70 hover:text-white hover:bg-transparent'
+                             >
+                               {t('playback.retry')}
+                             </Button>
+                           </div>
+                        </div>
+                      ) : (
+                        <>
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsModalPlaying(true);
+                            }}
+                            className='h-16 w-16 rounded-full bg-black/30 text-white/90 backdrop-blur-sm transition hover:scale-110 hover:bg-black/50'
+                          >
+                            <Play className='h-8 w-8 fill-white' />
+                          </Button>
+                          <span className='rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white/90 backdrop-blur-sm'>
+                            {resolveLivePhotoLabel(selected.liveType)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
                 {canNavigate && (
                   <>
@@ -741,6 +859,10 @@ const Gallery25 = ({
               <div key={columnIndex} className='flex min-w-0 flex-1 flex-col gap-4'>
                 {columnItems.map((item, itemIndex) => {
                   const itemTitle = resolveMessage(messages, item.title);
+                  const isLive =
+                    item.liveType === 'embedded' || item.liveType === 'paired';
+                  const isPlaying = hoveredId === item.id;
+
                   return (
                     <motion.article
                       key={item.id}
@@ -748,6 +870,8 @@ const Gallery25 = ({
                       whileInView={{ opacity: 1, scale: 1, y: 0 }}
                       transition={{ duration: 0.45, delay: itemIndex * 0.08 }}
                       className='group relative w-full overflow-hidden rounded-2xl border border-border bg-card'
+                      onMouseEnter={() => isLive && setHoveredId(item.id)}
+                      onMouseLeave={() => setHoveredId(null)}
                     >
                       <button
                         type='button'
@@ -776,7 +900,26 @@ const Gallery25 = ({
                               }));
                             }}
                           />
+                          {isLive && isPlaying ? (
+                            <video
+                              src={`/api/media/stream/${item.id}`}
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                              className='absolute inset-0 h-full w-full object-cover animate-in fade-in duration-300'
+                            />
+                          ) : null}
                           <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100' />
+                          {item.type === 'video' ? (
+                            <div className='absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md'>
+                              <Play className='h-3 w-3 fill-white' />
+                            </div>
+                          ) : isLive ? (
+                            <div className='absolute right-2 top-2 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md'>
+                              {resolveLiveBadgeLabel(item.liveType)}
+                            </div>
+                          ) : null}
                           <div className='absolute inset-x-0 bottom-0 px-4 pb-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100'>
                             <p className='truncate text-sm font-medium text-white'>
                               {itemTitle}

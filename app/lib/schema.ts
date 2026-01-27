@@ -161,6 +161,14 @@ export const photoMetadata = pgTable('photo_metadata', {
   resolutionHeight: integer('resolution_height'),
   // 白平衡
   whiteBalance: varchar('white_balance', { length: 255 }),
+  // Live Photo 类型: none | embedded | paired
+  liveType: varchar('live_type', { length: 20 }).default('none'),
+  // 内嵌视频偏移量
+  videoOffset: integer('video_offset'),
+  // 配对视频路径
+  pairedPath: text('paired_path'),
+  // 视频时长
+  videoDuration: doublePrecision('video_duration'),
 });
 
 // 存储配置表：后台管理员可配置的存储源

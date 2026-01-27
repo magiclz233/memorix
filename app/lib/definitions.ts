@@ -8,6 +8,7 @@ export type MediaItem = {
   tags?: string[];
   createdAt: string;
   collectionId?: string;
+  liveType?: 'none' | 'embedded' | 'paired';
 };
 
 export type Collection = {

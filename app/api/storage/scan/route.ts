@@ -4,7 +4,11 @@ import { auth } from '@/auth';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/app/lib/drizzle';
 import { userStorages, users } from '@/app/lib/schema';
-import { runStorageScan, type StorageScanLog } from '@/app/lib/storage-scan';
+import {
+  runStorageScan,
+  type StorageScanLog,
+  type StorageScanMode,
+} from '@/app/lib/storage-scan';
 
 import { getTranslations } from 'next-intl/server';
 
@@ -13,6 +17,8 @@ export const runtime = 'nodejs';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const storageId = Number(searchParams.get('storageId'));
+  const modeParam = searchParams.get('mode');
+  const mode: StorageScanMode = modeParam === 'full' ? 'full' : 'incremental';
   const encoder = new TextEncoder();
   const tCommon = await getTranslations('common');
   const tStorage = await getTranslations('dashboard.storage');
@@ -103,6 +109,7 @@ export async function GET(request: Request) {
           storageId: storage.id,
           storageType: storage.type as 'local' | 'nas',
           rootPath,
+          mode,
           onLog: (entry) => {
             send('log', entry);
             logToConsole(entry);
