@@ -21,7 +21,7 @@ import {
   videoSeries,
   videoSeriesItems,
 } from './schema'; // 引入表定义
-import { runStorageScan } from './storage-scan';
+import { runStorageScan, type StorageScanMode } from './storage-scan';
 import { ApiError } from 'next/dist/server/api-utils';
 
 export type SignupState = {
@@ -481,7 +481,10 @@ export async function setStoragePublished(storageId: number, isPublished: boolea
   };
 }
 
-export async function scanStorage(storageId: number) {
+export async function scanStorage(
+  storageId: number,
+  mode: StorageScanMode = 'incremental',
+) {
   const t = await getTranslations('actions.storage');
   const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
@@ -516,6 +519,7 @@ export async function scanStorage(storageId: number) {
       storageId: storage.id,
       storageType,
       rootPath,
+      mode,
       onLog: (entry) => {
         const text = t('scanPrefix', { message: entry.message });
         if (entry.level === 'error') {
