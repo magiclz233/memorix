@@ -12,6 +12,8 @@ interface BlurImageProps extends ImageProps {
 export function BlurImage({ src, blurHash, alt, className, onLoadingComplete, ...props }: BlurImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const shouldBypassOptimization =
+    typeof src === 'string' && src.startsWith('/api/local-files/');
 
   useEffect(() => {
     if (blurHash && canvasRef.current) {
@@ -50,9 +52,13 @@ export function BlurImage({ src, blurHash, alt, className, onLoadingComplete, ..
           isLoaded ? "opacity-100" : "opacity-0",
           className
         )}
+        unoptimized={shouldBypassOptimization}
         onLoadingComplete={(img) => {
             setIsLoaded(true);
             onLoadingComplete?.(img);
+        }}
+        onError={() => {
+          setIsLoaded(true);
         }}
         {...props}
       />
