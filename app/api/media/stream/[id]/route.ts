@@ -130,6 +130,7 @@ export async function GET(request: Request, { params }: Params) {
       fd = await fs.open(targetPath, 'r');
       const checkBuffer = Buffer.alloc(32);
       const readHeader = async (position: number) => {
+        if (!fd) return false;
         await fd.read(checkBuffer, 0, checkBuffer.length, position);
         return isLikelyMp4Header(checkBuffer);
       };
