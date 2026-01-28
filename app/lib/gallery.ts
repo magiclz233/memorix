@@ -4,6 +4,10 @@ export type GalleryItem = {
   id: string;
   type: 'photo' | 'video';
   src: string;
+  videoUrl?: string | null;
+  animatedUrl?: string | null;
+  isAnimated?: boolean;
+  duration?: number | null;
   title: string;
   description?: string | null;
   camera?: string | null;
@@ -34,6 +38,9 @@ const normalizeType = (mediaType?: string | null, mimeType?: string | null) => {
   return 'photo';
 };
 
+const isAnimatedMedia = (mediaType?: string | null, mimeType?: string | null) =>
+  mediaType === 'animated' || mimeType === 'image/gif';
+
 const normalizeDate = (value?: string | Date | null) => {
   if (!value) return null;
   const parsed = value instanceof Date ? value : new Date(value);
@@ -46,16 +53,28 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
     const title = record.title ?? record.path ?? 'front.gallery.unnamed';
     const mediaType = normalizeType(record.mediaType, record.mimeType);
     const isVideo = mediaType === 'video';
+    const isAnimated = isAnimatedMedia(record.mediaType, record.mimeType);
     const src =
       record.thumbUrl ||
+      (isVideo || isAnimated ? `/api/media/thumb/${record.id}` : null) ||
       (!isVideo ? record.url : null) ||
       (!isVideo ? `/api/local-files/${record.id}` : null);
     if (!src) return acc;
     const shotAt = record.dateShot ?? record.mtime;
+    const animatedUrl = isAnimated
+      ? record.url || `/api/local-files/${record.id}`
+      : null;
+    const videoUrl = isVideo ? `/api/media/stream/${record.id}` : null;
+    const width = record.resolutionWidth ?? record.videoWidth ?? null;
+    const height = record.resolutionHeight ?? record.videoHeight ?? null;
     acc.push({
       id: String(record.id),
       type: mediaType,
       src,
+      videoUrl,
+      animatedUrl,
+      isAnimated,
+      duration: record.videoDuration ?? null,
       title,
       description: record.description ?? null,
       camera: record.camera ?? null,
@@ -68,8 +87,8 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
       whiteBalance: record.whiteBalance ?? null,
       gpsLatitude: record.gpsLatitude ?? null,
       gpsLongitude: record.gpsLongitude ?? null,
-      width: record.resolutionWidth ?? null,
-      height: record.resolutionHeight ?? null,
+      width,
+      height,
       size: record.size ?? null,
       dateShot: normalizeDate(shotAt),
       createdAt: normalizeDate(record.mtime),
