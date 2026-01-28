@@ -7,6 +7,7 @@ import {
   userStorages,
   users,
   videoSeries,
+  videoMetadata,
 } from './schema';
 import {
   and,
@@ -135,7 +136,7 @@ export type MediaLibrarySort =
 
 export type MediaLibraryFilters = {
   storageIds?: number[];
-  mediaType?: 'all' | 'image' | 'video';
+  mediaType?: 'all' | 'image' | 'video' | 'animated';
   publishStatus?: 'all' | 'published' | 'unpublished';
   keyword?: string;
   dateFrom?: string;
@@ -177,6 +178,10 @@ export type MediaLibraryItem = {
   blurHash: string | null;
   resolutionWidth: number | null;
   resolutionHeight: number | null;
+  videoWidth: number | null;
+  videoHeight: number | null;
+  videoDuration: number | null;
+  liveType: string | null;
   description: string | null;
   dateShot: Date | null;
   camera: string | null;
@@ -236,7 +241,9 @@ export async function fetchMediaLibraryPage({
   const sort = filters.sort ?? 'dateShotDesc';
 
   const dateExpr = sql<Date>`coalesce(${photoMetadata.dateShot}, ${files.mtime}, ${files.createdAt})`;
-  const resolutionArea = sql<number>`coalesce(${photoMetadata.resolutionWidth}, 0) * coalesce(${photoMetadata.resolutionHeight}, 0)`;
+  const resolutionArea = sql<number>`coalesce(${photoMetadata.resolutionWidth}, ${videoMetadata.width}, 0) * coalesce(${photoMetadata.resolutionHeight}, ${videoMetadata.height}, 0)`;
+  const widthExpr = sql<number>`coalesce(${photoMetadata.resolutionWidth}, ${videoMetadata.width})`;
+  const heightExpr = sql<number>`coalesce(${photoMetadata.resolutionHeight}, ${videoMetadata.height})`;
 
   const conditions = [eq(userStorages.userId, userId)];
 
@@ -247,7 +254,7 @@ export async function fetchMediaLibraryPage({
   if (mediaType !== 'all') {
     conditions.push(eq(files.mediaType, mediaType));
   } else {
-    conditions.push(inArray(files.mediaType, ['image', 'video']));
+    conditions.push(inArray(files.mediaType, ['image', 'video', 'animated']));
   }
 
   if (publishStatus === 'published') {
@@ -268,11 +275,11 @@ export async function fetchMediaLibraryPage({
   }
 
   if (dateFrom) {
-    conditions.push(gte(photoMetadata.dateShot, dateFrom));
+    conditions.push(gte(dateExpr, dateFrom));
   }
 
   if (dateTo) {
-    conditions.push(lte(photoMetadata.dateShot, dateTo));
+    conditions.push(lte(dateExpr, dateTo));
   }
 
   if (typeof filters.sizeMin === 'number') {
@@ -284,19 +291,19 @@ export async function fetchMediaLibraryPage({
   }
 
   if (typeof filters.widthMin === 'number') {
-    conditions.push(gte(photoMetadata.resolutionWidth, filters.widthMin));
+    conditions.push(gte(widthExpr, filters.widthMin));
   }
 
   if (typeof filters.widthMax === 'number') {
-    conditions.push(lte(photoMetadata.resolutionWidth, filters.widthMax));
+    conditions.push(lte(widthExpr, filters.widthMax));
   }
 
   if (typeof filters.heightMin === 'number') {
-    conditions.push(gte(photoMetadata.resolutionHeight, filters.heightMin));
+    conditions.push(gte(heightExpr, filters.heightMin));
   }
 
   if (typeof filters.heightMax === 'number') {
-    conditions.push(lte(photoMetadata.resolutionHeight, filters.heightMax));
+    conditions.push(lte(heightExpr, filters.heightMax));
   }
 
   if (typeof filters.exposureMin === 'number') {
@@ -332,11 +339,11 @@ export async function fetchMediaLibraryPage({
   }
 
   if (orientation === 'landscape') {
-    conditions.push(sql`${photoMetadata.resolutionWidth} > ${photoMetadata.resolutionHeight}`);
+    conditions.push(sql`${widthExpr} > ${heightExpr}`);
   } else if (orientation === 'portrait') {
-    conditions.push(sql`${photoMetadata.resolutionHeight} > ${photoMetadata.resolutionWidth}`);
+    conditions.push(sql`${heightExpr} > ${widthExpr}`);
   } else if (orientation === 'square') {
-    conditions.push(sql`${photoMetadata.resolutionWidth} = ${photoMetadata.resolutionHeight}`);
+    conditions.push(sql`${widthExpr} = ${heightExpr}`);
   }
 
   if (camera) {
@@ -391,6 +398,7 @@ export async function fetchMediaLibraryPage({
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
     .where(and(...conditions));
 
   const totalCount = Number(countResult[0]?.count ?? 0);
@@ -414,6 +422,10 @@ export async function fetchMediaLibraryPage({
       blurHash: files.blurHash,
       resolutionWidth: photoMetadata.resolutionWidth,
       resolutionHeight: photoMetadata.resolutionHeight,
+      videoWidth: videoMetadata.width,
+      videoHeight: videoMetadata.height,
+      videoDuration: videoMetadata.duration,
+      liveType: photoMetadata.liveType,
       description: photoMetadata.description,
       dateShot: photoMetadata.dateShot,
       camera: photoMetadata.camera,
@@ -433,6 +445,7 @@ export async function fetchMediaLibraryPage({
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
     .where(and(...conditions))
     .orderBy(...orderBy)
     .limit(perPage)
@@ -458,6 +471,10 @@ export async function fetchMediaLibraryPage({
       blurHash: record.blurHash ?? null,
       resolutionWidth: record.resolutionWidth ?? null,
       resolutionHeight: record.resolutionHeight ?? null,
+      videoWidth: record.videoWidth ?? null,
+      videoHeight: record.videoHeight ?? null,
+      videoDuration: record.videoDuration ?? null,
+      liveType: record.liveType ?? null,
       description: record.description ?? null,
       dateShot: record.dateShot ?? null,
       camera: record.camera ?? null,
@@ -707,6 +724,9 @@ export async function fetchPublishedMediaForGallery(
         blurHash: files.blurHash,
         resolutionWidth: photoMetadata.resolutionWidth,
         resolutionHeight: photoMetadata.resolutionHeight,
+        videoWidth: videoMetadata.width,
+        videoHeight: videoMetadata.height,
+        videoDuration: videoMetadata.duration,
         description: photoMetadata.description,
         camera: photoMetadata.camera,
         maker: photoMetadata.maker,
@@ -725,8 +745,9 @@ export async function fetchPublishedMediaForGallery(
       .from(files)
       .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
       .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+      .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
       .where(
-        and(eq(files.isPublished, true), inArray(files.mediaType, ['image', 'video'])),
+        and(eq(files.isPublished, true), inArray(files.mediaType, ['image', 'video', 'animated'])),
       )
       .orderBy(desc(files.mtime))
       .$dynamic();
