@@ -1,373 +1,314 @@
 # 视频扫描解析与前台画廊展示开发文档（企业级方案）
 
-版本：v1.1  
-状态：已确认  
-目标：为系统补全“视频扫描、解析、预览、前台画廊展示”能力，体验与图片一致，支持本地/ NAS 与 S3。
+版本：v2.0  
+状态：已重构（待评审）  
+最后更新：2026-01-28  
+适用范围：本项目（Next.js App Router / Drizzle / 多存储）
 
 ---
 
-## 0. 文档目的
+## 0. 参考实现与借鉴点（PhotoPrism）
 
-在不改变现有“索引式存储”前提下，为系统新增视频全流程能力：**扫描目录或 S3 前缀 → 解析视频元信息 → 生成预览缩略图 → 入库索引 → 前台画廊展示与播放**。  
-实现方式对齐现有图片扫描流程、权限模型与 UI 风格，满足可维护、可扩展、企业级落地要求。
+**PhotoPrism：**
+- FFmpeg 集成通过“命令构建器 + 统一选项”封装，避免散落调用；支持硬件编码但不强制。
+- 预览帧抽取使用 `-ss` 双阶段 seek、`-err_detect ignore_err`、禁用 hwaccel、强制偶数尺寸和色彩空间，保障稳定与一致。
+- 元数据管线强调“可容错+可追踪”：Exif → XMP → JSON → 文件名/mtime，失败不阻断索引。
+- 媒体类型细分为 video/animated 等，前台有明显播放/动图标识。
+
+**本方案融合原则：** 保留现有架构的简洁性（KISS），不引入转码与分布式任务平台（YAGNI），统一扫描与存储适配层（DRY），明确单一职责与可扩展点（SOLID）。
 
 ---
 
-## 1. 范围与目标
+## 1. 目标与非目标
 
-### 1.1 功能目标
-- 扫描本地/ NAS 目录与 S3 前缀，发现视频文件并入库。
-- 解析视频元信息（时长、分辨率、码率、编解码等）。
-- 生成视频预览缩略图（Poster），并可用于前台/后台展示。
-- 前台画廊中与图片统一混排，具备视频角标与 Hover-to-Play 交互。
-- 视频媒体流支持 Range 请求（可拖拽进度条、快速加载）。
+### 1.1 目标
+- 支持本地/NAS/S3 扫描视频与动图文件，统一入库与检索。
+- 解析视频元信息并生成 Poster + BlurHash，和图片体验一致。
+- 前台画廊与后台媒体库支持视频/动图展示、Hover-to-Play 与播放入口。
+- 流媒体 API 支持 Range 请求（本地 + S3）。
 
 ### 1.2 非目标（本期不做）
-- 不做视频转码、HLS/DASH 生成。
-- 不做 AI 识别/自动标签。
-- 不做分布式队列与异步任务平台（先在现有扫描流程内完成）。
+- HLS/DASH、复杂转码和多码率分发。
+- AI 识别/自动标签/多媒体检索。
+- 分布式队列与任务平台（先复用现有扫描流程）。
 
 ---
 
-## 2. 现状评估（与现有逻辑对齐）
+## 2. 现状与差距（本项目）
 
-- 扫描流程：`app/lib/storage-scan.ts` 仅扫描图片。
-- 存储模型：`files` 表存媒体基础信息，`photo_metadata` 存图片 EXIF。
-- 前台画廊：`/api/gallery` → `buildGalleryItems`，视频仅依赖 `thumbUrl` 展示。
-- 文件访问：`/api/local-files/[id]` 无 Range 支持，无法高效播放视频。
+已存在能力：
+- `files` 表已包含 `mediaType`、`thumbUrl`、`blurHash`。
 
-结论：需要新增“视频元信息表 + 统一媒体流 API + 视频缩略图生成 + S3 扫描适配”。
-
----
-
-## 3. 设计原则
-
-- **KISS**：单一管线，视频与图片共用扫描框架。
-- **DRY**：统一存储适配层，避免本地/S3 分叉重复。
-- **YAGNI**：不引入转码与复杂 CDN 管道，先满足预览与播放。
-- **安全一致**：沿用 `isPublished` 与会话权限校验。
+缺口：
+- 扫描只覆盖图片，缺少视频文件的扫描、解析与入库。
+- 无 `video_metadata`，视频元信息无法独立管理。
+- 缩略图仅面向图片，缺少视频 Poster 生成和缓存路径。
+- Gallery/UI 未区分视频/动图及播放路径，无法统一 UX。
 
 ---
 
-## 4. 总体架构（模块分层）
+## 3. 总体架构（统一媒体管线）
 
-1) **StorageAdapter（存储适配层）**
-   - local/nas：fs + path
-   - s3：AWS SDK list/get + Range
+```
+StorageAdapter → MediaScanner → MetadataExtractor → PreviewGenerator → Index/DB → MediaStream API → UI
+```
 
-2) **MediaScanner（扫描层）**
-   - 统一扫描图片/视频
-   - 输出 `MediaFileInfo[]`
-
-3) **MetadataExtractor（解析层）**
-   - 图片：`exifr`（现有）
-   - 视频：`ffprobe`（新增）
-
-4) **PreviewGenerator（预览层）**
-   - 图片：`sharp` + blurhash（现有）
-   - 视频：`ffmpeg` 抽帧 → `sharp` 生成 poster + blurhash
-
-5) **MediaStream API（流式访问）**
-   - 支持 Range
-   - 本地 + S3 统一接口
-
-6) **前台 UI**
-   - 画廊混排
-   - Hover-to-Play
-   - Light/Dark 双模态一致
+- **StorageAdapter**：本地/NAS/S3 统一接口。
+- **MediaScanner**：扫描并输出 `MediaFileInfo`（image/video/animated）。
+- **MetadataExtractor**：图片用 exifr；视频用 ffprobe。
+- **PreviewGenerator**：图片用 sharp；视频用 ffmpeg 抽帧 + sharp + blurhash。
+- **MediaStream API**：统一 Range/权限/内容类型。
+- **UI**：Gallery/Media Library 同步呈现。
 
 ---
 
-## 5. 数据模型设计
+## 4. 媒体类型与兼容策略
 
-### 5.1 files 表（保留）
-- 继续使用 `mediaType` 区分 `image | video`
-- `url`：媒体流访问地址
-- `thumbUrl`：统一缩略图地址（图片/视频共用）
-- `blurHash`：由缩略图生成
+### 4.1 类型定义（建议）
+- `image`：静态图片（jpg/png/heic/avif）
+- `video`：视频（mp4/mov/webm/mkv/...）
+- `animated`：动图（gif/animated webp）
 
-### 5.2 新增 video_metadata 表（已确认）
+> 说明：本文档中的“动图”特指 GIF/Animated WebP，不包含 LivePhoto/Motion Photo。如不改动 DB，可用 `mediaType=image` + `isAnimated` 标记替代。推荐扩展 `mediaType` 更清晰（PhotoPrism 做法）。
 
-> 与 `photo_metadata` 拆分，避免字段污染，便于后续扩展。结构与 `photo_metadata` 一样：每个视频文件对应一行记录，`file_id` 为主键。
+---
 
-字段建议（结构化字段尽量完整，覆盖常见业务与筛选需求）：
-- `file_id` (PK，关联 `files.id`)
-- `duration` (秒，double)
-- `width` (int)
-- `height` (int)
-- `bitrate` (int)
+## 5. 数据模型（推荐）
+
+### 5.1 `files`（增强）
+- `mediaType`: `image | video | animated`
+- `thumbUrl`, `blurHash`: 统一用于图片/视频/动图
+
+### 5.2 新增 `video_metadata`（与 `photo_metadata` 平行）
+字段建议（保留可扩展 raw）：
+- `file_id` (PK, FK -> files.id)
+- `duration` (double, seconds)
+- `width`, `height` (int)
+- `bitrate` (int, bps)
 - `fps` (double)
 - `frame_count` (int)
-- `codec_video` (varchar)
-- `codec_video_profile` (varchar)
-- `pixel_format` (varchar)
-- `color_space` (varchar)
-- `color_range` (varchar)
-- `color_primaries` (varchar)
-- `color_transfer` (varchar)
-- `bit_depth` (int)
-- `codec_audio` (varchar)
-- `audio_channels` (int)
-- `audio_sample_rate` (int)
-- `audio_bitrate` (int)
-- `rotation` (int)
+- `codec_video`, `codec_video_profile`
+- `codec_audio`, `audio_channels`, `audio_sample_rate`, `audio_bitrate`
+- `pixel_format`, `color_space`, `color_range`, `color_primaries`, `color_transfer`
+- `bit_depth`
+- `rotation`
+- `container_format`, `container_long`
 - `has_audio` (boolean)
-- `container_format` (varchar)
-- `container_long` (varchar)
-- `poster_time` (double，可选，抽帧时间点)
-- `raw` (jsonb，可选，存 ffprobe 原始结果，便于后续扩展字段)
+- `poster_time` (double, seconds)
+- `raw` (jsonb)
 
 索引建议：
 - `video_metadata(file_id)` 主键即可
-- 若需后台筛选视频时长可考虑 `duration` 索引（非必须）
+- 如需筛选时长可加 `duration` 索引
 
 ---
 
-## 6. 存储适配层设计（StorageAdapter）
+## 6. StorageAdapter 设计（DRY）
 
-统一接口（伪定义）：
-- `list(prefix): AsyncIterable<StorageObject>`  
+统一接口（建议）：
+- `list(prefix): AsyncIterable<StorageObject>`
 - `stat(key): { size, mtime, mimeType }`
-- `openStream(key): Readable`
-- `openRange(key, start, end): Readable`  
-- `resolvePath(key): string`（本地使用）
-- `getThumbKey(fileId, ext): string`（缩略图存储）
+- `get(key): Buffer | stream`
+- `openRange(key, start, end): Readable`
+- `create(key, buffer, mimeType)`（用于 Poster）
+- `getPublicUrl(key): string`
 
-### 6.1 本地/NAS
+本地/NAS：
 - `rootPath` 为根目录
-- `key` 使用相对路径
-- 缩略图缓存目录：`{rootPath}/.memorix/thumbs/`
+- 缩略图缓存：`{rootPath}/.memorix/thumbs/`
 
-### 6.2 S3
-- 依赖：`@aws-sdk/client-s3`
-- `prefix` 作为“虚拟根目录”
-- 缩略图路径：`${prefix}/.memorix/thumbs/{fileId}.webp`
-- Range 请求：`GetObjectCommand({ Range: "bytes=start-end" })`
+S3：
+- `prefix` 为虚拟根目录
+- 缩略图缓存：`${prefix}/.memorix/thumbs/{fileId}.webp`
+- Range：`GetObjectCommand({ Range: "bytes=start-end" })`
 
 ---
 
-## 7. 扫描流程设计
+## 7. 扫描与索引流程
 
-### 7.1 统一扫描入口
-新增 `scanMediaFiles`：
-- 递归扫描图片与视频
-- 支持本地/NAS 与 S3
-- 按 `mediaType` 产出 `MediaFileInfo[]`
+### 7.1 文件类型识别
+- **图片**：沿用 `IMAGE_MIME_BY_EXT`
+- **视频**：扩展名白名单 + MIME（`video/*`）
+- **动图**：`.gif` / `.webp` 且 animated flag（可用 sharp 判断）
 
-视频扩展名建议：`.mp4 .mov .m4v .webm .mkv .avi .m2ts .ts`
+### 7.2 本地/NAS
+1) 遍历目录 → 过滤可识别媒体  
+2) 对比 `size + mtime + mimeType` 实现增量  
+3) 解析元数据（图片：exifr；视频：ffprobe）  
+4) 生成缩略图（图片：sharp；视频：ffmpeg 抽帧）  
+5) 写入 `files` + `photo_metadata` / `video_metadata`  
 
-### 7.2 本地/NAS 扫描流程
-1. 递归遍历目录，筛选图片/视频文件
-2. 生成 `relativePath / size / mtime / mimeType`
-3. 对比 DB（size + mtime）判断是否需要更新
-4. 解析元信息（图片 EXIF / 视频 ffprobe）
-5. 生成缩略图（图片：sharp；视频：ffmpeg 抽帧）
-6. 写入 `files` 与 `photo_metadata / video_metadata`
-
-### 7.3 S3 扫描流程
-1. 列出 `prefix` 下对象（分页）
-2. 过滤文件后缀
-3. 读取 `size / LastModified`
-4. 解析元信息（需临时下载或 Range 流）
-5. 生成缩略图并写回 S3 缓存路径
-6. 入库索引
+### 7.3 S3
+1) ListObjectsV2 分页  
+2) 过滤媒体类型  
+3) `headObject` 获取 size/mtime  
+4) 元信息解析：  
+   - 小文件直接下载临时文件  
+   - 大文件使用 `ffprobe` + `-probesize/-analyzeduration` + Range/流式读取  
+5) 生成 Poster 并回写到 S3 缓存目录  
+6) 入库索引  
 
 ---
 
 ## 8. 视频元信息解析（ffprobe）
 
-### 8.1 依赖建议
-- `fluent-ffmpeg`
-- `ffmpeg-static`
-- `ffprobe-static`
+### 8.1 依赖
+- `ffprobe-static`（默认）
+- 允许 `FFPROBE_PATH` 覆盖
 
-### 8.2 解析输出字段映射
-- `duration` → `video_metadata.duration`
-- `width/height` → `video_metadata.width/height`
-- `bit_rate` → `video_metadata.bitrate`
-- `nb_frames` → `video_metadata.frame_count`
-- `codec_name` → `video_metadata.codec_video`
-- `profile` → `video_metadata.codec_video_profile`
-- `pix_fmt` → `video_metadata.pixel_format`
-- `color_space/color_range/color_primaries/color_transfer` → 对应字段
-- `bits_per_raw_sample/bits_per_sample` → `video_metadata.bit_depth`
-- `avg_frame_rate` → `video_metadata.fps`
-- audio stream → `codec_audio / audio_channels / audio_sample_rate / audio_bitrate / has_audio`
+### 8.2 映射策略（容错）
+- `format.duration` → `duration`
+- `streams.video.width/height` → `width/height`
+- `streams.video.bit_rate` → `bitrate`
+- `streams.video.nb_frames` → `frame_count`
+- `streams.video.codec_name/profile` → `codec_video/profile`
+- `streams.video.pix_fmt` → `pixel_format`
+- `color_*` 字段映射至对应列
+- `streams.audio.*` → 音频字段
 - `tags.rotate` → `rotation`
-- `format_name` → `video_metadata.container_format`
-- `format_long_name` → `video_metadata.container_long`
-- `raw` → `video_metadata.raw`
+- `format.format_name/format_long_name` → container
+- 保留 `raw` 以便未来扩展
 
-### 8.3 异常策略
-- ffprobe 失败：记录日志，跳过元信息但保留文件入库
-- 解析失败不阻断整体扫描
-
----
-
-## 9. 视频预览缩略图（Poster）
-
-### 9.1 抽帧策略
-- 默认取 `min(1s, duration * 0.1)` 作为 poster 时间点
-- 无时长时默认 `1s`
-
-### 9.2 生成流程
-1. `ffmpeg -ss {posterTime} -i {source} -frames:v 1`
-2. 使用 `sharp` 转为 `webp`（宽度 640~960）
-3. 生成 `blurhash`
-4. 写入缓存路径（本地/S3）
-5. `files.thumbUrl` 指向 `/api/media/thumb/{id}`
+### 8.3 异常策略（PhotoPrism 经验）
+- ffprobe 失败只记录日志，不阻断入库
+- 元信息不全仍允许生成 Poster + 入库
 
 ---
 
-## 10. 媒体流 API（Range 支持）
+## 9. 视频 Poster 生成（ffmpeg + sharp）
 
-新增统一接口（建议）：
-- `GET /api/media/stream/[id]`  
-  - 校验 `isPublished`（未发布需登录且为属主）
-  - 支持 `Range` 请求
-  - 返回 `206 Partial Content` 或 `200`
+### 9.1 Poster 时间策略
+- `poster_time = min(1s, duration * 0.1)`  
+- 无时长时 fallback 1s  
+- 可将 `poster_time` 写入 `video_metadata`
 
-新增缩略图接口（建议）：
-- `GET /api/media/thumb/[id]`
-  - 统一返回图片（jpg/webp）
-  - 内部从缓存目录或 S3 缓存读取
+### 9.2 ffmpeg 抽帧建议（参考 PhotoPrism）
+- `-ss` 预先 seek（快），再精确 seek  
+- `-err_detect ignore_err`  
+- `-hwaccel none`（稳定优先）  
+- 强制偶数尺寸 + BT.709 颜色空间  
+- 输出单帧（jpg/png），再由 sharp 转 webp
 
-注意：
-- 响应头包含 `Accept-Ranges` / `Content-Range`
-- 对视频播放体验必须支持 Range
-
----
-
-## 11. 前台画廊展示与交互
-
-### 11.1 数据结构调整
-- `buildGalleryItems` 需要补充：
-  - `videoUrl`（用于播放）
-  - `posterUrl`（缩略图）
-  - `duration`（可选，用于角标展示）
-
-### 11.2 Gallery UI 交互
-- 卡片右上角显示播放角标（已存在风格）
-- Hover-to-Play：
-  - 仅在进入视口后加载视频
-  - `muted + playsInline + loop`
-- 移动端：点击切换播放/暂停
-- 弹窗详情：
-  - `type=video` 时使用 `<video controls>` 替换 `<img>`
-  - 其余逻辑保持一致
-
-### 11.3 视觉与风格
-- 保持 Lumina Pro 视觉，沿用 `SpotlightCard` / `Gallery25` 组件风格
-- Light/Dark 双模态完整适配
+### 9.3 缩略图输出
+- 目标宽度 640~960（兼顾清晰与性能）
+- 生成 `blurHash`（前台骨架）
+- 缓存路径同 StorageAdapter 约定
 
 ---
 
-## 12. 后台管理与媒体库
+## 10. Media Stream API（统一）
 
-### 12.1 媒体库展示
-- 视频项展示分辨率、时长
-- 播放按钮或缩略图悬浮播放
+### 10.1 API 设计
+- `GET /api/media/stream/[id]`
+- 支持 `Range`，返回 `206 Partial Content`
+- 权限：未发布需校验登录与所有权
 
-### 12.2 扫描日志
-- 增加 `foundVideos/scannedVideos` 统计
-- i18n 日志信息同步补齐
+### 10.2 视频通用支持（新增）
+- `mediaType=video` 直接读取原文件
+- 内容类型规范化：
+  - `.mp4/.mov` → `video/mp4`（兼容优先）
+  - `.webm` → `video/webm`
+- Header 必须包含 `Accept-Ranges` / `Content-Range`
 
 ---
 
-## 13. i18n 文案新增范围（示例）
+## 11. 前台画廊展示
 
-需要同步更新：
-- `messages/zh-CN.json`
-- `messages/en.json`
+### 11.1 数据结构
+`buildGalleryItems` 增加：
+- `videoUrl`（/api/media/stream/[id]）
+- `posterUrl`（thumbUrl）
+- `duration`（video_metadata.duration）
+- `isAnimated`（gif/webp）
 
-新增 key 示例：
+### 11.2 UI 交互
+- 卡片右上角区分 **视频 / 动图** 图标
+- Hover-to-Play（IntersectionObserver 控制加载）
+- 移动端点击切换播放/暂停
+- Lightbox：视频使用 `<video controls>`，图片保持 `<img>`
+
+### 11.3 动图体验
+- 动图：默认静态 Poster，Hover 时切换为 GIF/Animated WebP
+
+---
+
+## 12. 后台媒体库
+
+- 展示视频/动图基础信息：时长、分辨率、编码、是否含音频
+- 扫描日志增加 `foundVideos / scannedVideos / foundAnimated`
+- 批量操作支持按类型过滤（image/video/animated）
+
+---
+
+## 13. i18n 文案新增（示例）
+
 - `dashboard.storage.files.scan.foundVideos`
+- `dashboard.storage.files.scan.foundAnimated`
 - `dashboard.storage.files.scan.scannedVideos`
 - `front.gallery.videoPreviewFailed`
 - `front.gallery.videoDuration`
+- `front.gallery.animated`
 - `api.errors.videoRangeInvalid`
 
 ---
 
-## 14. 开发步骤（可执行清单）
+## 14. 实施步骤（建议顺序）
 
-1. **数据模型**
-   - 新增 `video_metadata` 表
-   - 生成 Drizzle migration
+1) **数据层**  
+   - 新增 `video_metadata` 表  
+   - `files.mediaType` 支持 `animated`（或新增 `isAnimated`）  
 
-2. **存储适配层**
-   - 抽象 `StorageAdapter`
-   - 实现 `LocalAdapter` + `S3Adapter`
+2) **扫描能力**  
+   - `scanImageFiles` → `scanMediaFiles`  
+   - 视频/动图识别与入库  
 
-3. **扫描能力**
-   - 扩展 `scanImageFiles` → `scanMediaFiles`
-   - 增加视频文件识别
-   - 处理 S3 扫描与分页
+3) **元信息解析**  
+   - `ffprobe` 集成  
+   - 写入 `video_metadata`  
 
-4. **元信息解析**
-   - 引入 ffprobe
-   - 写入 `video_metadata`
+4) **Poster 生成**  
+   - `ffmpeg` 抽帧 → `sharp` → `blurHash`  
 
-5. **预览缩略图**
-   - ffmpeg 抽帧生成 poster
-   - sharp 压缩 + blurhash
+5) **Stream API 扩展**  
+   - 让 `/api/media/stream/[id]` 支持普通视频 + S3  
 
-6. **媒体流 API**
-   - 新建 `/api/media/stream/[id]`
-   - 新建 `/api/media/thumb/[id]`
-   - Range + 权限检查
+6) **Gallery/UI**  
+   - `buildGalleryItems` 输出 `videoUrl/posterUrl`  
+   - Gallery25 支持 hover-to-play  
 
-7. **查询与数据适配**
-   - `fetchPublishedMediaForGallery` 加入 `video_metadata`
-   - `buildGalleryItems` 输出 `videoUrl/posterUrl`
-
-8. **前台 UI**
-   - `Gallery25` 支持视频播放
-   - 卡片角标 + Hover-to-Play
-
-9. **后台 UI**
-   - 媒体库展示视频信息
-   - 扫描日志文案补齐
-
-10. **测试与验收**
-    - 本地目录视频
-    - S3 前缀视频
-    - Range 播放
+7) **后台管理**  
+   - 视频元信息展示与筛选  
 
 ---
 
-## 15. 测试方案
+## 15. 测试计划
 
-### 15.1 功能测试
-- 本地/NAS 扫描含视频目录
-- S3 扫描含视频前缀
-- 画廊视频缩略图展示
-- Hover-to-Play 与移动端播放
-
-### 15.2 性能测试
-- 1000+ 视频目录扫描耗时
-- S3 大文件 Range 播放稳定性
-
-### 15.3 失败场景
-- ffprobe/ffmpeg 失败
-- S3 权限不足或断网
-- 缩略图生成失败回退
+- 本地/NAS：多格式视频、动图（GIF/Animated WebP）
+- S3：Range 播放、Poster 生成回写
+- 前台：Hover-to-Play、移动端点击播放
+- 失败场景：ffprobe/ffmpeg 失败、Range 无效、权限不足
 
 ---
 
-## 16. 验收标准
+## 16. 风险与取舍
 
-- 视频文件可被扫描并入库，`mediaType=video`
-- `video_metadata` 写入完整且准确
-- 视频缩略图可访问且在画廊展示
-- 前台画廊视频卡片支持 Hover-to-Play
-- Range 播放无整文件下载
+- MOV/HEVC 浏览器兼容有限：优先 `video/mp4` 内容类型，并提供失败提示
+- S3 探测大文件：设置 `probesize/analyzeduration` 限制，失败容忍
 
 ---
 
-## 17. 确认结果（已确认）
+## 17. 验收标准
 
-1) 新增 `video_metadata` 表  
-2) 视频缩略图统一存 `thumbUrl`  
-3) 允许引入 `ffmpeg/ffprobe` 依赖  
-4) 媒体流 API 统一 `/api/media/stream/[id]`
+- 视频/动图可扫描并入库（`mediaType` 正确）
+- `video_metadata` 写入完整且可查询
+- Poster 可访问，画廊中展示一致
+- Range 播放稳定（本地 + S3）
+- GIF/Animated WebP 可正常播放与切换
+
+---
+
+## 18. 下一步建议
+
+- 增加“视频/动图缩略图批处理任务”以降低首扫压力
+- 动图播放策略优化：按视口分段加载与帧率限制
+- 引入轻量异步队列（如 BullMQ）作为性能扩展点（非本期）
