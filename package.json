@@ -31,6 +31,8 @@
     "drizzle-orm": "^0.45.1",
     "embla-carousel-react": "^8.6.0",
     "exifr": "^7.1.3",
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0",
     "lucide-react": "^0.562.0",
     "motion": "^12.23.26",
     "next": "16.0.7",
@@ -61,7 +63,9 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "sharp"
+      "sharp",
+      "ffmpeg-static",
+      "ffprobe-static"
     ]
   }
 }
