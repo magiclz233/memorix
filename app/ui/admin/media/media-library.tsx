@@ -59,12 +59,8 @@ const formatResolution = (
   return `${width}×${height}`;
 };
 
-const resolveMediaSrc = (item: MediaLibraryItem) => {
-  if (item.mediaType === 'video') {
-    return item.thumbUrl || null;
-  }
-  return item.thumbUrl || item.url || `/api/local-files/${item.id}`;
-};
+const resolveMediaSrc = (item: MediaLibraryItem) =>
+  item.thumbUrl || `/api/media/thumb/${item.id}` || item.url || `/api/local-files/${item.id}`;
 
 const clampColumnCount = (value: number) => Math.min(10, Math.max(3, value));
 
@@ -204,10 +200,11 @@ export function MediaLibraryManager({
         ? resolveMessage(messages, item.title)
         : item.path?.split('/').pop() || t('library.unnamed');
       const resolution = formatResolution(
-        item.resolutionWidth,
-        item.resolutionHeight,
+        item.resolutionWidth ?? item.videoWidth,
+        item.resolutionHeight ?? item.videoHeight,
         '',
       );
+      const isAnimated = item.mediaType === 'animated';
       return {
         id: item.id,
         type: (item.mediaType === 'video' ? 'video' : 'photo') as 'video' | 'photo',
@@ -215,6 +212,12 @@ export function MediaLibraryManager({
           resolveMediaSrc(item) ||
           item.url ||
           `/api/local-files/${item.id}`,
+        videoUrl:
+          item.mediaType === 'video' ? `/api/media/stream/${item.id}` : null,
+        animatedUrl: isAnimated ? (item.url || `/api/local-files/${item.id}`) : null,
+        isAnimated,
+        duration: item.videoDuration ?? null,
+        liveType: (item.liveType as 'none' | 'embedded' | 'paired') ?? 'none',
         title: titleText,
         description: item.description ?? null,
         camera: item.camera,
@@ -226,8 +229,8 @@ export function MediaLibraryManager({
         focalLength: item.focalLength ?? undefined,
         whiteBalance: item.whiteBalance ?? undefined,
         size: item.size ?? undefined,
-        width: item.resolutionWidth ?? undefined,
-        height: item.resolutionHeight ?? undefined,
+        width: item.resolutionWidth ?? item.videoWidth ?? undefined,
+        height: item.resolutionHeight ?? item.videoHeight ?? undefined,
         gpsLatitude: item.gpsLatitude ?? undefined,
         gpsLongitude: item.gpsLongitude ?? undefined,
         dateShot: item.dateShot ? item.dateShot.toISOString() : null,
@@ -537,6 +540,7 @@ export function MediaLibraryManager({
         {items.map((item) => {
           const src = resolveMediaSrc(item);
           const isVideo = item.mediaType === 'video';
+          const isAnimated = item.mediaType === 'animated';
           const isSelected = selectedIds.includes(item.id);
           const rawTitle = item.title ?? item.path ?? null;
           const titleText = rawTitle
@@ -609,11 +613,15 @@ export function MediaLibraryManager({
                    </Tooltip>
                  </TooltipProvider>
                  
-                 {isVideo && (
-                    <span className="flex items-center rounded bg-black/50 px-1 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                      VIDEO
-                    </span>
-                 )}
+                 {isVideo ? (
+                   <span className="flex items-center rounded bg-black/50 px-1 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                     VIDEO
+                   </span>
+                 ) : isAnimated ? (
+                   <span className="flex items-center rounded bg-black/50 px-1 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                     GIF
+                   </span>
+                 ) : null}
                  {heroIdSet.has(item.id) && (
                     <span className="flex items-center rounded-full bg-indigo-500/90 p-1 text-white backdrop-blur-sm">
                       <Sparkles className="h-2 w-2" />

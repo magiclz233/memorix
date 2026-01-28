@@ -277,6 +277,7 @@ export function MediaFilterBar() {
             <SelectItem value="all">{t('type.all')}</SelectItem>
             <SelectItem value="image">{t('type.image')}</SelectItem>
             <SelectItem value="video">{t('type.video')}</SelectItem>
+            <SelectItem value="animated">{t('type.animated')}</SelectItem>
           </SelectContent>
         </Select>
 
