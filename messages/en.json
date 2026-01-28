@@ -449,6 +449,7 @@
         "retry": "Retry"
       },
       "details": {
+        "duration": "Duration",
         "resolution": "Resolution",
         "camera": "Camera",
         "lens": "Lens",
@@ -461,6 +462,10 @@
         "dateShot": "Date shot",
         "fileSize": "File size",
         "empty": "No details available."
+      },
+      "badges": {
+        "video": "VIDEO",
+        "animated": "GIF"
       }
     }
   },
@@ -486,6 +491,17 @@
       "error": "Error",
       "disabled": "Disabled",
       "offline": "Offline"
+    },
+    "scan": {
+      "title": "Directory Scan",
+      "description": "Scan to choose images for the gallery. Re-scanning clears old records.",
+      "scannedDirs": "Scanned {count} directories...",
+      "foundImages": "Found {count} images...",
+      "foundVideos": "Found {count} videos...",
+      "foundAnimated": "Found {count} animated images...",
+      "readFailed": "Failed to read directory",
+      "complete": "Scan complete, found {count} files.",
+      "processed": "Processed {processed}/{total} items"
     },
     "sidebar": {
       "overview": "Overview",
@@ -553,7 +569,8 @@
           "label": "Type",
           "all": "All Types",
           "image": "Photo",
-          "video": "Video"
+          "video": "Video",
+          "animated": "Animated"
         },
         "status": {
           "all": "All Status",
@@ -1015,9 +1032,11 @@
       "description": "Scan to choose images for the gallery. Re-scanning clears old records.",
       "scannedDirs": "Scanned {count} directories...",
       "foundImages": "Found {count} images...",
+      "foundVideos": "Found {count} videos...",
+      "foundAnimated": "Found {count} animated images...",
       "readFailed": "Failed to read directory",
       "complete": "Scan complete, found {count} files.",
-      "processed": "Processed {processed}/{total} images"
+      "processed": "Processed {processed}/{total} items"
     },
     "files": {
       "noStorage": "No available storage configuration found.",

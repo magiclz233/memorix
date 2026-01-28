@@ -459,6 +459,7 @@
         "retry": "重试"
       },
       "details": {
+        "duration": "时长",
         "resolution": "分辨率",
         "camera": "相机",
         "lens": "镜头",
@@ -471,6 +472,10 @@
         "dateShot": "拍摄时间",
         "fileSize": "文件大小",
         "empty": "暂无可用的详细信息。"
+      },
+      "badges": {
+        "video": "视频",
+        "animated": "动图"
       }
     }
   },
@@ -496,6 +501,17 @@
       "error": "错误",
       "disabled": "已停用",
       "offline": "离线"
+    },
+    "scan": {
+      "title": "目录扫描",
+      "description": "扫描以选择进入画廊的媒体，重新扫描会清空旧记录。",
+      "scannedDirs": "已扫描 {count} 个目录...",
+      "foundImages": "已发现 {count} 张图片...",
+      "foundVideos": "已发现 {count} 个视频...",
+      "foundAnimated": "已发现 {count} 个动图...",
+      "readFailed": "读取目录失败",
+      "complete": "扫描完成，共找到 {count} 个文件。",
+      "processed": "已处理 {processed}/{total} 项"
     },
     "sidebar": {
       "overview": "概览",
@@ -567,7 +583,8 @@
           "label": "类型",
           "all": "全部类型",
           "image": "图片",
-          "video": "视频"
+          "video": "视频",
+          "animated": "动图"
         },
         "status": {
           "label": "状态",
