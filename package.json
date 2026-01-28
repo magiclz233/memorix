@@ -64,7 +64,9 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "sharp"
+      "sharp",
+       "ffmpeg-static",
+      "ffprobe-static"
     ]
   }
 }
