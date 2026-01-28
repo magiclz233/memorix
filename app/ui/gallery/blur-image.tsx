@@ -13,7 +13,8 @@ export function BlurImage({ src, blurHash, alt, className, onLoadingComplete, ..
   const [isLoaded, setIsLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const shouldBypassOptimization =
-    typeof src === 'string' && src.startsWith('/api/local-files/');
+    typeof src === 'string' &&
+    (src.startsWith('/api/local-files/') || src.startsWith('/api/media/thumb/'));
 
   useEffect(() => {
     if (blurHash && canvasRef.current) {
