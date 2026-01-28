@@ -18,19 +18,31 @@ const IMAGE_MIME_BY_EXT: Record<string, string> = {
   '.avif': 'image/avif',
 };
 
+const VIDEO_MIME_BY_EXT: Record<string, string> = {
+  '.mp4': 'video/mp4',
+  '.mov': 'video/quicktime',
+  '.m4v': 'video/x-m4v',
+  '.webm': 'video/webm',
+  '.mkv': 'video/x-matroska',
+  '.avi': 'video/x-msvideo',
+  '.m2ts': 'video/mp2t',
+  '.ts': 'video/mp2t',
+};
+
 const MOTION_XMP_SCAN_BYTES = 512 * 1024;
 const MIN_EMBEDDED_VIDEO_BYTES = 8 * 1024;
 const MP4_HEADER_SCAN_BYTES = 64;
 const MP4_FTYP = Buffer.from('ftyp');
 const MP4_BRANDS = new Set(['isom', 'iso2', 'mp41', 'mp42', 'mp4v', 'avc1', 'av01']);
 
-export type ImageFileInfo = {
+export type MediaFileInfo = {
   absolutePath: string;
   relativePath: string;
   title: string;
   size: number;
   mtime: Date;
   mimeType: string;
+  mediaType: 'image' | 'video' | 'animated';
 };
 
 export type ParsedPhotoMetadata = {
@@ -59,15 +71,21 @@ export type ParsedPhotoMetadata = {
 export type ScanWalkEvent = {
   kind: 'dir' | 'file' | 'error';
   path: string;
+  mediaType?: 'image' | 'video' | 'animated';
   message?: string;
 };
 
-function getMimeType(fileName: string) {
+function getImageMimeType(fileName: string) {
   const ext = path.extname(fileName).toLowerCase();
   return IMAGE_MIME_BY_EXT[ext];
 }
 
-export async function scanImageFiles(
+function getVideoMimeType(fileName: string) {
+  const ext = path.extname(fileName).toLowerCase();
+  return VIDEO_MIME_BY_EXT[ext];
+}
+
+export async function scanMediaFiles(
   rootPath: string,
   onEvent?: (event: ScanWalkEvent) => void,
 ) {
@@ -77,7 +95,7 @@ export async function scanImageFiles(
     throw new Error('Root directory invalid.');
   }
   const stack = [normalizedRoot];
-  const results: ImageFileInfo[] = [];
+  const results: MediaFileInfo[] = [];
   onEvent?.({ kind: 'dir', path: normalizedRoot });
 
   while (stack.length > 0) {
@@ -96,16 +114,27 @@ export async function scanImageFiles(
     for (const entry of entries) {
       const fullPath = path.join(current, entry.name);
       if (entry.isDirectory()) {
+        if (entry.name === '.memorix') {
+          continue;
+        }
         onEvent?.({ kind: 'dir', path: fullPath });
         stack.push(fullPath);
         continue;
       }
       if (!entry.isFile()) continue;
 
-      const mimeType = getMimeType(entry.name);
-      if (!mimeType) continue;
+      const imageMimeType = getImageMimeType(entry.name);
+      const videoMimeType = getVideoMimeType(entry.name);
+      if (!imageMimeType && !videoMimeType) continue;
 
-      onEvent?.({ kind: 'file', path: fullPath });
+      const lowerName = entry.name.toLowerCase();
+      const mediaType = videoMimeType
+        ? 'video'
+        : lowerName.endsWith('.gif')
+          ? 'animated'
+          : 'image';
+
+      onEvent?.({ kind: 'file', path: fullPath, mediaType });
 
       let stat: Stats;
       try {
@@ -127,12 +156,21 @@ export async function scanImageFiles(
         title: entry.name,
         size: stat.size,
         mtime: stat.mtime,
-        mimeType,
+        mimeType: videoMimeType ?? imageMimeType ?? '',
+        mediaType,
       });
     }
   }
 
   return results;
+}
+
+export async function scanImageFiles(
+  rootPath: string,
+  onEvent?: (event: ScanWalkEvent) => void,
+) {
+  const files = await scanMediaFiles(rootPath, onEvent);
+  return files.filter((file) => file.mediaType === 'image');
 }
 
 function normalizeWhiteBalance(value: unknown) {
@@ -341,6 +379,9 @@ const detectMotionPhotoInfo = (
 };
 
 export async function readPhotoMetadata(filePath: string) {
+  const ext = path.extname(filePath).toLowerCase();
+  const skipExif = ext === '.gif';
+  const skipMotion = ext === '.gif';
   let fileBuffer: Buffer;
   try {
     fileBuffer = await fs.readFile(filePath);
@@ -350,15 +391,17 @@ export async function readPhotoMetadata(filePath: string) {
   }
 
   let metadata: Record<string, unknown> | null = null;
-  try {
-    metadata = await exifr.parse(fileBuffer, {
-      tiff: true,
-      exif: true,
-      gps: true,
-      xmp: true,
-    });
-  } catch (error) {
-    console.warn('Failed to read EXIF, ignored:', filePath, error);
+  if (!skipExif) {
+    try {
+      metadata = await exifr.parse(fileBuffer, {
+        tiff: true,
+        exif: true,
+        gps: true,
+        xmp: true,
+      });
+    } catch (error) {
+      console.warn('Failed to read EXIF, ignored:', filePath, error);
+    }
   }
 
   const safeMetadata = metadata ?? {};
@@ -449,9 +492,11 @@ export async function readPhotoMetadata(filePath: string) {
     motionPhoto: false,
     videoOffset: null,
   };
-  const motionInfo = detectMotionPhotoInfo(fileBuffer, safeMetadata);
-  result.motionPhoto = motionInfo.motionPhoto;
-  result.videoOffset = motionInfo.videoOffset;
+  if (!skipMotion) {
+    const motionInfo = detectMotionPhotoInfo(fileBuffer, safeMetadata);
+    result.motionPhoto = motionInfo.motionPhoto;
+    result.videoOffset = motionInfo.videoOffset;
+  }
 
   const hasAnyMetadata = Object.values(result).some(
     (value) => value !== null && value !== undefined,
