@@ -171,6 +171,48 @@ export const photoMetadata = pgTable('photo_metadata', {
   videoDuration: doublePrecision('video_duration'),
 });
 
+// 视频元数据表
+export const videoMetadata = pgTable('video_metadata', {
+  // 关联 files.id（未设置外键约束）
+  fileId: integer('file_id').primaryKey(),
+  // 时长（秒）
+  duration: doublePrecision('duration'),
+  // 分辨率
+  width: integer('width'),
+  height: integer('height'),
+  // 码率（bps）
+  bitrate: integer('bitrate'),
+  // 帧率
+  fps: doublePrecision('fps'),
+  // 帧数
+  frameCount: integer('frame_count'),
+  // 视频编码
+  codecVideo: varchar('codec_video', { length: 64 }),
+  codecVideoProfile: varchar('codec_video_profile', { length: 64 }),
+  // 像素格式与色彩信息
+  pixelFormat: varchar('pixel_format', { length: 64 }),
+  colorSpace: varchar('color_space', { length: 64 }),
+  colorRange: varchar('color_range', { length: 64 }),
+  colorPrimaries: varchar('color_primaries', { length: 64 }),
+  colorTransfer: varchar('color_transfer', { length: 64 }),
+  bitDepth: integer('bit_depth'),
+  // 音频信息
+  codecAudio: varchar('codec_audio', { length: 64 }),
+  audioChannels: integer('audio_channels'),
+  audioSampleRate: integer('audio_sample_rate'),
+  audioBitrate: integer('audio_bitrate'),
+  hasAudio: boolean('has_audio'),
+  // 旋转
+  rotation: integer('rotation'),
+  // 容器
+  containerFormat: varchar('container_format', { length: 64 }),
+  containerLong: varchar('container_long', { length: 255 }),
+  // Poster 抽帧时间
+  posterTime: doublePrecision('poster_time'),
+  // 原始 ffprobe 数据
+  raw: jsonb('raw'),
+});
+
 // 存储配置表：后台管理员可配置的存储源
 export const storageConfigs = pgTable('storage_configs', {
   // 主键 ID
