@@ -114,6 +114,21 @@ const formatFileSize = (bytes?: number | null) => {
   return `${formatNumber(size, index === 0 ? 0 : 1)}${units[index]}`;
 };
 
+const formatDuration = (value?: number | null) => {
+  if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) {
+    return null;
+  }
+  const totalSeconds = Math.round(value);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (num: number) => String(num).padStart(2, '0');
+  if (hours > 0) {
+    return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+  }
+  return `${minutes}:${pad(seconds)}`;
+};
+
 const getRatioKey = (id: GalleryId) => String(id);
 
 const getAspectRatioValue = (
@@ -165,6 +180,7 @@ const buildDetails = (
     latitude && longitude ? `${latitude}, ${longitude}` : latitude ?? longitude ?? null;
 
   const details = [
+    { label: t('details.duration'), value: formatDuration(item.duration) },
     { label: t('details.resolution'), value: resolution },
     { label: t('details.camera'), value: cameraLabel },
     { label: t('details.lens'), value: item.lens },
@@ -275,14 +291,22 @@ const Gallery25 = ({
   const selectedDescription = selected
     ? resolveMessage(messages, selected.description)
     : '';
-  const resolveLiveBadgeLabel = (liveType?: GalleryItem['liveType']) =>
-    liveType === 'embedded' ? tMedia('motionBadge') : tMedia('liveBadge');
-  const resolveLivePhotoLabel = (liveType?: GalleryItem['liveType']) =>
-    liveType === 'embedded' ? tMedia('motionPhoto') : tMedia('livePhoto');
   const selectedDetails = useMemo(
     () => (selected ? buildDetails(selected, t, locale) : []),
     [locale, selected, t],
   );
+  const selectedIsLive =
+    selected?.liveType && selected.liveType !== 'none';
+  const selectedCanPlayVideo =
+    selected?.type === 'video' || Boolean(selectedIsLive);
+  const selectedVideoLabel = selectedIsLive
+    ? selected?.liveType === 'embedded'
+      ? tMedia('motionBadge')
+      : tMedia('liveBadge')
+    : t('badges.video');
+  const selectedVideoSrc = selected
+    ? selected.videoUrl ?? `/api/media/stream/${selected.id}`
+    : '';
   const selectedAspectRatio = selected
     ? getAspectRatioValue(selected, ratioMap)
     : 1;
@@ -563,12 +587,21 @@ const Gallery25 = ({
                       }));
                     }}
                   />
-                  {(selected.liveType === 'embedded' ||
-                    selected.liveType === 'paired') &&
-                  isModalPlaying ? (
+                  {selected.isAnimated && selected.animatedUrl ? (
+                    <img
+                      src={selected.animatedUrl}
+                      alt={selectedTitle}
+                      className={cn(
+                        'absolute inset-0 z-10 h-full w-full',
+                        viewMode === 'crop' ? 'object-cover' : 'object-contain',
+                      )}
+                    />
+                  ) : null}
+                  {selectedCanPlayVideo && isModalPlaying ? (
                     <>
                       <video
-                        src={`/api/media/stream/${selected.id}`}
+                        src={selectedVideoSrc}
+                        poster={selected?.src ?? undefined}
                         autoPlay
                         controls
                         playsInline
@@ -610,9 +643,7 @@ const Gallery25 = ({
                         </div>
                       )}
                     </>
-                  ) : (selected.liveType === 'embedded' ||
-                      selected.liveType === 'paired') &&
-                    !isModalPlaying ? (
+                  ) : selectedCanPlayVideo && !isModalPlaying ? (
                     <div className='absolute left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2'>
                       {playbackError ? (
                         <div className='flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300'>
@@ -649,25 +680,25 @@ const Gallery25 = ({
                         </div>
                       ) : (
                         <>
-                          <Button
-                            type='button'
-                            variant='ghost'
-                            size='icon'
-                            onClick={(e) => {
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon'
+                          onClick={(e) => {
                               e.stopPropagation();
                               setIsModalPlaying(true);
                             }}
                             className='h-16 w-16 rounded-full bg-black/30 text-white/90 backdrop-blur-sm transition hover:scale-110 hover:bg-black/50'
                           >
                             <Play className='h-8 w-8 fill-white' />
-                          </Button>
-                          <span className='rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white/90 backdrop-blur-sm'>
-                            {resolveLivePhotoLabel(selected.liveType)}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  ) : null}
+                        </Button>
+                        <span className='rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white/90 backdrop-blur-sm'>
+                          {selectedVideoLabel}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                ) : null}
                 </div>
                 {canNavigate && (
                   <>
@@ -859,9 +890,16 @@ const Gallery25 = ({
               <div key={columnIndex} className='flex min-w-0 flex-1 flex-col gap-4'>
                 {columnItems.map((item, itemIndex) => {
                   const itemTitle = resolveMessage(messages, item.title);
-                  const isLive =
-                    item.liveType === 'embedded' || item.liveType === 'paired';
+                  const isVideo = item.type === 'video';
+                  const isLive = item.liveType && item.liveType !== 'none';
+                  const isAnimated = Boolean(item.isAnimated && item.animatedUrl);
                   const isPlaying = hoveredId === item.id;
+                  const canPreview = isVideo || isAnimated || Boolean(isLive);
+                  const previewVideoSrc = item.videoUrl ?? `/api/media/stream/${item.id}`;
+                  const liveBadgeLabel =
+                    item.liveType === 'embedded'
+                      ? tMedia('motionBadge')
+                      : tMedia('liveBadge');
 
                   return (
                     <motion.article
@@ -870,7 +908,7 @@ const Gallery25 = ({
                       whileInView={{ opacity: 1, scale: 1, y: 0 }}
                       transition={{ duration: 0.45, delay: itemIndex * 0.08 }}
                       className='group relative w-full overflow-hidden rounded-2xl border border-border bg-card'
-                      onMouseEnter={() => isLive && setHoveredId(item.id)}
+                      onMouseEnter={() => canPreview && setHoveredId(item.id)}
                       onMouseLeave={() => setHoveredId(null)}
                     >
                       <button
@@ -900,24 +938,35 @@ const Gallery25 = ({
                               }));
                             }}
                           />
-                          {isLive && isPlaying ? (
+                          {(isVideo || isLive) && isPlaying ? (
                             <video
-                              src={`/api/media/stream/${item.id}`}
+                              src={previewVideoSrc}
+                              poster={item.src}
                               autoPlay
                               muted
                               loop
                               playsInline
                               className='absolute inset-0 h-full w-full object-cover animate-in fade-in duration-300'
                             />
+                          ) : isAnimated && isPlaying ? (
+                            <img
+                              src={item.animatedUrl ?? ''}
+                              alt={itemTitle}
+                              className='absolute inset-0 h-full w-full object-cover animate-in fade-in duration-300'
+                            />
                           ) : null}
                           <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100' />
-                          {item.type === 'video' ? (
+                          {isVideo ? (
                             <div className='absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md'>
                               <Play className='h-3 w-3 fill-white' />
                             </div>
                           ) : isLive ? (
                             <div className='absolute right-2 top-2 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md'>
-                              {resolveLiveBadgeLabel(item.liveType)}
+                              {liveBadgeLabel}
+                            </div>
+                          ) : isAnimated ? (
+                            <div className='absolute right-2 top-2 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md'>
+                              {t('badges.animated')}
                             </div>
                           ) : null}
                           <div className='absolute inset-x-0 bottom-0 px-4 pb-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100'>
