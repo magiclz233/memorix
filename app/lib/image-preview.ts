@@ -1,4 +1,4 @@
-﻿import { promises as fs } from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import { encode } from 'blurhash';
@@ -53,7 +53,7 @@ export async function generateImageThumbnail(
       const inputBuffer = await fs.readFile(filePath);
       const { default: heicConvert } = await import('heic-convert');
       const converted = await heicConvert({
-        buffer: inputBuffer,
+        buffer: inputBuffer as any,
         format: 'JPEG',
         quality: 0.92,
       });
