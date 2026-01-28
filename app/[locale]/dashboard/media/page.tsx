@@ -124,7 +124,9 @@ export default async function Page({ searchParams }: PageProps) {
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0);
   const mediaType =
-    resolvedSearchParams?.type === 'image' || resolvedSearchParams?.type === 'video'
+    resolvedSearchParams?.type === 'image' ||
+    resolvedSearchParams?.type === 'video' ||
+    resolvedSearchParams?.type === 'animated'
       ? resolvedSearchParams.type
       : 'all';
   const publishStatus =
