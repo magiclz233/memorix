@@ -34,6 +34,7 @@ export async function GET(request: Request, { params }: Params) {
       path: files.path,
       userStorageId: files.userStorageId,
       mimeType: files.mimeType,
+      mediaType: files.mediaType,
       config: userStorages.config,
       liveType: photoMetadata.liveType,
       videoOffset: photoMetadata.videoOffset,
@@ -85,7 +86,10 @@ export async function GET(request: Request, { params }: Params) {
   const originalPath = path.resolve(normalizedRoot, item.path);
 
   // 3. Determine Stream Source
-  if (item.liveType === 'paired' && item.pairedPath) {
+  if (item.mediaType === 'video') {
+    targetPath = originalPath;
+    offset = 0;
+  } else if (item.liveType === 'paired' && item.pairedPath) {
     // Paired Video Mode
     targetPath = path.resolve(normalizedRoot, item.pairedPath);
   } else if (item.liveType === 'embedded' && typeof item.videoOffset === 'number') {
@@ -93,8 +97,8 @@ export async function GET(request: Request, { params }: Params) {
     targetPath = originalPath;
     offset = item.videoOffset;
   } else {
-    // Not a live photo or missing data
-    return new NextResponse('Not a Live Photo', { status: 404 });
+    // Not a video or missing data
+    return new NextResponse('Not a Video', { status: 404 });
   }
 
   // Validate Path Security
@@ -195,9 +199,14 @@ export async function GET(request: Request, { params }: Params) {
 
   // Determine Content-Type
   const ext = path.extname(targetPath).toLowerCase();
-  let contentType = 'video/mp4'; // Default to mp4 for best compatibility
+  let contentType =
+    typeof item.mimeType === 'string' && item.mimeType.startsWith('video/')
+      ? item.mimeType
+      : 'video/mp4'; // Default to mp4 for best compatibility
   if (ext === '.webm') {
     contentType = 'video/webm';
+  } else if (ext === '.mov') {
+    contentType = 'video/mp4';
   }
   // Note: .mov files are often HEVC. Setting 'video/mp4' allows Chrome/Edge to attempt playback
   // whereas 'video/quicktime' might trigger download or be unsupported.
