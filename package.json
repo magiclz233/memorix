@@ -10,6 +10,9 @@
     "db:migrate:prod": "cross-env NODE_ENV=production drizzle-kit migrate"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@heroicons/react": "^2.2.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-collapsible": "^1.1.12",
@@ -66,7 +69,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "sharp",
-       "ffmpeg-static",
+      "ffmpeg-static",
       "ffprobe-static"
     ]
   }
