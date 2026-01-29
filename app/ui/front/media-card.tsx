@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Play } from 'lucide-react';
 import { useLocale, useMessages, useTranslations } from 'next-intl';
 import type { MediaItem } from '@/app/lib/definitions';
@@ -49,11 +50,12 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
       onMouseLeave={() => setIsPlaying(false)}
     >
       {hasImage ? (
-        <img
-          src={item.coverUrl}
+        <Image
+          src={item.coverUrl ?? ''}
           alt={titleText}
-          loading='lazy'
-          className='absolute inset-0 h-full w-full object-cover'
+          fill
+          sizes='(max-width: 768px) 100vw, 33vw'
+          className='object-cover'
         />
       ) : (
         <div
