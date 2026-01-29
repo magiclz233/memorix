@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
+import Image from 'next/image';
 import { useMessages, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
@@ -565,11 +566,12 @@ export function MediaLibraryManager({
             >
               {/* Image Layer */}
               {src ? (
-                <img
+                <Image
                   src={src}
                   alt={titleText}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-110 cursor-zoom-in"
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                  className="object-cover transition duration-700 group-hover:scale-110 cursor-zoom-in"
                   onClick={() => setViewingItemId(item.id)}
                 />
               ) : (
