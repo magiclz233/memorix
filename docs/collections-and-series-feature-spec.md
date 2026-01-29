@@ -124,38 +124,38 @@ Schema 已在 `app/lib/schema.ts` 中定义，无需修改：
 ## 6. 开发任务清单 (Development Checklist)
 
 ### Phase 1: 基础设施与后端 (Infrastructure & Backend)
-- [ ] **Server Actions (`app/lib/actions/collections.ts`)**
-    - [ ] `createCollection` (创建集合)
-    - [ ] `updateCollection` (更新集合信息)
-    - [ ] `deleteCollection` (删除集合)
-    - [ ] `addItemsToCollection` (添加媒体到集合)
-    - [ ] `removeItemsFromCollection` (从集合移除媒体)
-    - [ ] `reorderItems` (调整媒体排序)
-- [ ] **数据查询扩展 (`app/lib/data.ts`)**
-    - [ ] `fetchPhotoCollections` (获取图集列表)
-    - [ ] `fetchVideoSeries` (获取视频集列表)
-    - [ ] `fetchCollectionById` (获取集合详情)
-    - [ ] `fetchCollectionItems` (获取集合内媒体项)
+- [x] **Server Actions (`app/lib/actions/collections.ts`)**
+    - [x] `createCollection` (创建集合)
+    - [x] `updateCollection` (更新集合信息)
+    - [x] `deleteCollection` (删除集合)
+    - [x] `addItemsToCollection` (添加媒体到集合)
+    - [x] `removeItemsFromCollection` (从集合移除媒体)
+    - [x] `reorderItems` (调整媒体排序)
+- [x] **数据查询扩展 (`app/lib/data.ts`)**
+    - [x] `fetchPhotoCollections` (获取图集列表)
+    - [x] `fetchVideoSeries` (获取视频集列表)
+    - [x] `fetchCollectionById` (获取集合详情)
+    - [x] `fetchCollectionItems` (获取集合内媒体项)
 
 ### Phase 2: 后台管理界面 (Admin Dashboard)
-- [ ] **列表页改造 (`app/dashboard/collections/page.tsx`)**
-    - [ ] 替换 Mock 数据为真实数据
-    - [ ] 集成新建集合 Dialog 表单
-- [ ] **集合管理页 (新页面/Modal)**
-    - [ ] 集合基本信息编辑表单
-    - [ ] 媒体选择器 (Media Picker) 集成
-    - [ ] 拖拽排序列表实现 (`dnd-kit`)
+- [x] **列表页改造 (`app/dashboard/collections/page.tsx`)**
+    - [x] 替换 Mock 数据为真实数据
+    - [x] 集成新建集合 Dialog 表单
+- [x] **集合管理页 (新页面/Modal)**
+    - [x] 集合基本信息编辑表单 (Done via Dialog)
+    - [x] 媒体选择器 (Media Picker) 集成
+    - [x] 拖拽排序列表实现 (`dnd-kit`)
 
 ### Phase 3: 前台展示界面 (Front Storefront)
-- [ ] **图集列表页 (`app/(front)/photo-collections/page.tsx`)**
-    - [ ] 真实数据渲染
-    - [ ] Loading / Empty 状态处理
-- [ ] **图集详情页 (`app/(front)/photo-collections/[id]/page.tsx`)**
-    - [ ] 动态路由创建
-    - [ ] Hero Header 实现
-    - [ ] Masonry Gallery 数据对接
-- [ ] **视频集列表页 (`app/(front)/video-collections/page.tsx`)**
-    - [ ] 真实数据渲染
-- [ ] **视频集详情页 (`app/(front)/video-collections/[id]/page.tsx`)**
-    - [ ] 动态路由与播放列表展示
+- [x] **图集列表页 (`app/(front)/photo-collections/page.tsx`)**
+    - [x] 真实数据渲染
+    - [x] Loading / Empty 状态处理
+- [x] **图集详情页 (`app/(front)/photo-collections/[id]/page.tsx`)**
+    - [x] 动态路由创建
+    - [x] Hero Header 实现
+    - [x] Masonry Gallery 数据对接
+- [x] **视频集列表页 (`app/(front)/video-collections/page.tsx`)**
+    - [x] 真实数据渲染
+- [x] **视频集详情页 (`app/(front)/video-collections/[id]/page.tsx`)**
+    - [x] 动态路由与播放列表展示
 
