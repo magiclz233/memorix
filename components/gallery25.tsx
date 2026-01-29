@@ -2,7 +2,8 @@
 
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Play, Loader2, AlertCircle, Download } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useLocale,
   useMessages,
@@ -218,20 +219,6 @@ const Gallery25 = ({
   const messages = useMessages();
   const [uncontrolledSelectedId, setUncontrolledSelectedId] =
     useState<GalleryId | null>(null);
-  const selectedId =
-    controlledSelectedId === undefined
-      ? uncontrolledSelectedId
-      : controlledSelectedId;
-  const setSelectedId = (id: GalleryId | null) => {
-    setIsModalPlaying(false);
-    setIsBuffering(false);
-    setPlaybackError(null);
-    if (controlledSelectedId === undefined) {
-      setUncontrolledSelectedId(id);
-    }
-    onSelectedIdChange?.(id);
-  };
-
   const [isFullBleed, setIsFullBleed] = useState(false);
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('gallery25-columns', 4),
@@ -247,6 +234,20 @@ const Gallery25 = ({
   const [isModalPlaying, setIsModalPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+
+  const selectedId =
+    controlledSelectedId === undefined
+      ? uncontrolledSelectedId
+      : controlledSelectedId;
+  const setSelectedId = useCallback((id: GalleryId | null) => {
+    setIsModalPlaying(false);
+    setIsBuffering(false);
+    setPlaybackError(null);
+    if (controlledSelectedId === undefined) {
+      setUncontrolledSelectedId(id);
+    }
+    onSelectedIdChange?.(id);
+  }, [controlledSelectedId, onSelectedIdChange]);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const previousFullBleed = useRef(isFullBleed);
   const lastScrollY = useRef(0);
@@ -456,7 +457,7 @@ const Gallery25 = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selected, selectedIndex, visibleItems]);
+  }, [selected, selectedIndex, setSelectedId, visibleItems]);
 
   useEffect(() => {
     if (selected) {
@@ -588,11 +589,14 @@ const Gallery25 = ({
                     }}
                   />
                   {selected.isAnimated && selected.animatedUrl ? (
-                    <img
+                    <Image
                       src={selected.animatedUrl}
                       alt={selectedTitle}
+                      fill
+                      sizes='(max-width: 768px) 90vw, 60vw'
+                      unoptimized
                       className={cn(
-                        'absolute inset-0 z-10 h-full w-full',
+                        'absolute inset-0 z-10',
                         viewMode === 'crop' ? 'object-cover' : 'object-contain',
                       )}
                     />
@@ -949,10 +953,13 @@ const Gallery25 = ({
                               className='absolute inset-0 h-full w-full object-cover animate-in fade-in duration-300'
                             />
                           ) : isAnimated && isPlaying ? (
-                            <img
+                            <Image
                               src={item.animatedUrl ?? ''}
                               alt={itemTitle}
-                              className='absolute inset-0 h-full w-full object-cover animate-in fade-in duration-300'
+                              fill
+                              sizes={gridSizes}
+                              unoptimized
+                              className='absolute inset-0 object-cover animate-in fade-in duration-300'
                             />
                           ) : null}
                           <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100' />
