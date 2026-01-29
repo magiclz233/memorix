@@ -1,17 +1,21 @@
-import { photoCollections } from '@/app/lib/front-data';
+import { fetchPhotoCollections } from '@/app/lib/data';
 import { CollectionCard } from '@/app/ui/front/collection-card';
 import { cn } from '@/lib/utils';
+import { Link } from '@/i18n/navigation';
 import { getTranslations } from 'next-intl/server';
 
 export default async function Page() {
   const t = await getTranslations('front.collections');
-  const tData = await getTranslations();
+  const collections = await fetchPhotoCollections();
 
-  const translatedCollections = photoCollections.map((c) => ({
-    ...c,
-    title: tData(c.title),
-    description: tData(c.description),
-    tags: c.tags?.map((tag) => tData(tag)),
+  const mappedCollections = collections.map((c) => ({
+    id: String(c.id),
+    type: 'photo' as const,
+    title: c.title,
+    description: c.description || '',
+    cover: c.coverImage || '',
+    count: c.itemCount,
+    tags: [],
   }));
 
   return (
@@ -33,16 +37,21 @@ export default async function Page() {
         </p>
       </header>
       <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
-        {translatedCollections.map((collection) => (
-          <CollectionCard
+        {mappedCollections.map((collection) => (
+          <Link
             key={collection.id}
-            collection={collection}
-            labels={{
-              photo: t('badge.photo'),
-              video: t('badge.video'),
-              itemCount: (count) => t('itemCount', { count }),
-            }}
-          />
+            href={`/photo-collections/${collection.id}`}
+            className='block'
+          >
+            <CollectionCard
+              collection={collection}
+              labels={{
+                photo: t('badge.photo'),
+                video: t('badge.video'),
+                itemCount: (count) => t('itemCount', { count }),
+              }}
+            />
+          </Link>
         ))}
       </div>
     </div>
