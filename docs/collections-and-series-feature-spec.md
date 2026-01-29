@@ -120,3 +120,42 @@ Schema 已在 `app/lib/schema.ts` 中定义，无需修改：
     -   复用 `FrontGallery` 组件展示图片列表。
 3.  **视频集同理**：
     -   对应 `/video-collections` 和 `/video-collections/[id]`。
+
+## 6. 开发任务清单 (Development Checklist)
+
+### Phase 1: 基础设施与后端 (Infrastructure & Backend)
+- [ ] **Server Actions (`app/lib/actions/collections.ts`)**
+    - [ ] `createCollection` (创建集合)
+    - [ ] `updateCollection` (更新集合信息)
+    - [ ] `deleteCollection` (删除集合)
+    - [ ] `addItemsToCollection` (添加媒体到集合)
+    - [ ] `removeItemsFromCollection` (从集合移除媒体)
+    - [ ] `reorderItems` (调整媒体排序)
+- [ ] **数据查询扩展 (`app/lib/data.ts`)**
+    - [ ] `fetchPhotoCollections` (获取图集列表)
+    - [ ] `fetchVideoSeries` (获取视频集列表)
+    - [ ] `fetchCollectionById` (获取集合详情)
+    - [ ] `fetchCollectionItems` (获取集合内媒体项)
+
+### Phase 2: 后台管理界面 (Admin Dashboard)
+- [ ] **列表页改造 (`app/dashboard/collections/page.tsx`)**
+    - [ ] 替换 Mock 数据为真实数据
+    - [ ] 集成新建集合 Dialog 表单
+- [ ] **集合管理页 (新页面/Modal)**
+    - [ ] 集合基本信息编辑表单
+    - [ ] 媒体选择器 (Media Picker) 集成
+    - [ ] 拖拽排序列表实现 (`dnd-kit`)
+
+### Phase 3: 前台展示界面 (Front Storefront)
+- [ ] **图集列表页 (`app/(front)/photo-collections/page.tsx`)**
+    - [ ] 真实数据渲染
+    - [ ] Loading / Empty 状态处理
+- [ ] **图集详情页 (`app/(front)/photo-collections/[id]/page.tsx`)**
+    - [ ] 动态路由创建
+    - [ ] Hero Header 实现
+    - [ ] Masonry Gallery 数据对接
+- [ ] **视频集列表页 (`app/(front)/video-collections/page.tsx`)**
+    - [ ] 真实数据渲染
+- [ ] **视频集详情页 (`app/(front)/video-collections/[id]/page.tsx`)**
+    - [ ] 动态路由与播放列表展示
+
