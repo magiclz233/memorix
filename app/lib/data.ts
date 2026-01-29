@@ -2,11 +2,13 @@ import { db } from './drizzle';
 import {
   files,
   photoCollections,
+  collectionItems,
   photoMetadata,
   userSettings,
   userStorages,
   users,
   videoSeries,
+  videoSeriesItems,
   videoMetadata,
 } from './schema';
 import {
@@ -540,6 +542,107 @@ export async function fetchPublishedPhotos(userId: number) {
     )
     .map(({ storageConfig, ...rest }) => rest);
 }
+
+export async function fetchPhotoCollections() {
+  const collections = await db
+    .select({
+      id: photoCollections.id,
+      title: photoCollections.title,
+      description: photoCollections.description,
+      coverImage: photoCollections.coverImage,
+      createdAt: photoCollections.createdAt,
+      itemCount: count(collectionItems.fileId),
+    })
+    .from(photoCollections)
+    .leftJoin(
+      collectionItems,
+      eq(photoCollections.id, collectionItems.collectionId)
+    )
+    .groupBy(photoCollections.id)
+    .orderBy(desc(photoCollections.createdAt));
+
+  return collections.map((c) => ({
+    ...c,
+    itemCount: Number(c.itemCount),
+  }));
+}
+
+export async function fetchVideoSeries() {
+  const series = await db
+    .select({
+      id: videoSeries.id,
+      title: videoSeries.title,
+      description: videoSeries.description,
+      coverImage: videoSeries.coverImage,
+      createdAt: videoSeries.createdAt,
+      updatedAt: videoSeries.updatedAt,
+      itemCount: count(videoSeriesItems.fileId),
+    })
+    .from(videoSeries)
+    .leftJoin(videoSeriesItems, eq(videoSeries.id, videoSeriesItems.seriesId))
+    .groupBy(videoSeries.id)
+    .orderBy(desc(videoSeries.updatedAt));
+
+  return series.map((s) => ({
+    ...s,
+    itemCount: Number(s.itemCount),
+  }));
+}
+
+export async function fetchCollectionById(id: number) {
+  const collection = await db.query.photoCollections.findFirst({
+    where: eq(photoCollections.id, id),
+  });
+  return collection ?? null;
+}
+
+export async function fetchVideoSeriesById(id: number) {
+  const series = await db.query.videoSeries.findFirst({
+    where: eq(videoSeries.id, id),
+  });
+  return series ?? null;
+}
+
+export async function fetchCollectionItems(collectionId: number) {
+  const records = await db
+    .select({
+      file: files,
+      sortOrder: collectionItems.sortOrder,
+      metadata: photoMetadata,
+    })
+    .from(collectionItems)
+    .innerJoin(files, eq(collectionItems.fileId, files.id))
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .where(eq(collectionItems.collectionId, collectionId))
+    .orderBy(asc(collectionItems.sortOrder));
+  const seen = new Set<number>();
+  return records.filter((item) => {
+    if (seen.has(item.file.id)) return false;
+    seen.add(item.file.id);
+    return true;
+  });
+}
+
+export async function fetchVideoSeriesItems(seriesId: number) {
+  const records = await db
+    .select({
+      file: files,
+      sortOrder: videoSeriesItems.sortOrder,
+      metadata: videoMetadata,
+    })
+    .from(videoSeriesItems)
+    .innerJoin(files, eq(videoSeriesItems.fileId, files.id))
+    .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
+    .where(eq(videoSeriesItems.seriesId, seriesId))
+    .orderBy(asc(videoSeriesItems.sortOrder));
+  const seen = new Set<number>();
+  return records.filter((item) => {
+    if (seen.has(item.file.id)) return false;
+    seen.add(item.file.id);
+    return true;
+  });
+}
+
 
 const HERO_SETTING_KEY = 'hero_images';
 
