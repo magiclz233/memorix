@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { GalleryVerticalEnd } from 'lucide-react';
@@ -11,10 +12,13 @@ export default async function SignupPage() {
   return (
     <div className='grid min-h-svh lg:grid-cols-2'>
       <div className='bg-muted relative hidden lg:block'>
-        <img
+        <Image
           src='/hero-desktop.png'
           alt={t('heroAlt')}
-          className='absolute inset-0 h-full w-full object-cover'
+          fill
+          sizes='(max-width: 1024px) 0px, 50vw'
+          className='object-cover'
+          priority
         />
       </div>
       <div className='flex flex-col gap-4 p-6 md:p-10'>
