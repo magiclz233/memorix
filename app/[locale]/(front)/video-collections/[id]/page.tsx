@@ -36,47 +36,72 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   }));
 
   return (
-    <div className='space-y-12'>
-      <section className='front-fade-up'>
-        <div className='relative overflow-hidden rounded-[2.5rem] border border-zinc-200 bg-white/80 shadow-lg shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900/60 dark:shadow-black/50'>
-          <div className='relative h-[50vh] md:h-[60vh]'>
-            {hasCover ? (
-              <Image
-                src={series.coverImage ?? ''}
-                alt={series.title}
-                fill
-                priority
-                className='object-cover'
-                sizes='100vw'
-                unoptimized
-              />
-            ) : (
-              <div className='absolute inset-0 bg-gradient-to-br from-indigo-500/35 via-slate-900/70 to-slate-950' />
-            )}
-            <div
-              className={cn(
-                'absolute inset-0 bg-gradient-to-b from-black/60 via-black/25 to-transparent',
-                'z-10',
-              )}
+    <div className='min-h-screen pb-20'>
+      {/* Immersive Hero Section */}
+      <section className='relative h-[70vh] w-full overflow-hidden'>
+        {hasCover ? (
+          <div className='absolute inset-0'>
+            <Image
+              src={series.coverImage ?? ''}
+              alt={series.title}
+              fill
+              priority
+              className='object-cover'
+              sizes='100vw'
+              unoptimized
             />
-            <div className='absolute inset-0 bg-gradient-to-t from-zinc-50/80 via-transparent to-transparent dark:from-zinc-950/80' />
-            <div className='relative z-20 flex h-full items-center justify-center px-6 text-center'>
-              <div className='max-w-3xl space-y-4 rounded-3xl border border-white/20 bg-black/30 px-8 py-10 text-white shadow-2xl shadow-black/40 backdrop-blur-md'>
-                <h1 className='font-serif text-3xl font-semibold tracking-tight md:text-5xl'>
+            <div className='absolute inset-0 bg-black/20' />
+          </div>
+        ) : (
+          <div className='absolute inset-0 bg-zinc-900'>
+            <div className='absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-zinc-900/50 to-black' />
+          </div>
+        )}
+
+        {/* Gradient Overlay for Text Readability */}
+        <div className='absolute inset-0 bg-gradient-to-t from-zinc-50 via-zinc-50/10 to-transparent dark:from-zinc-950 dark:via-zinc-950/20' />
+
+        {/* Hero Content */}
+        <div className='absolute bottom-0 left-0 right-0 z-20 px-6 pb-12 pt-32 md:px-12'>
+          <div className='front-fade-up mx-auto max-w-7xl'>
+            <div className='max-w-3xl space-y-6'>
+              <div className='space-y-2'>
+                <div className='flex items-center gap-3 text-sm font-medium uppercase tracking-wider text-indigo-500 dark:text-indigo-400'>
+                  <span className='h-px w-8 bg-current' />
+                  <span>Video Series</span>
+                </div>
+                <h1 className='font-serif text-4xl font-bold tracking-tight text-zinc-900 dark:text-white md:text-6xl lg:text-7xl'>
                   {series.title}
                 </h1>
-                {series.description ? (
-                  <p className='text-sm text-white/75 md:text-base'>
-                    {series.description}
-                  </p>
-                ) : null}
+              </div>
+              
+              {series.description && (
+                <p className='text-lg leading-relaxed text-zinc-600 dark:text-zinc-300 md:text-xl'>
+                  {series.description}
+                </p>
+              )}
+
+              <div className='flex items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400'>
+                <div className='flex items-center gap-2 rounded-full border border-zinc-200 bg-white/50 px-3 py-1 backdrop-blur-md dark:border-zinc-800 dark:bg-black/50'>
+                  <span className='font-mono font-semibold text-zinc-900 dark:text-white'>
+                    {items.length}
+                  </span>
+                  <span>Videos</span>
+                </div>
+                <div className='hidden items-center gap-2 rounded-full border border-zinc-200 bg-white/50 px-3 py-1 backdrop-blur-md dark:border-zinc-800 dark:bg-black/50 sm:flex'>
+                  <span>Updated</span>
+                  <span className='font-mono font-semibold text-zinc-900 dark:text-white'>
+                    {new Date(series.updatedAt).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className='front-fade-up'>
+      {/* Gallery Section */}
+      <section className='front-fade-up relative z-20 mx-auto -mt-8 max-w-[1920px] px-4 md:px-8'>
         <Gallery25 items={galleryItems} showChrome={false} />
       </section>
     </div>
