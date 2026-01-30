@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { GripVertical, Plus, MoreHorizontal, Pencil, Trash, Images } from 'lucide-react';
+import { GripVertical, Plus, MoreHorizontal, Pencil, Trash, Images, ArrowLeft } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
@@ -94,81 +94,104 @@ export function CollectionsClient({
   };
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          {t('title')}
-        </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          {t('description')}
-        </p>
+    <div className="space-y-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1.5">
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            {t('title')}
+          </h1>
+          <p className="text-base text-zinc-500 dark:text-zinc-400">
+            {t('description')}
+          </p>
+        </div>
+        <Button onClick={handleCreate} className="shadow-lg shadow-indigo-500/20">
+          <Plus className="mr-2 h-4 w-4" />
+          {t('create')}
+        </Button>
       </header>
 
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as 'photos' | 'videos')}
+        className="space-y-8"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-full border border-zinc-200 bg-white/80 px-4 py-2 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-black/40">
-          <TabsList className="bg-transparent p-0">
+        <div className="border-b border-zinc-200 dark:border-zinc-800">
+          <TabsList className="h-auto bg-transparent p-0">
             <TabsTrigger
               value="photos"
-              className="rounded-full px-4 py-1 text-sm transition data-[state=active]:bg-indigo-500 data-[state=active]:text-white data-[state=active]:shadow text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100"
+              className="relative rounded-none border-b-2 border-transparent px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-700 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 dark:text-zinc-400 dark:hover:text-zinc-200 dark:data-[state=active]:text-indigo-400"
             >
               {t('tabs.photos')}
             </TabsTrigger>
             <TabsTrigger
               value="videos"
-              className="rounded-full px-4 py-1 text-sm transition data-[state=active]:bg-indigo-500 data-[state=active]:text-white data-[state=active]:shadow text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100"
+              className="relative rounded-none border-b-2 border-transparent px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-700 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 dark:text-zinc-400 dark:hover:text-zinc-200 dark:data-[state=active]:text-indigo-400"
             >
               {t('tabs.videos')}
             </TabsTrigger>
           </TabsList>
-          <Button size="sm" onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t('create')}
-          </Button>
         </div>
 
-        <TabsContent value="photos" className="mt-6">
+        <TabsContent value="photos" className="space-y-6">
           {photoCollections.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-16 text-center dark:border-zinc-800">
-              <Images className="h-10 w-10 text-zinc-400" />
-              <h3 className="mt-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <div className="flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-200 bg-zinc-50/50 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <Images className="h-10 w-10 text-zinc-400" />
+              </div>
+              <h3 className="mt-6 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
                 {t('empty.title')}
               </h3>
-              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="mt-2 max-w-sm text-zinc-500 dark:text-zinc-400">
                 {t('empty.description')}
               </p>
-              <Button className="mt-6" onClick={handleCreate}>
+              <Button className="mt-8" onClick={handleCreate} variant="outline">
                 <Plus className="mr-2 h-4 w-4" />
                 {t('create')}
               </Button>
             </div>
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {photoCollections.map((collection) => (
                 <div
                   key={collection.id}
-                  className="group relative flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white/80 p-4 shadow-sm transition-all hover:shadow-md dark:border-white/10 dark:bg-zinc-900/50 dark:backdrop-blur-md"
+                  className="group relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-xl hover:shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:shadow-black/50"
                 >
-                  <div className="absolute right-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100">
-                    <DropdownMenu>
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                    {collection.coverImage ? (
+                      <Image
+                        src={collection.coverImage}
+                        alt={collection.title}
+                        width={600}
+                        height={450}
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-zinc-300 dark:text-zinc-700">
+                        <Images className="h-12 w-12" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  </div>
+
+                  <div className="absolute right-3 top-3 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          variant="ghost"
+                          variant="secondary"
                           size="icon"
-                          className="h-8 w-8 bg-white/50 backdrop-blur hover:bg-white/80 dark:bg-black/50 dark:hover:bg-black/80"
+                          className="h-8 w-8 rounded-full bg-white/90 shadow-sm backdrop-blur hover:bg-white dark:bg-black/50 dark:hover:bg-black/80"
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem onClick={() => handleEdit(collection)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           {t('actions.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600"
+                          className="text-red-600 focus:text-red-600 dark:text-red-400"
                           onClick={() => handleDelete(collection.id, 'photo')}
                         >
                           <Trash className="mr-2 h-4 w-4" />
@@ -178,34 +201,32 @@ export function CollectionsClient({
                     </DropdownMenu>
                   </div>
 
-                  <div className="relative h-40 w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800/50">
-                    {collection.coverImage ? (
-                      <Image
-                        src={collection.coverImage}
-                        alt={collection.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-zinc-400 dark:bg-zinc-800">
-                        <Images className="h-8 w-8" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-4 space-y-2">
-                    <h3 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  <div className="p-5">
+                    <div className="mb-2 flex items-center justify-between">
+                       <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
+                          {t('photoItem.count', { count: collection.itemCount })}
+                        </span>
+                        <span className="text-xs text-zinc-400">
+                          {new Date(collection.createdAt).toLocaleDateString()}
+                        </span>
+                    </div>
+                    <h3 className="line-clamp-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                       {collection.title}
                     </h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      {t('photoItem.count', { count: collection.itemCount })}
-                    </p>
-                    <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link href={`/dashboard/collections/photo/${collection.id}`}>
-                        {t('photoItem.manage')}
-                      </Link>
-                    </Button>
+                    {collection.description && (
+                      <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
+                        {collection.description}
+                      </p>
+                    )}
+                    
+                    <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
+                        <Button variant="ghost" className="w-full justify-between group-hover:text-indigo-500" asChild>
+                          <Link href={`/dashboard/collections/photo/${collection.id}`}>
+                            {t('photoItem.manage')}
+                            <ArrowLeft className="h-4 w-4 rotate-180 transition-transform group-hover:translate-x-1" />
+                          </Link>
+                        </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -213,74 +234,66 @@ export function CollectionsClient({
           )}
         </TabsContent>
 
-        <TabsContent value="videos" className="mt-6">
+        <TabsContent value="videos" className="space-y-6">
           {videoSeries.length === 0 ? (
-             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 py-16 text-center dark:border-zinc-800">
-             <Images className="h-10 w-10 text-zinc-400" />
-             <h3 className="mt-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+             <div className="flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-200 bg-zinc-50/50 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
+             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+               <Images className="h-10 w-10 text-zinc-400" />
+             </div>
+             <h3 className="mt-6 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
                {t('empty.title')}
              </h3>
-             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+             <p className="mt-2 max-w-sm text-zinc-500 dark:text-zinc-400">
                {t('empty.description')}
              </p>
-             <Button className="mt-6" onClick={handleCreate}>
+             <Button className="mt-8" onClick={handleCreate} variant="outline">
                <Plus className="mr-2 h-4 w-4" />
                {t('create')}
              </Button>
            </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {videoSeries.map((series) => (
                 <div
                   key={series.id}
-                  className="group relative flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200 bg-white/80 p-4 shadow-sm transition-all hover:shadow-md dark:border-white/10 dark:bg-zinc-900/50 dark:backdrop-blur-md"
+                  className="group relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-xl hover:shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:shadow-black/50"
                 >
-                  <div className="flex items-center gap-3">
-                    <GripVertical className="h-5 w-5 text-zinc-400" />
-                    <div className="relative h-16 w-24 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800/50">
-                      {series.coverImage ? (
-                        <Image
-                          src={series.coverImage}
-                          alt={series.title}
-                          fill
-                          className="object-cover transition-transform duration-500 hover:scale-105"
-                          sizes="96px"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-zinc-400 dark:bg-zinc-800">
-                          <Images className="h-6 w-6" />
-                        </div>
-                      )}
-                    </div>
+                  <div className="aspect-video w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                    {series.coverImage ? (
+                      <Image
+                        src={series.coverImage}
+                        alt={series.title}
+                         width={600}
+                        height={338}
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-zinc-300 dark:text-zinc-700">
+                        <Images className="h-12 w-12" />
+                      </div>
+                    )}
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   </div>
-                  <div className="min-w-[200px] flex-1 space-y-1">
-                    <h3 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                      {series.title}
-                    </h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      <span className="font-mono">
-                        {t('videoItem.episodes', { count: series.itemCount })}
-                      </span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                        {t('videoItem.edit')}
-                    </Button>
-                    <DropdownMenu>
+
+                  <div className="absolute right-3 top-3 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                      <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-8 w-8 rounded-full bg-white/90 shadow-sm backdrop-blur hover:bg-white dark:bg-black/50 dark:hover:bg-black/80"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem onClick={() => handleEdit(series)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           {t('actions.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600"
+                          className="text-red-600 focus:text-red-600 dark:text-red-400"
                           onClick={() => handleDelete(series.id, 'video')}
                         >
                           <Trash className="mr-2 h-4 w-4" />
@@ -288,6 +301,34 @@ export function CollectionsClient({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                  </div>
+
+                   <div className="p-5">
+                    <div className="mb-2 flex items-center justify-between">
+                       <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
+                          {t('videoItem.episodes', { count: series.itemCount })}
+                        </span>
+                         <span className="text-xs text-zinc-400">
+                          {new Date(series.updatedAt).toLocaleDateString()}
+                        </span>
+                    </div>
+                    <h3 className="line-clamp-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                      {series.title}
+                    </h3>
+                    {series.description && (
+                      <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
+                        {series.description}
+                      </p>
+                    )}
+                    
+                     <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
+                        <Button variant="ghost" className="w-full justify-between group-hover:text-indigo-500" asChild>
+                          <Link href={`/dashboard/collections/video/${series.id}`}>
+                            {t('videoItem.edit')}
+                             <ArrowLeft className="h-4 w-4 rotate-180 transition-transform group-hover:translate-x-1" />
+                          </Link>
+                        </Button>
+                    </div>
                   </div>
                 </div>
               ))}
