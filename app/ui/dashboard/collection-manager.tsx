@@ -35,7 +35,7 @@ import {
   removeItemsFromVideoSeries,
   reorderVideoSeriesItems,
 } from '@/app/lib/actions/collections';
-import { Plus, ArrowLeft, Loader2 } from 'lucide-react';
+import { Plus, ArrowLeft, Loader2, Images } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/navigation';
 
 type CollectionItem = {
@@ -138,38 +138,45 @@ export function CollectionManager({
   };
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
+    <div className="space-y-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200 pb-6 dark:border-zinc-800">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Link
               href="/dashboard/collections"
-              className="flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              className="group flex items-center text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
             >
-              <ArrowLeft className="mr-1 h-4 w-4" />
+              <ArrowLeft className="mr-1 h-4 w-4 transition-transform group-hover:-translate-x-1" />
               {t('title')}
             </Link>
           </div>
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {collection.title}
-          </h1>
+          <div className="flex items-center gap-3">
+             <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {collection.title}
+             </h1>
+             <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                {items.length} items
+             </span>
+          </div>
         </div>
         <Dialog open={isPickerOpen} onOpenChange={setIsPickerOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button size="lg" className="shadow-lg shadow-indigo-500/20">
               <Plus className="mr-2 h-4 w-4" />
               Add Media
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>Select Media</DialogTitle>
+          <DialogContent className="max-w-5xl h-[80vh] flex flex-col p-0 gap-0">
+             <DialogHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+              <DialogTitle>Select Media to Add</DialogTitle>
             </DialogHeader>
-            <MediaPicker
-              onConfirm={handleAddMedia}
-              onCancel={() => setIsPickerOpen(false)}
-              disabledIds={items.map((item) => item.file.id)}
-            />
+            <div className="flex-1 overflow-hidden">
+                <MediaPicker
+                onConfirm={handleAddMedia}
+                onCancel={() => setIsPickerOpen(false)}
+                disabledIds={items.map((item) => item.file.id)}
+                />
+            </div>
           </DialogContent>
         </Dialog>
       </header>
@@ -198,10 +205,15 @@ export function CollectionManager({
       </DndContext>
       
       {items.length === 0 && (
-        <div className="flex h-60 flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
-          <p className="text-zinc-500">No items in this collection.</p>
-          <Button variant="link" onClick={() => setIsPickerOpen(true)}>
-            Add some media
+        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-200 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-900/50">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <Images className="h-8 w-8 text-zinc-400" />
+          </div>
+          <p className="mt-4 text-lg font-medium text-zinc-900 dark:text-zinc-100">No items in this collection</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Start by adding some photos or videos</p>
+          <Button variant="outline" className="mt-6" onClick={() => setIsPickerOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Media
           </Button>
         </div>
       )}
