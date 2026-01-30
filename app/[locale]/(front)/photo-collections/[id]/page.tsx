@@ -16,10 +16,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const hasCover = Boolean(collection.coverImage?.trim());
 
   // Transform items to Gallery25 format
-  const galleryItems = items.map(({ file, metadata }) => ({
+  const galleryItems = items.map(({ file, metadata }) => {
+    const isHeic = file.path?.toLowerCase().endsWith('.heic') || file.path?.toLowerCase().endsWith('.heif');
+    return {
     id: String(file.id),
     type: (file.mediaType === 'video' ? 'video' : 'photo') as 'video' | 'photo',
-    src: file.thumbUrl || (file.mediaType === 'video' ? `/api/media/thumb/${file.id}` : file.url) || '',
+    src: file.thumbUrl || (file.mediaType === 'video' || isHeic ? `/api/media/thumb/${file.id}` : file.url) || '',
     title: file.title || '',
     description: metadata?.description,
     width: metadata?.resolutionWidth || 1920,
@@ -41,7 +43,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     videoUrl: file.mediaType === 'video' ? file.url : undefined,
     liveType: (metadata?.liveType as 'none' | 'embedded' | 'paired') || undefined,
     videoDuration: metadata?.videoDuration,
-  }));
+  };
+});
 
   return (
     <div className='min-h-screen pb-20'>
