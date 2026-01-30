@@ -42,14 +42,19 @@ export async function generateImageThumbnail(
     let imageBuffer: Buffer;
 
     try {
-      imageBuffer = await sharp(filePath, { animated: true, pages: 1 })
+      // Try using sharp directly first (without animated options which can fail on HEIC)
+      imageBuffer = await sharp(filePath)
         .resize({ width: maxWidth, withoutEnlargement: true })
+        .rotate() // Auto-rotate based on EXIF
         .webp({ quality: 82 })
         .toBuffer();
     } catch (error) {
       if (!isHeic) {
         throw error;
       }
+      
+      console.warn('Sharp direct HEIC failed, falling back to heic-convert:', error);
+
       const inputBuffer = await fs.readFile(filePath);
       const { default: heicConvert } = await import('heic-convert');
       const converted = await heicConvert({
@@ -57,8 +62,10 @@ export async function generateImageThumbnail(
         format: 'JPEG',
         quality: 0.92,
       });
-      imageBuffer = await sharp(converted)
+      
+      imageBuffer = await sharp(Buffer.from(converted))
         .resize({ width: maxWidth, withoutEnlargement: true })
+        .rotate()
         .webp({ quality: 82 })
         .toBuffer();
     }
