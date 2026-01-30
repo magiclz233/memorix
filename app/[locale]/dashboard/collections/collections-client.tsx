@@ -115,17 +115,17 @@ export function CollectionsClient({
         onValueChange={(v) => setActiveTab(v as 'photos' | 'videos')}
         className="space-y-8"
       >
-        <div className="border-b border-zinc-200 dark:border-zinc-800">
-          <TabsList className="h-auto bg-transparent p-0">
+        <div className="flex items-center justify-center pb-6">
+          <TabsList className="grid w-full max-w-[400px] grid-cols-2 rounded-full bg-zinc-100 p-1 dark:bg-zinc-800">
             <TabsTrigger
               value="photos"
-              className="relative rounded-none border-b-2 border-transparent px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-700 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 dark:text-zinc-400 dark:hover:text-zinc-200 dark:data-[state=active]:text-indigo-400"
+              className="rounded-full px-8 py-2 text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-950 dark:data-[state=active]:text-indigo-400"
             >
               {t('tabs.photos')}
             </TabsTrigger>
             <TabsTrigger
               value="videos"
-              className="relative rounded-none border-b-2 border-transparent px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-700 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 dark:text-zinc-400 dark:hover:text-zinc-200 dark:data-[state=active]:text-indigo-400"
+              className="rounded-full px-8 py-2 text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-950 dark:data-[state=active]:text-indigo-400"
             >
               {t('tabs.videos')}
             </TabsTrigger>
@@ -174,25 +174,32 @@ export function CollectionsClient({
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   </div>
 
-                  <div className="absolute right-3 top-3 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <Link 
+                    href={`/dashboard/collections/photo/${collection.id}`} 
+                    className="absolute inset-0 z-10"
+                    aria-label={t('photoItem.manage')}
+                  />
+
+                  <div className="absolute right-3 top-3 z-20 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                      <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="secondary"
                           size="icon"
                           className="h-8 w-8 rounded-full bg-white/90 shadow-sm backdrop-blur hover:bg-white dark:bg-black/50 dark:hover:bg-black/80"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleEdit(collection)}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(collection); }}>
                           <Pencil className="mr-2 h-4 w-4" />
                           {t('actions.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-600 dark:text-red-400"
-                          onClick={() => handleDelete(collection.id, 'photo')}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(collection.id, 'photo'); }}
                         >
                           <Trash className="mr-2 h-4 w-4" />
                           {t('actions.delete')}
@@ -201,7 +208,7 @@ export function CollectionsClient({
                     </DropdownMenu>
                   </div>
 
-                  <div className="p-5">
+                  <div className="pointer-events-none relative p-5">
                     <div className="mb-2 flex items-center justify-between">
                        <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
                           {t('photoItem.count', { count: collection.itemCount })}
@@ -219,13 +226,9 @@ export function CollectionsClient({
                       </p>
                     )}
                     
-                    <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
-                        <Button variant="ghost" className="w-full justify-between group-hover:text-indigo-500" asChild>
-                          <Link href={`/dashboard/collections/photo/${collection.id}`}>
-                            {t('photoItem.manage')}
-                            <ArrowLeft className="h-4 w-4 rotate-180 transition-transform group-hover:translate-x-1" />
-                          </Link>
-                        </Button>
+                    <div className="mt-4 flex items-center text-sm font-medium text-indigo-600 opacity-0 transition-opacity group-hover:opacity-100 dark:text-indigo-400">
+                        {t('photoItem.manage')}
+                        <ArrowLeft className="ml-1 h-4 w-4 rotate-180 transition-transform group-hover:translate-x-1" />
                     </div>
                   </div>
                 </div>
@@ -276,25 +279,32 @@ export function CollectionsClient({
                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   </div>
 
-                  <div className="absolute right-3 top-3 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <Link 
+                    href={`/dashboard/collections/video/${series.id}`} 
+                    className="absolute inset-0 z-10"
+                    aria-label={t('videoItem.edit')}
+                  />
+
+                  <div className="absolute right-3 top-3 z-20 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                       <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="secondary"
                           size="icon"
                           className="h-8 w-8 rounded-full bg-white/90 shadow-sm backdrop-blur hover:bg-white dark:bg-black/50 dark:hover:bg-black/80"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleEdit(series)}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(series); }}>
                           <Pencil className="mr-2 h-4 w-4" />
                           {t('actions.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-600 dark:text-red-400"
-                          onClick={() => handleDelete(series.id, 'video')}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(series.id, 'video'); }}
                         >
                           <Trash className="mr-2 h-4 w-4" />
                           {t('actions.delete')}
@@ -303,7 +313,7 @@ export function CollectionsClient({
                     </DropdownMenu>
                   </div>
 
-                   <div className="p-5">
+                   <div className="pointer-events-none relative p-5">
                     <div className="mb-2 flex items-center justify-between">
                        <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
                           {t('videoItem.episodes', { count: series.itemCount })}
@@ -321,13 +331,9 @@ export function CollectionsClient({
                       </p>
                     )}
                     
-                     <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
-                        <Button variant="ghost" className="w-full justify-between group-hover:text-indigo-500" asChild>
-                          <Link href={`/dashboard/collections/video/${series.id}`}>
-                            {t('videoItem.edit')}
-                             <ArrowLeft className="h-4 w-4 rotate-180 transition-transform group-hover:translate-x-1" />
-                          </Link>
-                        </Button>
+                     <div className="mt-4 flex items-center text-sm font-medium text-indigo-600 opacity-0 transition-opacity group-hover:opacity-100 dark:text-indigo-400">
+                        {t('videoItem.edit')}
+                         <ArrowLeft className="ml-1 h-4 w-4 rotate-180 transition-transform group-hover:translate-x-1" />
                     </div>
                   </div>
                 </div>
