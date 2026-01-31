@@ -1,21 +1,23 @@
 import { fetchVideoSeries } from '@/app/lib/data';
+import { BentoGrid } from '@/components/ui/bento-grid';
 import { CollectionCard } from '@/app/ui/front/collection-card';
-import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 import { getTranslations } from 'next-intl/server';
+import { cn } from '@/lib/utils';
+import type { Collection } from '@/app/lib/definitions';
 
 export default async function Page() {
   const t = await getTranslations('front.collections');
   const collections = await fetchVideoSeries();
 
-  const mappedCollections = collections.map((c) => ({
+  const mappedCollections: Collection[] = collections.map(c => ({
     id: String(c.id),
-    type: 'video' as const,
+    type: 'video',
     title: c.title,
-    description: c.description || '',
     cover: c.coverImage || '',
     count: c.itemCount,
-    tags: [],
+    description: c.description || '',
+    tags: []
   }));
 
   return (
@@ -36,24 +38,31 @@ export default async function Page() {
           {t('video.description')}
         </p>
       </header>
-      <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
-        {mappedCollections.map((collection) => (
-          <Link
-            key={collection.id}
-            href={`/video-collections/${collection.id}`}
-            className='block'
-          >
-            <CollectionCard
-              collection={collection}
-              labels={{
-                photo: t('badge.photo'),
-                video: t('badge.video'),
-                itemCount: (count) => t('itemCount', { count }),
-              }}
-            />
-          </Link>
-        ))}
-      </div>
+
+      <div className='relative z-10'>
+          <BentoGrid className="max-w-none mx-0 md:auto-rows-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {mappedCollections.map((collection, i) => (
+              <div 
+                key={collection.id} 
+                className="row-span-1"
+              >
+                <Link 
+                  href={`/video-collections/${collection.id}`}
+                  className="block h-full"
+                >
+                  <CollectionCard
+                    collection={collection}
+                    labels={{
+                      photo: t('badge.photo'),
+                      video: t('badge.video'),
+                      itemCount: (count) => t('itemCount', { count }),
+                    }}
+                  />
+                </Link>
+              </div>
+            ))}
+          </BentoGrid>
+       </div>
     </div>
-  );
+  )
 }
