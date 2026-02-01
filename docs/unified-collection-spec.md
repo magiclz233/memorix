@@ -147,11 +147,7 @@
   - 实现“智能布局适配”逻辑（检测内容类型决定是否开启 Cinema Mode）。
 - [x] **首页入口文案**: 统一为「精选作品集」，并同步 i18n 文案。
 - [x] **作者展示**: 卡片/详情页展示作者（为空则不展示）。
-- [x] **Routing**: 配置 `next.config.js` 或中间件，统一 301 重定向：
-  - `/photo-collections` -> `/{locale}/collections`
-  - `/video-collections` -> `/{locale}/collections`
-  - `/photo-collections/[id]` -> `/{locale}/collections/[id]`
-  - `/video-collections/[id]` -> `/{locale}/collections/[id]`
+- [x] **Routing**: 删除旧路由（不再保留 `/photo-collections` / `/video-collections` 及其详情页）。
 
 ### Phase 4: 清理与测试 (Cleanup)
 - [x] **Data Migration Script**: 开发阶段不做数据迁移（旧表保留不导入）。
