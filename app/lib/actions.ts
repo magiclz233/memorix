@@ -11,15 +11,13 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { db } from './drizzle'; // 引入 db
 import {
-  collectionItems,
+  collectionMedia,
+  collections,
   files,
-  photoCollections,
   photoMetadata,
   userSettings,
   userStorages,
   users,
-  videoSeries,
-  videoSeriesItems,
 } from './schema'; // 引入表定义
 import { runStorageScan, type StorageScanMode } from './storage-scan';
 import { ApiError } from 'next/dist/server/api-utils';
@@ -385,29 +383,18 @@ export async function checkStorageDependencies(storageId: number) {
   }
 
   const relatedCollections = await db
-    .select({ title: photoCollections.title })
-    .from(photoCollections)
+    .select({ title: collections.title })
+    .from(collections)
     .innerJoin(
-      collectionItems,
-      eq(photoCollections.id, collectionItems.collectionId),
+      collectionMedia,
+      eq(collections.id, collectionMedia.collectionId),
     )
-    .where(inArray(collectionItems.fileId, fileIds))
-    .groupBy(photoCollections.id, photoCollections.title);
+    .where(inArray(collectionMedia.fileId, fileIds))
+    .groupBy(collections.id, collections.title);
 
-  const relatedSeries = await db
-    .select({ title: videoSeries.title })
-    .from(videoSeries)
-    .innerJoin(
-      videoSeriesItems,
-      eq(videoSeries.id, videoSeriesItems.seriesId),
-    )
-    .where(inArray(videoSeriesItems.fileId, fileIds))
-    .groupBy(videoSeries.id, videoSeries.title);
-
-  const dependencies = [
-    ...relatedCollections.map((c) => t('collection', { title: c.title })),
-    ...relatedSeries.map((s) => t('series', { title: s.title })),
-  ];
+  const dependencies = relatedCollections.map((c) =>
+    t('collection', { title: c.title }),
+  );
 
   return { success: true, dependencies };
 }
@@ -433,11 +420,8 @@ export async function deleteUserStorage(storageId: number) {
 
     if (fileIds.length > 0) {
       await tx
-        .delete(collectionItems)
-        .where(inArray(collectionItems.fileId, fileIds));
-      await tx
-        .delete(videoSeriesItems)
-        .where(inArray(videoSeriesItems.fileId, fileIds));
+        .delete(collectionMedia)
+        .where(inArray(collectionMedia.fileId, fileIds));
       await tx
         .delete(photoMetadata)
         .where(inArray(photoMetadata.fileId, fileIds));
