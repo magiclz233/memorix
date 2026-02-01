@@ -10,6 +10,7 @@ import {
   doublePrecision,
   boolean,
   uniqueIndex,
+  index,
   primaryKey,
 } from 'drizzle-orm/pg-core';
 
@@ -227,25 +228,35 @@ export const storageConfigs = pgTable('storage_configs', {
   status: varchar('status', { length: 32 }).notNull(),
 });
 
-// 图集表
-export const photoCollections = pgTable('photo_collections', {
+// 作品集表（统一集合）
+export const collections = pgTable('collections', {
   // 主键 ID
   id: serial('id').primaryKey(),
-  // 图集标题
+  // 作品集标题
   title: varchar('title', { length: 255 }).notNull(),
-  // 图集描述
+  // 作品集描述
   description: text('description'),
-  // 封面图 URL
-  coverImage: text('cover_image'),
-  // 创建时间
+  // 作者（自由字符串）
+  author: varchar('author', { length: 255 }),
+  // 封面文件 ID（可空，关联 files.id）
+  coverFileId: integer('cover_file_id'),
+  // 类型（mixed / photo / video）
+  type: varchar('type', { length: 16 }).notNull().default('mixed'),
+  // 发布状态（draft / published）
+  status: varchar('status', { length: 16 }).notNull().default('draft'),
+  // 创建/更新人（可空）
+  createdBy: integer('created_by'),
+  updatedBy: integer('updated_by'),
+  // 创建/更新时间
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// 图集关联表：图集与文件的多对多关系
-export const collectionItems = pgTable(
-  'collection_items',
+// 作品集关联表：作品集与文件的多对多关系
+export const collectionMedia = pgTable(
+  'collection_media',
   {
-    // 关联 photo_collections.id（未设置外键约束）
+    // 关联 collections.id（未设置外键约束）
     collectionId: integer('collection_id').notNull(),
     // 关联 files.id（未设置外键约束）
     fileId: integer('file_id').notNull(),
@@ -254,38 +265,10 @@ export const collectionItems = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.collectionId, table.fileId] }),
-  }),
-);
-
-// 视频集表
-export const videoSeries = pgTable('video_series', {
-  // 主键 ID
-  id: serial('id').primaryKey(),
-  // 视频集标题
-  title: varchar('title', { length: 255 }).notNull(),
-  // 视频集描述
-  description: text('description'),
-  // 封面图 URL
-  coverImage: text('cover_image'),
-  // 创建时间
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  // 更新时间
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
-// 视频集关联表：视频集与文件的多对多关系
-export const videoSeriesItems = pgTable(
-  'video_series_items',
-  {
-    // 关联 video_series.id（未设置外键约束）
-    seriesId: integer('series_id').notNull(),
-    // 关联 files.id（未设置外键约束）
-    fileId: integer('file_id').notNull(),
-    // 排序权重
-    sortOrder: integer('sort_order').notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.seriesId, table.fileId] }),
+    collectionSortIndex: index('collection_media_collection_sort_index').on(
+      table.collectionId,
+      table.sortOrder,
+    ),
   }),
 );
 
