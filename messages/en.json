@@ -166,90 +166,6 @@
           }
         }
       },
-      "photo": {
-        "pc-01": {
-          "title": "Misty Coast",
-          "description": "A balance of mist, tides, and grayscale layers.",
-          "tags": {
-            "0": "Coast",
-            "1": "Grayscale"
-          }
-        },
-        "pc-02": {
-          "title": "Night Light Trails",
-          "description": "A light map composed of neon and traffic flow.",
-          "tags": {
-            "0": "Light Trails",
-            "1": "Neon"
-          }
-        },
-        "pc-03": {
-          "title": "Dawn Silence",
-          "description": "Soft light and negative space at dawn.",
-          "tags": {
-            "0": "Sunrise",
-            "1": "Minimalist"
-          }
-        },
-        "pc-04": {
-          "title": "Mirrored Forest",
-          "description": "Refractions and reflections in the forest after rain.",
-          "tags": {
-            "0": "Forest",
-            "1": "Reflection"
-          }
-        },
-        "pc-05": {
-          "title": "Linear Experiments",
-          "description": "A minimalist laboratory of geometric composition.",
-          "tags": {
-            "0": "Geometry",
-            "1": "Lines"
-          }
-        },
-        "pc-06": {
-          "title": "Twilight Route",
-          "description": "Long-haul trajectories depicted with an airy feel.",
-          "tags": {
-            "0": "Travel",
-            "1": "Clouds"
-          }
-        }
-      },
-      "video": {
-        "vc-01": {
-          "title": "Sliced Universe",
-          "description": "Narrative collages from multiple camera angles.",
-          "tags": {
-            "0": "Multi-cam",
-            "1": "Narrative"
-          }
-        },
-        "vc-02": {
-          "title": "Blue Beacon",
-          "description": "Moody short films in blue tones.",
-          "tags": {
-            "0": "Mood",
-            "1": "Blue Tone"
-          }
-        },
-        "vc-03": {
-          "title": "Silent Workshop",
-          "description": "Slow-paced observations of studio daily life.",
-          "tags": {
-            "0": "Documentary",
-            "1": "Slow Motion"
-          }
-        },
-        "vc-04": {
-          "title": "Magnetic Echo",
-          "description": "Visual beats driven by electronic music.",
-          "tags": {
-            "0": "Electronic",
-            "1": "Beats"
-          }
-        }
-      },
       "gallery": {
         "gm-01": {
           "title": "Midnight Clouds",
@@ -664,8 +580,7 @@
         "configureStorage": "Go to Storage Config",
         "unnamed": "Unnamed",
         "published": "Published",
-        "unpublished": "Unpublished",
-        "hero": "Hero"
+        "unpublished": "Unpublished"
       }
     },
     "collections": {
@@ -735,7 +650,7 @@
         "loadMore": "Load More"
       },
       "form": {
-        "create": "New Collection",
+        "create": "Create",
         "edit": "Edit Collection",
         "description": "Fill in the collection details. You can add media after creation.",
         "title": "Title",
@@ -759,7 +674,6 @@
         "coverImageChange": "Change cover",
         "coverImageClear": "Clear cover",
         "cancel": "Cancel",
-        "create": "Create",
         "update": "Update",
         "saving": "Saving..."
       }
