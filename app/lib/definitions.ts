@@ -13,10 +13,11 @@ export type MediaItem = {
 
 export type Collection = {
   id: string;
-  type: 'photo' | 'video';
+  type: 'photo' | 'video' | 'mixed';
   title: string;
   cover: string;
   count: number;
   description: string;
   tags?: string[];
+  author?: string;
 };
