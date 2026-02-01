@@ -6,13 +6,18 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
   createCollection,
-  createVideoSeries,
   updateCollection,
-  updateVideoSeries,
-} from '@/app/lib/actions/collections';
+} from '@/app/lib/actions/unified-collections';
 import {
   Dialog,
   DialogContent,
@@ -27,26 +32,44 @@ export type CollectionFormData = {
   id?: number;
   title: string;
   description?: string;
-  coverImage?: string;
+  author?: string | null;
+  type?: 'mixed' | 'photo' | 'video';
+  status?: 'draft' | 'published';
+  coverFileId?: number | null;
+  coverUrl?: string | null;
+  coverThumbUrl?: string | null;
+  coverMediaType?: 'image' | 'video' | 'animated' | null;
 };
 
 type CollectionFormProps = {
-  type: 'photo' | 'video';
   initialData?: CollectionFormData | null;
+  defaultAuthor?: string | null;
   onSuccess: () => void;
   onCancel: () => void;
 };
 
 export function CollectionForm({
-  type,
   initialData,
+  defaultAuthor,
   onSuccess,
   onCancel,
 }: CollectionFormProps) {
   const t = useTranslations('dashboard.collections.form');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [coverImage, setCoverImage] = useState(initialData?.coverImage ?? '');
+  const [collectionType, setCollectionType] = useState<
+    'mixed' | 'photo' | 'video'
+  >(() => initialData?.type ?? 'mixed');
+  const [collectionStatus, setCollectionStatus] = useState<
+    'draft' | 'published'
+  >(() => initialData?.status ?? 'draft');
+  const [author, setAuthor] = useState(() => initialData?.author ?? defaultAuthor ?? '');
+  const [coverFileId, setCoverFileId] = useState<number | null>(() =>
+    initialData?.coverFileId ?? null,
+  );
+  const [coverPreview, setCoverPreview] = useState<string>(() =>
+    initialData?.coverThumbUrl || initialData?.coverUrl || '',
+  );
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -56,20 +79,9 @@ export function CollectionForm({
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      let result;
-      if (type === 'photo') {
-        if (initialData?.id) {
-          result = await updateCollection(initialData.id, formData);
-        } else {
-          result = await createCollection(formData);
-        }
-      } else {
-        if (initialData?.id) {
-          result = await updateVideoSeries(initialData.id, formData);
-        } else {
-          result = await createVideoSeries(formData);
-        }
-      }
+      const result = initialData?.id
+        ? await updateCollection(initialData.id, formData)
+        : await createCollection(formData);
 
       if (result?.message) {
         setError(result.message);
@@ -96,12 +108,18 @@ export function CollectionForm({
       selected.mediaType === 'video'
         ? selected.thumbUrl || `/api/media/thumb/${selected.id}`
         : selected.url || selected.thumbUrl || `/api/media/thumb/${selected.id}`;
-    setCoverImage(nextCover);
+    setCoverFileId(selected.id);
+    setCoverPreview(nextCover);
     setIsPickerOpen(false);
   };
 
+  const coverMediaTypes = ['image', 'animated', 'video'] as const;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <input type="hidden" name="type" value={collectionType} />
+      <input type="hidden" name="status" value={collectionStatus} />
+      <input type="hidden" name="coverFileId" value={coverFileId ?? ''} />
       <div className="space-y-2">
         <Label htmlFor="title">{t('title')}</Label>
         <Input
@@ -114,7 +132,56 @@ export function CollectionForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">{t('description')}</Label>
+        <Label htmlFor="author">{t('author')}</Label>
+        <Input
+          id="author"
+          name="author"
+          value={author}
+          onChange={(event) => setAuthor(event.target.value)}
+          placeholder={t('authorPlaceholder')}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="type">{t('type')}</Label>
+          <Select
+            value={collectionType}
+            onValueChange={(value) =>
+              setCollectionType(value as 'mixed' | 'photo' | 'video')
+            }
+          >
+            <SelectTrigger id="type">
+              <SelectValue placeholder={t('typePlaceholder')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mixed">{t('typeMixed')}</SelectItem>
+              <SelectItem value="photo">{t('typePhoto')}</SelectItem>
+              <SelectItem value="video">{t('typeVideo')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="status">{t('status')}</Label>
+          <Select
+            value={collectionStatus}
+            onValueChange={(value) =>
+              setCollectionStatus(value as 'draft' | 'published')
+            }
+          >
+            <SelectTrigger id="status">
+              <SelectValue placeholder={t('statusPlaceholder')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">{t('statusDraft')}</SelectItem>
+              <SelectItem value="published">{t('statusPublished')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">{t('descriptionLabel')}</Label>
         <Textarea
           id="description"
           name="description"
@@ -125,36 +192,32 @@ export function CollectionForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="coverImage">{t('coverImage')}</Label>
+        <Label htmlFor="coverFileId">{t('coverImage')}</Label>
         <div className="flex flex-wrap gap-2">
-          <Input
-            id="coverImage"
-            name="coverImage"
-            value={coverImage}
-            onChange={(event) => setCoverImage(event.target.value)}
-            placeholder={t('coverImagePlaceholder')}
-          />
           <Button
             type="button"
             variant="outline"
             onClick={() => setIsPickerOpen(true)}
           >
-            {coverImage ? t('coverImageChange') : t('coverImageSelect')}
+            {coverFileId ? t('coverImageChange') : t('coverImageSelect')}
           </Button>
-          {coverImage ? (
+          {coverFileId ? (
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setCoverImage('')}
+              onClick={() => {
+                setCoverFileId(null);
+                setCoverPreview('');
+              }}
             >
               {t('coverImageClear')}
             </Button>
           ) : null}
         </div>
-        {coverImage ? (
+        {coverPreview ? (
           <div className="relative h-32 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
             <Image
-              src={coverImage}
+              src={coverPreview}
               alt={t('coverImage')}
               fill
               sizes="(max-width: 768px) 100vw, 480px"
@@ -168,7 +231,12 @@ export function CollectionForm({
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isPending}
+        >
           {t('cancel')}
         </Button>
         <Button type="submit" disabled={isPending}>
@@ -187,6 +255,7 @@ export function CollectionForm({
             onConfirm={() => undefined}
             onConfirmItems={handleCoverSelect}
             onCancel={() => setIsPickerOpen(false)}
+            allowedMediaTypes={coverMediaTypes}
           />
         </DialogContent>
       </Dialog>
