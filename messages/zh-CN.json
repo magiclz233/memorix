@@ -8,8 +8,7 @@
     "items": {
       "home": "首页",
       "gallery": "画廊",
-      "photoCollections": "图集",
-      "videoCollections": "视频集",
+      "collections": "作品集",
       "about": "关于"
     },
     "account": {
@@ -80,8 +79,7 @@
       "links": {
         "home": "首页",
         "gallery": "画廊",
-        "photoCollections": "照片作品集",
-        "videoCollections": "视频作品集",
+        "collections": "作品集",
         "about": "关于"
       }
     },
@@ -95,15 +93,16 @@
         "title": "LUMINA 视界",
         "description": "将沉浸式光影与极简排版融合成统一视觉语言，让每一帧影像都成为可收藏的光之记忆。",
         "primaryCta": "进入画廊",
-        "secondaryCta": "浏览图集"
+        "secondaryCta": "浏览作品集"
       },
       "sections": {
         "featuredCollections": {
-          "title": "精选图集",
-          "description": "三组代表性的系列，展示光影与节奏的两种叙事方式。",
+          "title": "精选作品集",
+          "description": "混合照片与视频的代表性系列，展示光影与节奏的统一叙事。",
           "action": "查看全部",
-          "badgePhoto": "精选图集",
-          "badgeVideo": "精选视频集"
+          "badgePhoto": "照片作品集",
+          "badgeVideo": "视频作品集",
+          "badgeMixed": "混合作品集"
         },
         "featuredVideos": {
           "title": "精选视频集",
@@ -129,16 +128,6 @@
         "timeline": "时间线"
       }
     },
-    "data": {
-      "collections": {
-        "pc-1": "2024 东京街头",
-        "pc-2": "北欧极光计划",
-        "pc-3": "城市夜航",
-        "vs-1": "VLOG: 冰岛之旅",
-        "vs-2": "幕后制作：Lumina",
-        "vs-3": "旅行短片合集"
-      }
-    },
     "media": {
       "photo": "照片",
       "video": "视频",
@@ -148,6 +137,14 @@
       "motionPhoto": "动态照片"
     },
     "data": {
+      "collections": {
+        "pc-1": "2024 东京街头",
+        "pc-2": "北欧极光计划",
+        "pc-3": "城市夜航",
+        "vs-1": "VLOG: 冰岛之旅",
+        "vs-2": "幕后制作：Lumina",
+        "vs-3": "旅行短片合集"
+      },
       "featured": {
         "fc-01": {
           "title": "暮色星港",
@@ -350,20 +347,24 @@
       }
     },
     "collections": {
+      "eyebrow": "Collections / Portfolio",
+      "title": "作品集",
+      "description": "统一展示照片与视频的精选作品集，按主题沉浸浏览。",
       "itemCount": "{count} 项内容",
       "badge": {
-        "photo": "照片集",
-        "video": "视频集"
+        "photo": "图集",
+        "video": "视频集",
+        "mixed": "混合"
       },
-      "photo": {
-        "eyebrow": "Collections / Photo",
-        "title": "照片作品集",
-        "description": "每一个主题都是一段独立的光影旅程，聚焦构图与氛围的沉浸感。"
-      },
-      "video": {
-        "eyebrow": "Collections / Video",
-        "title": "视频作品集",
-        "description": "以动态影像记录节奏、音乐与空间的互动，呈现不同主题的叙事线。"
+      "detail": {
+        "badgePhoto": "照片作品集",
+        "badgeVideo": "视频作品集",
+        "badgeMixed": "混合作品集",
+        "countPhoto": "{count} 张",
+        "countVideo": "{count} 段",
+        "countMixed": "{count} 项",
+        "author": "作者",
+        "updated": "更新于"
       }
     },
     "about": {
@@ -516,7 +517,7 @@
     "sidebar": {
       "overview": "概览",
       "media": "资源库",
-      "collections": "集合管理",
+      "collections": "作品集管理",
       "upload": "上传中心",
       "storage": "存储配置",
       "systemSettings": "系统设置",
@@ -535,10 +536,8 @@
         "assetsDesc": "已索引的图片与视频数量",
         "published": "已发布",
         "publishedDesc": "当前前台可见的媒体数量",
-        "photoCollections": "图片合集",
-        "photoCollectionsDesc": "已创建的照片专题数量",
-        "videoCollections": "视频合集",
-        "videoCollectionsDesc": "已创建的视频专题数量"
+        "collections": "作品集",
+        "collectionsDesc": "已创建的作品集数量"
       },
       "quickLinks": {
         "title": "快捷入口",
@@ -682,60 +681,92 @@
       }
     },
     "collections": {
-      "title": "集合管理",
-      "description": "统一管理图集与视频集，支持创建与编辑集合。",
-      "data": {
-        "photo": {
-          "pc-1": "2024 东京街头",
-          "pc-2": "北欧极光计划",
-          "pc-3": "城市夜航"
-        },
-        "video": {
-          "vs-1": "VLOG: 冰岛之旅",
-          "vs-2": "幕后制作：Lumina",
-          "vs-3": "旅行短片合集"
-        }
+      "title": "作品集管理",
+      "description": "统一管理混合作品集、图集与视频集，支持创建与编辑。",
+      "stats": {
+        "totalCollections": "作品集数量",
+        "totalItems": "媒体总数",
+        "published": "已发布"
       },
-      "tabs": {
-        "photos": "图集",
-        "videos": "视频集"
+      "filters": {
+        "searchPlaceholder": "搜索作品集...",
+        "typePlaceholder": "类型筛选",
+        "typeAll": "全部类型",
+        "typeMixed": "混合",
+        "typePhoto": "图集",
+        "typeVideo": "视频集",
+        "statusPlaceholder": "状态筛选",
+        "statusAll": "全部状态",
+        "statusDraft": "草稿",
+        "statusPublished": "已发布"
       },
-      "create": "新建集合",
+      "table": {
+        "cover": "封面",
+        "title": "标题",
+        "author": "作者",
+        "type": "类型",
+        "items": "内容数",
+        "status": "状态",
+        "updatedAt": "更新于",
+        "actions": "操作"
+      },
+      "typeLabel": {
+        "mixed": "混合",
+        "photo": "图集",
+        "video": "视频集"
+      },
+      "statusLabel": {
+        "draft": "草稿",
+        "published": "已发布"
+      },
+      "create": "新建作品集",
       "empty": {
-        "title": "暂无集合",
-        "description": "点击新建按钮创建一个新的集合。"
+        "title": "暂无作品集",
+        "description": "点击新建按钮创建一个新的作品集。"
       },
       "actions": {
         "edit": "编辑",
-        "delete": "删除"
+        "delete": "删除",
+        "manage": "管理作品集"
       },
-      "deleteConfirm": "确定要删除这个集合吗？此操作无法撤销（不会删除原始文件）。",
-      "status": {
-        "ongoing": "更新中",
-        "completed": "已完结",
-        "planning": "策划中"
+      "deleteConfirm": "确定要删除这个作品集吗？此操作无法撤销（不会删除原始文件）。",
+      "authorLabel": "作者：{author}",
+      "itemCount": "{count} 项内容",
+      "manager": {
+        "items": "{count} 项",
+        "addMedia": "添加媒体",
+        "selectMedia": "选择要添加的媒体",
+        "emptyTitle": "作品集中暂无内容",
+        "emptyDescription": "先添加一些照片或视频"
       },
-      "photoItem": {
-        "count": "包含 {count} 张图片",
-        "manage": "管理图集"
-      },
-      "videoItem": {
-        "episodes": "{count} 集",
-        "edit": "编辑剧集"
+      "picker": {
+        "selected": "已选 {count} 项",
+        "cancel": "取消",
+        "confirm": "添加所选",
+        "confirming": "添加中...",
+        "loadMore": "加载更多"
       },
       "form": {
-        "createPhoto": "新建照片图集",
-        "editPhoto": "编辑照片图集",
-        "createVideo": "新建视频系列",
-        "editVideo": "编辑视频系列",
-        "description": "填写集合的基本信息。创建后可以添加媒体内容。",
+        "create": "新建作品集",
+        "edit": "编辑作品集",
+        "description": "填写作品集的基本信息。创建后可以添加媒体内容。",
         "title": "标题",
-        "titlePlaceholder": "输入集合标题",
-        "descriptionLabel": "描述",
-        "descriptionPlaceholder": "输入集合描述（可选）",
+        "titlePlaceholder": "输入作品集标题",
+        "author": "作者",
+        "authorPlaceholder": "作者名称或账号",
+        "type": "类型",
+        "typePlaceholder": "选择类型",
+        "typeMixed": "混合",
+        "typePhoto": "图集",
+        "typeVideo": "视频集",
+        "status": "状态",
+        "statusPlaceholder": "选择状态",
+        "statusDraft": "草稿",
+        "statusPublished": "已发布",
+        "descriptionLabel": "简介",
+        "descriptionPlaceholder": "输入作品集简介（可选）",
         "coverImage": "封面图",
-        "coverImagePlaceholder": "封面图 URL 或从媒体库选择",
-        "coverImageHelp": "支持输入外部 URL 或从媒体库选择。",
+        "coverImageHelp": "从媒体库选择作为作品集封面。",
         "coverImageSelect": "从媒体库选择",
         "coverImageChange": "更换封面",
         "coverImageClear": "清除封面",
@@ -1069,7 +1100,10 @@
       "scanSuccess": "扫描完成，共处理 {count} 张图片，旧记录已清空。",
       "scanFailed": "扫描目录失败，请检查路径是否可访问。",
       "published": "已发布该数据源下的所有图片。",
-      "hidden": "已隐藏该数据源下的所有图片。"
+      "hidden": "已隐藏该数据源下的所有图片。",
+      "dependency": {
+        "collection": "作品集：{title}"
+      }
     },
     "scan": {
       "title": "目录扫描",

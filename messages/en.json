@@ -8,8 +8,7 @@
     "items": {
       "home": "Home",
       "gallery": "Gallery",
-      "photoCollections": "Albums",
-      "videoCollections": "Series",
+      "collections": "Portfolio",
       "about": "About"
     },
     "account": {
@@ -80,8 +79,7 @@
       "links": {
         "home": "Home",
         "gallery": "Gallery",
-        "photoCollections": "Albums",
-        "videoCollections": "Series",
+        "collections": "Portfolio",
         "about": "About"
       }
     },
@@ -95,15 +93,16 @@
         "title": "LUMINA VISION",
         "description": "Fuse immersive light with minimalist layout, turning every frame into a collectible memory of light.",
         "primaryCta": "Enter Gallery",
-        "secondaryCta": "Browse Photo Sets"
+        "secondaryCta": "Browse Portfolio"
       },
       "sections": {
         "featuredCollections": {
-          "title": "Featured Collections",
-          "description": "Three signature series that explore light and rhythm in two narratives.",
+          "title": "Featured Portfolio",
+          "description": "Signature series blending stills and motion into a unified narrative rhythm.",
           "action": "View all",
-          "badgePhoto": "Featured Photos",
-          "badgeVideo": "Featured Videos"
+          "badgePhoto": "Photo Portfolio",
+          "badgeVideo": "Video Portfolio",
+          "badgeMixed": "Mixed Portfolio"
         },
         "featuredVideos": {
           "title": "Featured Video Sets",
@@ -340,20 +339,24 @@
       }
     },
     "collections": {
+      "eyebrow": "Collections / Portfolio",
+      "title": "Portfolio",
+      "description": "A unified home for photo and video collections, curated by theme.",
       "itemCount": "{count} items",
       "badge": {
-        "photo": "Photo Set",
-        "video": "Video Set"
+        "photo": "Photo Portfolio",
+        "video": "Video Portfolio",
+        "mixed": "Mixed Portfolio"
       },
-      "photo": {
-        "eyebrow": "Collections / Photo",
-        "title": "Albums",
-        "description": "Each theme is a standalone journey of light and composition."
-      },
-      "video": {
-        "eyebrow": "Collections / Video",
-        "title": "Series",
-        "description": "Dynamic stories of rhythm, music, and space."
+      "detail": {
+        "badgePhoto": "Photo Portfolio",
+        "badgeVideo": "Video Portfolio",
+        "badgeMixed": "Mixed Portfolio",
+        "countPhoto": "{count} photos",
+        "countVideo": "{count} videos",
+        "countMixed": "{count} items",
+        "author": "Author",
+        "updated": "Updated"
       }
     },
     "about": {
@@ -506,7 +509,7 @@
     "sidebar": {
       "overview": "Overview",
       "media": "Media Library",
-      "collections": "Collections",
+      "collections": "Portfolio",
       "upload": "Upload",
       "storage": "Storage",
       "systemSettings": "System Settings",
@@ -525,10 +528,8 @@
         "assetsDesc": "Indexed photos and videos",
         "published": "Published",
         "publishedDesc": "Media visible in frontend",
-        "photoCollections": "Photo Collections",
-        "photoCollectionsDesc": "Created photo albums",
-        "videoCollections": "Video Collections",
-        "videoCollectionsDesc": "Created video series"
+        "collections": "Portfolio",
+        "collectionsDesc": "Created collections"
       },
       "quickLinks": {
         "title": "Quick Links",
@@ -668,23 +669,43 @@
       }
     },
     "collections": {
-      "title": "Collections",
-      "description": "Manage photo albums and video series, create and edit collections.",
-      "data": {
-        "photo": {
-          "pc-1": "2024 Tokyo Streets",
-          "pc-2": "Nordic Aurora Project",
-          "pc-3": "City Night Flight"
-        },
-        "video": {
-          "vs-1": "VLOG: Iceland Trip",
-          "vs-2": "Behind the Scenes: Lumina",
-          "vs-3": "Travel Shorts Collection"
-        }
+      "title": "Portfolio",
+      "description": "Manage mixed, photo, and video collections. Create, edit, and curate media.",
+      "stats": {
+        "totalCollections": "Collections",
+        "totalItems": "Total Media",
+        "published": "Published"
       },
-      "tabs": {
-        "photos": "Photo Collections",
-        "videos": "Video Series"
+      "filters": {
+        "searchPlaceholder": "Search collections...",
+        "typePlaceholder": "Filter by type",
+        "typeAll": "All types",
+        "typeMixed": "Mixed",
+        "typePhoto": "Photo",
+        "typeVideo": "Video",
+        "statusPlaceholder": "Filter by status",
+        "statusAll": "All status",
+        "statusDraft": "Draft",
+        "statusPublished": "Published"
+      },
+      "table": {
+        "cover": "Cover",
+        "title": "Title",
+        "author": "Author",
+        "type": "Type",
+        "items": "Items",
+        "status": "Status",
+        "updatedAt": "Updated",
+        "actions": "Actions"
+      },
+      "typeLabel": {
+        "mixed": "Mixed",
+        "photo": "Photo",
+        "video": "Video"
+      },
+      "statusLabel": {
+        "draft": "Draft",
+        "published": "Published"
       },
       "create": "New Collection",
       "empty": {
@@ -693,35 +714,47 @@
       },
       "actions": {
         "edit": "Edit",
-        "delete": "Delete"
+        "delete": "Delete",
+        "manage": "Manage Collection"
       },
       "deleteConfirm": "Are you sure you want to delete this collection? This cannot be undone (original files will not be deleted).",
-      "status": {
-        "ongoing": "Ongoing",
-        "completed": "Completed",
-        "planning": "Planning"
+      "authorLabel": "Author: {author}",
+      "itemCount": "{count} items",
+      "manager": {
+        "items": "{count} items",
+        "addMedia": "Add Media",
+        "selectMedia": "Select Media to Add",
+        "emptyTitle": "No items in this collection",
+        "emptyDescription": "Start by adding some photos or videos"
       },
-      "photoItem": {
-        "count": "Contains {count} photos",
-        "manage": "Manage Photos"
-      },
-      "videoItem": {
-        "episodes": "{count} Episodes",
-        "edit": "Edit Episodes"
+      "picker": {
+        "selected": "{count} selected",
+        "cancel": "Cancel",
+        "confirm": "Add Selected",
+        "confirming": "Adding...",
+        "loadMore": "Load More"
       },
       "form": {
-        "createPhoto": "New Photo Album",
-        "editPhoto": "Edit Photo Album",
-        "createVideo": "New Video Series",
-        "editVideo": "Edit Video Series",
-        "description": "Fill in the collection details. You can add media content after creation.",
+        "create": "New Collection",
+        "edit": "Edit Collection",
+        "description": "Fill in the collection details. You can add media after creation.",
         "title": "Title",
         "titlePlaceholder": "Enter collection title",
+        "author": "Author",
+        "authorPlaceholder": "Creator name or handle",
+        "type": "Type",
+        "typePlaceholder": "Select type",
+        "typeMixed": "Mixed",
+        "typePhoto": "Photo",
+        "typeVideo": "Video",
+        "status": "Status",
+        "statusPlaceholder": "Select status",
+        "statusDraft": "Draft",
+        "statusPublished": "Published",
         "descriptionLabel": "Description",
         "descriptionPlaceholder": "Enter description (optional)",
-        "coverImage": "Cover Image",
-        "coverImagePlaceholder": "Cover image URL or select from library",
-        "coverImageHelp": "Enter an external URL or pick from the media library.",
+        "coverImage": "Cover",
+        "coverImageHelp": "Pick a cover from the media library.",
         "coverImageSelect": "Select from library",
         "coverImageChange": "Change cover",
         "coverImageClear": "Clear cover",
@@ -1055,7 +1088,10 @@
       "scanSuccess": "Scan complete, processed {count} items, old records cleared.",
       "scanFailed": "Scan failed, please check path accessibility.",
       "published": "All items from this source published.",
-      "hidden": "All items from this source hidden."
+      "hidden": "All items from this source hidden.",
+      "dependency": {
+        "collection": "Collection: {title}"
+      }
     },
     "scan": {
       "title": "Directory Scan",
