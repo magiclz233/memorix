@@ -87,14 +87,9 @@ export default async function Page() {
       description: t('stats.publishedDesc'),
     },
     {
-      label: t('stats.photoCollections'),
-      value: overview.photoCollectionsCount,
-      description: t('stats.photoCollectionsDesc'),
-    },
-    {
-      label: t('stats.videoCollections'),
-      value: overview.videoSeriesCount,
-      description: t('stats.videoCollectionsDesc'),
+      label: t('stats.collections'),
+      value: overview.collectionsCount,
+      description: t('stats.collectionsDesc'),
     },
   ];
 
