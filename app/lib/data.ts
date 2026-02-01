@@ -1,14 +1,12 @@
 import { db } from './drizzle';
 import {
   files,
-  photoCollections,
-  collectionItems,
+  collections,
+  collectionMedia,
   photoMetadata,
   userSettings,
   userStorages,
   users,
-  videoSeries,
-  videoSeriesItems,
   videoMetadata,
 } from './schema';
 import {
@@ -42,31 +40,21 @@ export async function fetchDashboardOverview(userId: number) {
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
     .where(and(eq(userStorages.userId, userId), eq(files.isPublished, true)));
-  const photoCollectionsPromise = db
-    .select({ count: count() })
-    .from(photoCollections);
-  const videoSeriesPromise = db.select({ count: count() }).from(videoSeries);
+  const collectionsPromise = db.select({ count: count() }).from(collections);
 
-  const [
-    storageCount,
-    fileCount,
-    publishedCount,
-    photoCollectionsCount,
-    videoSeriesCount,
-  ] = await Promise.all([
+  const [storageCount, fileCount, publishedCount, collectionsCount] =
+    await Promise.all([
     storageCountPromise,
     fileCountPromise,
     publishedCountPromise,
-    photoCollectionsPromise,
-    videoSeriesPromise,
+    collectionsPromise,
   ]);
 
   return {
     storageCount: Number(storageCount[0]?.count ?? 0),
     fileCount: Number(fileCount[0]?.count ?? 0),
     publishedCount: Number(publishedCount[0]?.count ?? 0),
-    photoCollectionsCount: Number(photoCollectionsCount[0]?.count ?? 0),
-    videoSeriesCount: Number(videoSeriesCount[0]?.count ?? 0),
+    collectionsCount: Number(collectionsCount[0]?.count ?? 0),
   };
 }
 
@@ -543,104 +531,193 @@ export async function fetchPublishedPhotos(userId: number) {
     .map(({ storageConfig, ...rest }) => rest);
 }
 
-export async function fetchPhotoCollections() {
-  const collections = await db
-    .select({
-      id: photoCollections.id,
-      title: photoCollections.title,
-      description: photoCollections.description,
-      coverImage: photoCollections.coverImage,
-      createdAt: photoCollections.createdAt,
-      itemCount: count(collectionItems.fileId),
-    })
-    .from(photoCollections)
-    .leftJoin(
-      collectionItems,
-      eq(photoCollections.id, collectionItems.collectionId)
-    )
-    .groupBy(photoCollections.id)
-    .orderBy(desc(photoCollections.createdAt));
+export type CollectionType = 'mixed' | 'photo' | 'video';
+export type CollectionStatus = 'draft' | 'published';
 
-  return collections.map((c) => ({
-    ...c,
-    itemCount: Number(c.itemCount),
-  }));
-}
+export type CollectionCover = {
+  id: number;
+  url: string | null;
+  thumbUrl: string | null;
+  mediaType: string | null;
+  blurHash: string | null;
+};
 
-export async function fetchVideoSeries() {
-  const series = await db
-    .select({
-      id: videoSeries.id,
-      title: videoSeries.title,
-      description: videoSeries.description,
-      coverImage: videoSeries.coverImage,
-      createdAt: videoSeries.createdAt,
-      updatedAt: videoSeries.updatedAt,
-      itemCount: count(videoSeriesItems.fileId),
-    })
-    .from(videoSeries)
-    .leftJoin(videoSeriesItems, eq(videoSeries.id, videoSeriesItems.seriesId))
-    .groupBy(videoSeries.id)
-    .orderBy(desc(videoSeries.updatedAt));
+export type CollectionListItem = {
+  id: number;
+  title: string;
+  description: string | null;
+  author: string | null;
+  coverFileId: number | null;
+  type: CollectionType;
+  status: CollectionStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  itemCount: number;
+  cover: CollectionCover | null;
+};
 
-  return series.map((s) => ({
-    ...s,
-    itemCount: Number(s.itemCount),
-  }));
-}
+export type FetchCollectionsOptions = {
+  type?: CollectionType | 'all';
+  status?: CollectionStatus | 'all';
+  limit?: number;
+  offset?: number;
+  orderBy?: 'createdAtDesc' | 'createdAtAsc' | 'updatedAtDesc';
+};
 
-export async function fetchCollectionById(id: number) {
-  const collection = await db.query.photoCollections.findFirst({
-    where: eq(photoCollections.id, id),
-  });
-  return collection ?? null;
-}
-
-export async function fetchVideoSeriesById(id: number) {
-  const series = await db.query.videoSeries.findFirst({
-    where: eq(videoSeries.id, id),
-  });
-  return series ?? null;
-}
-
-export async function fetchCollectionItems(collectionId: number) {
+const resolveCoverFiles = async (coverFileIds: number[]) => {
+  const uniqueIds = Array.from(new Set(coverFileIds));
+  if (uniqueIds.length === 0) return new Map<number, CollectionCover>();
   const records = await db
     .select({
-      file: files,
-      sortOrder: collectionItems.sortOrder,
-      metadata: photoMetadata,
+      id: files.id,
+      url: files.url,
+      thumbUrl: files.thumbUrl,
+      mediaType: files.mediaType,
+      blurHash: files.blurHash,
     })
-    .from(collectionItems)
-    .innerJoin(files, eq(collectionItems.fileId, files.id))
+    .from(files)
+    .where(inArray(files.id, uniqueIds));
+  return new Map(records.map((record) => [record.id, record]));
+};
+
+export async function fetchCollections(
+  options: FetchCollectionsOptions = {},
+): Promise<CollectionListItem[]> {
+  const conditions = [];
+  if (options.type && options.type !== 'all') {
+    conditions.push(eq(collections.type, options.type));
+  }
+  if (options.status && options.status !== 'all') {
+    conditions.push(eq(collections.status, options.status));
+  }
+
+  const orderBy =
+    options.orderBy === 'createdAtAsc'
+      ? asc(collections.createdAt)
+      : options.orderBy === 'updatedAtDesc'
+        ? desc(collections.updatedAt)
+        : desc(collections.createdAt);
+
+  let query = db
+    .select({
+      id: collections.id,
+      title: collections.title,
+      description: collections.description,
+      author: collections.author,
+      coverFileId: collections.coverFileId,
+      type: collections.type,
+      status: collections.status,
+      createdAt: collections.createdAt,
+      updatedAt: collections.updatedAt,
+    })
+    .from(collections)
+    .orderBy(orderBy)
+    .$dynamic();
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
+  }
+
+  if (typeof options.limit === 'number') {
+    query = query.limit(options.limit);
+  }
+
+  if (typeof options.offset === 'number' && options.offset > 0) {
+    query = query.offset(options.offset);
+  }
+
+  const records = await query;
+  if (records.length === 0) return [];
+
+  const collectionIds = records.map((record) => record.id);
+  const counts = await db
+    .select({
+      collectionId: collectionMedia.collectionId,
+      itemCount: count(collectionMedia.fileId),
+    })
+    .from(collectionMedia)
+    .where(inArray(collectionMedia.collectionId, collectionIds))
+    .groupBy(collectionMedia.collectionId);
+  const countMap = new Map(
+    counts.map((item) => [item.collectionId, Number(item.itemCount)]),
+  );
+
+  const coverFileIds = records
+    .map((record) => record.coverFileId)
+    .filter((id): id is number => typeof id === 'number');
+  const coverMap = await resolveCoverFiles(coverFileIds);
+
+  return records.map((record) => ({
+    ...record,
+    type: record.type as CollectionType,
+    status: record.status as CollectionStatus,
+    itemCount: countMap.get(record.id) ?? 0,
+    cover: record.coverFileId ? coverMap.get(record.coverFileId) ?? null : null,
+  }));
+}
+
+export async function fetchCollectionById(
+  id: number,
+  options: { includeUnpublished?: boolean } = {},
+) {
+  const conditions = [eq(collections.id, id)];
+  if (!options.includeUnpublished) {
+    conditions.push(eq(collections.status, 'published'));
+  }
+
+  const record = await db
+    .select({
+      id: collections.id,
+      title: collections.title,
+      description: collections.description,
+      author: collections.author,
+      coverFileId: collections.coverFileId,
+      type: collections.type,
+      status: collections.status,
+      createdAt: collections.createdAt,
+      updatedAt: collections.updatedAt,
+    })
+    .from(collections)
+    .where(and(...conditions))
+    .limit(1);
+
+  const collection = record[0];
+  if (!collection) return null;
+
+  const [countResult] = await db
+    .select({ count: count() })
+    .from(collectionMedia)
+    .where(eq(collectionMedia.collectionId, id));
+
+  const coverMap = await resolveCoverFiles(
+    collection.coverFileId ? [collection.coverFileId] : [],
+  );
+
+  return {
+    ...collection,
+    type: collection.type as CollectionType,
+    status: collection.status as CollectionStatus,
+    itemCount: Number(countResult?.count ?? 0),
+    cover: collection.coverFileId
+      ? coverMap.get(collection.coverFileId) ?? null
+      : null,
+  };
+}
+
+export async function fetchCollectionMediaItems(collectionId: number) {
+  return db
+    .select({
+      file: files,
+      sortOrder: collectionMedia.sortOrder,
+      photoMetadata,
+      videoMetadata,
+    })
+    .from(collectionMedia)
+    .innerJoin(files, eq(collectionMedia.fileId, files.id))
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-    .where(eq(collectionItems.collectionId, collectionId))
-    .orderBy(asc(collectionItems.sortOrder));
-  const seen = new Set<number>();
-  return records.filter((item) => {
-    if (seen.has(item.file.id)) return false;
-    seen.add(item.file.id);
-    return true;
-  });
-}
-
-export async function fetchVideoSeriesItems(seriesId: number) {
-  const records = await db
-    .select({
-      file: files,
-      sortOrder: videoSeriesItems.sortOrder,
-      metadata: videoMetadata,
-    })
-    .from(videoSeriesItems)
-    .innerJoin(files, eq(videoSeriesItems.fileId, files.id))
     .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
-    .where(eq(videoSeriesItems.seriesId, seriesId))
-    .orderBy(asc(videoSeriesItems.sortOrder));
-  const seen = new Set<number>();
-  return records.filter((item) => {
-    if (seen.has(item.file.id)) return false;
-    seen.add(item.file.id);
-    return true;
-  });
+    .where(eq(collectionMedia.collectionId, collectionId))
+    .orderBy(asc(collectionMedia.sortOrder), asc(files.id));
 }
 
 
@@ -807,12 +884,17 @@ export async function fetchHeroPhotosForHome(options?: { userId?: number; limit?
 type FetchGalleryOptions = {
   limit?: number;
   offset?: number;
+  mediaTypes?: Array<'image' | 'video' | 'animated'>;
 };
 
 export async function fetchPublishedMediaForGallery(
   options: FetchGalleryOptions = {},
 ) {
   try {
+    const mediaTypes =
+      options.mediaTypes && options.mediaTypes.length > 0
+        ? options.mediaTypes
+        : ['image', 'video', 'animated'];
     let query = db
       .select({
         id: files.id,
@@ -850,7 +932,7 @@ export async function fetchPublishedMediaForGallery(
       .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
       .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
       .where(
-        and(eq(files.isPublished, true), inArray(files.mediaType, ['image', 'video', 'animated'])),
+        and(eq(files.isPublished, true), inArray(files.mediaType, mediaTypes)),
       )
       .orderBy(desc(files.mtime))
       .$dynamic();
