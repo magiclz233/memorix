@@ -7,8 +7,7 @@ import { cn } from '@/lib/utils';
 const footerLinks = [
   { key: 'home', href: '/' },
   { key: 'gallery', href: '/gallery' },
-  { key: 'photoCollections', href: '/photo-collections' },
-  { key: 'videoCollections', href: '/video-collections' },
+  { key: 'collections', href: '/collections' },
   { key: 'about', href: '/about' },
 ];
 

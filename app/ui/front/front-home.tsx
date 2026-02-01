@@ -4,10 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  featuredCollections,
-  videoCollections,
-} from '@/app/lib/front-data';
+import { featuredCollections } from '@/app/lib/front-data';
 import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { SectionHeader } from '@/app/ui/front/section-header';
 import { Button } from '@/components/ui/button';
@@ -134,7 +131,6 @@ export function FrontHome() {
   const t = useTranslations('front.home');
   const tData = useTranslations();
   const featured = featuredCollections.slice(0, 3);
-  const featuredVideos = videoCollections.slice(0, 3);
   const heroRef = useRef<HTMLElement | null>(null);
   const heroTextRef = useRef<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
@@ -286,7 +282,7 @@ export function FrontHome() {
               variant='ghost'
               className={heroSecondaryButtonClass}
             >
-              <Link href='/photo-collections'>{t('hero.secondaryCta')}</Link>
+              <Link href='/collections'>{t('hero.secondaryCta')}</Link>
             </Button>
           </div>
         </div>
@@ -297,17 +293,13 @@ export function FrontHome() {
           title={t('sections.featuredCollections.title')}
           description={t('sections.featuredCollections.description')}
           actionLabel={t('sections.featuredCollections.action')}
-          actionHref='/gallery'
+          actionHref='/collections'
         />
         <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
           {featured.map((collection) => (
             <Link
               key={collection.id}
-              href={
-                collection.type === 'photo'
-                  ? '/photo-collections'
-                  : '/video-collections'
-              }
+              href='/collections'
               className='block'
             >
               <SpotlightCard className='h-full min-h-[280px]'>
@@ -322,53 +314,9 @@ export function FrontHome() {
                     <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
                       {collection.type === 'photo'
                         ? t('sections.featuredCollections.badgePhoto')
-                        : t('sections.featuredCollections.badgeVideo')}
-                    </span>
-                    <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
-                      {tData(collection.title)}
-                    </h3>
-                    <p className='text-sm text-zinc-600/80 dark:text-white/60'>
-                      {tData(collection.description)}
-                    </p>
-                  </div>
-                  <div className='relative z-10 flex items-center justify-between text-xs text-zinc-600/80 dark:text-white/60'>
-                    <span>{t('itemCount', { count: collection.count })}</span>
-                    <span className='text-indigo-600 dark:text-indigo-400'>
-                      {(collection.tags ?? []).map(tag => tData(tag)).join(' / ')}
-                    </span>
-                  </div>
-                </div>
-              </SpotlightCard>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className='front-fade-up space-y-8'>
-        <SectionHeader
-          title={t('sections.featuredVideos.title')}
-          description={t('sections.featuredVideos.description')}
-          actionLabel={t('sections.featuredVideos.action')}
-          actionHref='/video-collections'
-        />
-        <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
-          {featuredVideos.map((collection) => (
-            <Link
-              key={collection.id}
-              href='/video-collections'
-              className='block'
-            >
-              <SpotlightCard className='h-full min-h-[280px]'>
-                <div className='relative flex h-full flex-col justify-between gap-6 p-6'>
-                  <div
-                    className={cn(
-                      'absolute inset-0 bg-gradient-to-br opacity-30 dark:opacity-70',
-                      collection.cover
-                    )}
-                  />
-                  <div className='relative z-10 space-y-4'>
-                    <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
-                      {t('sections.featuredVideos.badge')}
+                        : collection.type === 'video'
+                          ? t('sections.featuredCollections.badgeVideo')
+                          : t('sections.featuredCollections.badgeMixed')}
                     </span>
                     <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
                       {tData(collection.title)}
