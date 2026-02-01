@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { fetchMediaForPicker } from '@/app/lib/actions/collections';
+import { fetchMediaForPicker } from '@/app/lib/actions/unified-collections';
 import { Loader2, Check, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DialogFooter } from '@/components/ui/dialog';
 
 type MediaItem = {
   id: number;
@@ -23,6 +23,7 @@ type MediaPickerProps = {
   selectionMode?: 'multiple' | 'single';
   initialSelectedIds?: number[];
   disabledIds?: number[];
+  allowedMediaTypes?: Array<'image' | 'video' | 'animated'>;
 };
 
 export function MediaPicker({
@@ -32,6 +33,7 @@ export function MediaPicker({
   selectionMode = 'multiple',
   initialSelectedIds = [],
   disabledIds = [],
+  allowedMediaTypes,
 }: MediaPickerProps) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>(initialSelectedIds);
@@ -41,12 +43,17 @@ export function MediaPicker({
   const [isPending, startTransition] = useTransition();
   const disabledSet = new Set(disabledIds);
   const hasLoadedRef = useRef(false);
+  const t = useTranslations('dashboard.collections.picker');
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
     setIsLoading(true);
     try {
-      const newItems = (await fetchMediaForPicker(page, 24)) as unknown as MediaItem[];
+      const newItems = (await fetchMediaForPicker(
+        page,
+        24,
+        allowedMediaTypes,
+      )) as unknown as MediaItem[];
       if (newItems.length < 24) {
         setHasMore(false);
       }
@@ -61,7 +68,7 @@ export function MediaPicker({
     } finally {
       setIsLoading(false);
     }
-  }, [hasMore, isLoading, page]);
+  }, [allowedMediaTypes, hasMore, isLoading, page]);
 
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -144,7 +151,7 @@ export function MediaPicker({
         {!isLoading && hasMore && (
           <div className="flex justify-center py-4">
             <Button variant="ghost" onClick={loadMore}>
-              Load More
+              {t('loadMore')}
             </Button>
           </div>
         )}
@@ -152,14 +159,14 @@ export function MediaPicker({
       <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
         <div className="flex items-center justify-between">
           <p className="text-sm text-zinc-500">
-            {selectedIds.length} selected
+            {t('selected', { count: selectedIds.length })}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onCancel} disabled={isPending}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button onClick={handleConfirm} disabled={selectedIds.length === 0 || isPending}>
-              {isPending ? 'Adding...' : 'Add Selected'}
+              {isPending ? t('confirming') : t('confirm')}
             </Button>
           </div>
         </div>
