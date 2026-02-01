@@ -28,14 +28,11 @@ import {
 import { SortableMediaItem } from './sortable-media-item';
 import { MediaPicker } from './media-picker';
 import {
-  addItemsToCollection,
-  removeItemsFromCollection,
-  reorderCollectionItems,
-  addItemsToVideoSeries,
-  removeItemsFromVideoSeries,
-  reorderVideoSeriesItems,
-} from '@/app/lib/actions/collections';
-import { Plus, ArrowLeft, Loader2, Images } from 'lucide-react';
+  addMediaToCollection,
+  removeMediaFromCollection,
+  reorderMedia,
+} from '@/app/lib/actions/unified-collections';
+import { Plus, ArrowLeft, Images } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/navigation';
 
 type CollectionItem = {
@@ -52,21 +49,22 @@ type CollectionManagerProps = {
   collection: {
     id: number;
     title: string;
+    type: 'mixed' | 'photo' | 'video';
   };
   initialItems: CollectionItem[];
-  type: 'photo' | 'video';
 };
 
 export function CollectionManager({
   collection,
   initialItems,
-  type,
 }: CollectionManagerProps) {
   const t = useTranslations('dashboard.collections');
+  const tManager = useTranslations('dashboard.collections.manager');
   const [items, setItems] = useState(initialItems);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const router = useRouter();
+
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -84,23 +82,19 @@ export function CollectionManager({
         const newIndex = items.findIndex((item) => item.file.id === over?.id);
         const newItems = arrayMove(items, oldIndex, newIndex);
         
-        // Update sort orders
+        // 更新排序权重
         const reorderedItems = newItems.map((item, index) => ({
           ...item,
           sortOrder: index + 1,
         }));
 
-        // Call server action
+        // 同步服务端排序
         startTransition(async () => {
           const updates = reorderedItems.map((item) => ({
             fileId: item.file.id,
             sortOrder: item.sortOrder,
           }));
-          if (type === 'photo') {
-            await reorderCollectionItems(collection.id, updates);
-          } else {
-            await reorderVideoSeriesItems(collection.id, updates);
-          }
+          await reorderMedia(collection.id, updates);
         });
 
         return reorderedItems;
@@ -109,31 +103,21 @@ export function CollectionManager({
   };
 
   const handleRemove = (fileId: number) => {
-    // Optimistic update
+    // 乐观更新
     setItems((prev) => prev.filter((item) => item.file.id !== fileId));
     
     startTransition(async () => {
-      if (type === 'photo') {
-        await removeItemsFromCollection(collection.id, [fileId]);
-      } else {
-        await removeItemsFromVideoSeries(collection.id, [fileId]);
-      }
+      await removeMediaFromCollection(collection.id, [fileId]);
       router.refresh();
     });
   };
 
   const handleAddMedia = (selectedIds: number[]) => {
     startTransition(async () => {
-      if (type === 'photo') {
-        await addItemsToCollection(collection.id, selectedIds);
-      } else {
-        await addItemsToVideoSeries(collection.id, selectedIds);
-      }
+      await addMediaToCollection(collection.id, selectedIds);
       setIsPickerOpen(false);
       router.refresh();
-      // Note: We depend on router.refresh() to get new items because we don't have full file details here
-      // unless we pass them back from MediaPicker, but MediaPicker items structure might differ slightly.
-      // For simplicity, refresh is safer.
+      // 依赖 router.refresh() 拉取最新详情，避免本地缺少完整文件信息
     });
   };
 
@@ -155,7 +139,7 @@ export function CollectionManager({
                 {collection.title}
              </h1>
              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                {items.length} items
+                {tManager('items', { count: items.length })}
              </span>
           </div>
         </div>
@@ -163,18 +147,25 @@ export function CollectionManager({
           <DialogTrigger asChild>
             <Button size="lg" className="shadow-lg shadow-indigo-500/20">
               <Plus className="mr-2 h-4 w-4" />
-              Add Media
+              {tManager('addMedia')}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-5xl h-[80vh] flex flex-col p-0 gap-0">
-             <DialogHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
-              <DialogTitle>Select Media to Add</DialogTitle>
+        <DialogContent className="max-w-5xl h-[80vh] flex flex-col p-0 gap-0">
+           <DialogHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+              <DialogTitle>{tManager('selectMedia')}</DialogTitle>
             </DialogHeader>
             <div className="flex-1 overflow-hidden">
                 <MediaPicker
                 onConfirm={handleAddMedia}
                 onCancel={() => setIsPickerOpen(false)}
                 disabledIds={items.map((item) => item.file.id)}
+                allowedMediaTypes={
+                  collection.type === 'photo'
+                    ? ['image', 'animated']
+                    : collection.type === 'video'
+                      ? ['video']
+                      : ['image', 'animated', 'video']
+                }
                 />
             </div>
           </DialogContent>
@@ -209,11 +200,15 @@ export function CollectionManager({
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
             <Images className="h-8 w-8 text-zinc-400" />
           </div>
-          <p className="mt-4 text-lg font-medium text-zinc-900 dark:text-zinc-100">No items in this collection</p>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Start by adding some photos or videos</p>
+          <p className="mt-4 text-lg font-medium text-zinc-900 dark:text-zinc-100">
+            {tManager('emptyTitle')}
+          </p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            {tManager('emptyDescription')}
+          </p>
           <Button variant="outline" className="mt-6" onClick={() => setIsPickerOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Media
+            {tManager('addMedia')}
           </Button>
         </div>
       )}
