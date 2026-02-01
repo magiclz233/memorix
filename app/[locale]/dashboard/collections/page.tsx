@@ -1,14 +1,20 @@
-import { fetchPhotoCollections, fetchVideoSeries } from '@/app/lib/data';
+import { headers } from 'next/headers';
+import { auth } from '@/auth';
+import { fetchCollections } from '@/app/lib/data';
 import { CollectionsClient } from './collections-client';
 
 export default async function Page() {
-  const photoCollections = await fetchPhotoCollections();
-  const videoSeries = await fetchVideoSeries();
+  const collections = await fetchCollections({ status: 'all' });
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const defaultAuthor =
+    session?.user?.name?.trim() || session?.user?.email?.trim() || null;
 
   return (
     <CollectionsClient
-      photoCollections={photoCollections}
-      videoSeries={videoSeries}
+      collections={collections}
+      defaultAuthor={defaultAuthor}
     />
   );
 }
