@@ -12,6 +12,7 @@ type SortableMediaItemProps = {
   imageUrl: string;
   title: string | null;
   onRemove: (id: number) => void;
+  onPreview?: () => void;
 };
 
 export function SortableMediaItem({
@@ -19,6 +20,7 @@ export function SortableMediaItem({
   imageUrl,
   title,
   onRemove,
+  onPreview,
 }: SortableMediaItemProps) {
   const {
     attributes,
@@ -50,9 +52,12 @@ export function SortableMediaItem({
         fill
         sizes="(max-width: 640px) 50vw, 200px"
         className="object-cover"
+        onClick={onPreview}
       />
 
-      <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10 dark:group-hover:bg-black/40" />
+      <div 
+        className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10 dark:group-hover:bg-black/40 pointer-events-none" 
+      />
 
       {/* Drag Handle */}
       <div
