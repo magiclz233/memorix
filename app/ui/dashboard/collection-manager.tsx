@@ -77,27 +77,29 @@ export function CollectionManager({
     const { active, over } = event;
 
     if (active.id !== over?.id) {
-      setItems((items) => {
-        const oldIndex = items.findIndex((item) => item.file.id === active.id);
-        const newIndex = items.findIndex((item) => item.file.id === over?.id);
-        const newItems = arrayMove(items, oldIndex, newIndex);
-        
-        // 更新排序权重
-        const reorderedItems = newItems.map((item, index) => ({
-          ...item,
-          sortOrder: index + 1,
+      const oldIndex = items.findIndex((item) => item.file.id === active.id);
+      const newIndex = items.findIndex((item) => item.file.id === over?.id);
+
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const newItems = arrayMove(items, oldIndex, newIndex);
+
+      // 更新排序权重
+      const reorderedItems = newItems.map((item, index) => ({
+        ...item,
+        sortOrder: index + 1,
+      }));
+
+      // 乐观更新
+      setItems(reorderedItems);
+
+      // 同步服务端排序
+      startTransition(async () => {
+        const updates = reorderedItems.map((item) => ({
+          fileId: item.file.id,
+          sortOrder: item.sortOrder,
         }));
-
-        // 同步服务端排序
-        startTransition(async () => {
-          const updates = reorderedItems.map((item) => ({
-            fileId: item.file.id,
-            sortOrder: item.sortOrder,
-          }));
-          await reorderMedia(collection.id, updates);
-        });
-
-        return reorderedItems;
+        await reorderMedia(collection.id, updates);
       });
     }
   };
