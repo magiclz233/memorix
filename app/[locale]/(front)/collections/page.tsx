@@ -42,7 +42,7 @@ export default async function Page() {
       </header>
 
       <div className="relative z-10">
-        <BentoGrid className="mx-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:auto-rows-auto max-w-none">
+        <BentoGrid className="mx-0 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 md:auto-rows-auto max-w-none">
           {mappedCollections.map((collection) => (
             <div key={collection.id} className="row-span-1">
               <Link href={`/collections/${collection.id}`} className="block h-full">
@@ -52,7 +52,7 @@ export default async function Page() {
                     photo: t('badge.photo'),
                     video: t('badge.video'),
                     mixed: t('badge.mixed'),
-                    itemCount: (count) => t('itemCount', { count }),
+                    itemCount: t('itemCount', { count: collection.count }),
                   }}
                 />
               </Link>
