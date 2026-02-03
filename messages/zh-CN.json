@@ -674,7 +674,7 @@
         "descriptionLabel": "简介",
         "descriptionPlaceholder": "输入作品集简介（可选）",
         "coverImage": "封面图",
-        "coverImageHelp": "从媒体库选择作为作品集封面。",
+        "coverImageHelp": "从媒体库选择最多 3 张图片作为封面，若未选择将默认使用前 3 张。",
         "coverImageSelect": "从媒体库选择",
         "coverImageChange": "更换封面",
         "coverImageClear": "清除封面",

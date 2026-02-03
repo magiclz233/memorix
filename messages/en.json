@@ -669,7 +669,7 @@
         "descriptionLabel": "Description",
         "descriptionPlaceholder": "Enter description (optional)",
         "coverImage": "Cover",
-        "coverImageHelp": "Pick a cover from the media library.",
+        "coverImageHelp": "Select up to 3 images from media library as cover. Defaults to first 3 if empty.",
         "coverImageSelect": "Select from library",
         "coverImageChange": "Change cover",
         "coverImageClear": "Clear cover",
