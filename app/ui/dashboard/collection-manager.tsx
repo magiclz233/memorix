@@ -132,18 +132,35 @@ export function CollectionManager({
   };
 
   const galleryItems: GalleryItem[] = items.map((item) => ({
-    id: item.file.id,
+    id: String(item.file.id),
     type: item.file.mediaType === 'video' ? 'video' : 'photo',
     src: item.file.url || '',
     title: item.file.title || '',
-    width: item.file.width,
-    height: item.file.height,
-    blurHash: item.file.blurHash,
+    description: null,
+    width: item.file.width ?? null,
+    height: item.file.height ?? null,
+    blurHash: item.file.blurHash ?? null,
     videoUrl:
       item.file.mediaType === 'video'
         ? `/api/media/stream/${item.file.id}`
         : undefined,
-    duration: item.file.videoDuration,
+    duration: item.file.videoDuration ?? null,
+    animatedUrl: null,
+    isAnimated: false,
+    camera: null,
+    maker: null,
+    lens: null,
+    exposure: null,
+    aperture: null,
+    iso: null,
+    focalLength: null,
+    whiteBalance: null,
+    gpsLatitude: null,
+    gpsLongitude: null,
+    size: null,
+    dateShot: null,
+    createdAt: null,
+    liveType: 'none',
   }));
 
   return (
@@ -221,7 +238,7 @@ export function CollectionManager({
                 imageUrl={item.file.thumbUrl || item.file.url || ''}
                 title={item.file.title}
                 onRemove={handleRemove}
-                onPreview={() => setSelectedId(item.file.id)}
+                onPreview={() => setSelectedId(String(item.file.id))}
               />
             ))}
           </div>
