@@ -119,8 +119,8 @@ export function CollectionsClient({
       author: item.author ?? '',
       type: item.type,
       status: item.status,
-      coverFileId: item.coverFileId ?? null,
-      coverUrl: item.cover?.url ?? null,
+      coverImages: item.covers?.map((c) => c.id) ?? [],
+      coverUrls: item.covers?.map((c) => c.thumbUrl || c.url || '') ?? [],
       coverThumbUrl: item.cover?.thumbUrl ?? null,
       coverMediaType:
         (item.cover?.mediaType as 'image' | 'video' | 'animated' | null) ??
