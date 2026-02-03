@@ -15,6 +15,7 @@ export default async function Page() {
     type: c.type,
     title: c.title,
     cover: c.cover?.thumbUrl || c.cover?.url || '',
+    covers: c.covers?.map(cover => cover.thumbUrl || cover.url || '').filter(Boolean) || [],
     count: c.itemCount,
     description: c.description || '',
     author: c.author || undefined,
