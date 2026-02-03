@@ -24,6 +24,7 @@ type MediaPickerProps = {
   initialSelectedIds?: number[];
   disabledIds?: number[];
   allowedMediaTypes?: Array<'image' | 'video' | 'animated'>;
+  maxSelect?: number;
 };
 
 export function MediaPicker({
@@ -34,6 +35,7 @@ export function MediaPicker({
   initialSelectedIds = [],
   disabledIds = [],
   allowedMediaTypes,
+  maxSelect,
 }: MediaPickerProps) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>(initialSelectedIds);
@@ -81,9 +83,15 @@ export function MediaPicker({
       setSelectedIds((prev) => (prev[0] === id ? [] : [id]));
       return;
     }
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
-    );
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((i) => i !== id);
+      }
+      if (maxSelect && prev.length >= maxSelect) {
+        return prev;
+      }
+      return [...prev, id];
+    });
   };
 
   const handleConfirm = () => {
