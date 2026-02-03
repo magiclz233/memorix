@@ -120,7 +120,7 @@ export function CollectionForm({
     setIsPickerOpen(false);
   };
 
-  const coverMediaTypes = ['image', 'animated', 'video'] as const;
+  const coverMediaTypes: Array<'image' | 'video' | 'animated'> = ['image', 'animated', 'video'];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
