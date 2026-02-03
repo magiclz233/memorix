@@ -36,6 +36,11 @@ export default async function Page({
           title: item.file.title,
           url: item.file.url,
           thumbUrl: item.file.thumbUrl,
+          mediaType: item.file.mediaType,
+          blurHash: item.file.blurHash,
+          width: item.photoMetadata?.resolutionWidth || item.videoMetadata?.width,
+          height: item.photoMetadata?.resolutionHeight || item.videoMetadata?.height,
+          videoDuration: item.videoMetadata?.duration,
         },
         sortOrder: item.sortOrder,
       }))}

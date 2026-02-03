@@ -12,6 +12,8 @@ import {
   Image as ImageIcon,
   Film,
   Layers,
+  User,
+  Play,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -376,13 +378,8 @@ function CollectionGridItem({
     item.type === 'video' ? Film : item.type === 'photo' ? ImageIcon : Layers;
 
   return (
-    <div className="group relative overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-xl hover:shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:shadow-black/50">
-      <div
-        className={cn(
-          'w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800',
-          item.type === 'video' ? 'aspect-video' : 'aspect-[4/3]',
-        )}
-      >
+    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-xl hover:shadow-zinc-200/50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:shadow-black/50">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
         {coverSrc ? (
           <Image
             src={coverSrc}
@@ -397,12 +394,27 @@ function CollectionGridItem({
             <TypeIcon className="h-12 w-12" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+        {/* Type Tag */}
+        <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-zinc-800 backdrop-blur-md dark:bg-black/50 dark:text-zinc-200">
+          <TypeIcon className="h-3.5 w-3.5" />
+          <span>{t(`typeLabel.${item.type}`)}</span>
+        </div>
+
+        {/* Video Play Icon */}
+        {item.type === 'video' && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="rounded-full bg-white/30 p-3 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
+              <Play className="h-6 w-6 text-white" fill="currentColor" />
+            </div>
+          </div>
+        )}
       </div>
 
       <Link
         href={`/dashboard/collections/${item.id}`}
-        className="absolute inset-0 z-10"
+        className="absolute inset-0 z-0"
         aria-label={t('actions.manage')}
       />
 
@@ -443,34 +455,36 @@ function CollectionGridItem({
         </DropdownMenu>
       </div>
 
-      <div className="pointer-events-none relative p-5">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
-            {t(`typeLabel.${item.type}`)}
-          </span>
-          <span className="text-xs text-zinc-400">
-            {new Date(item.createdAt).toLocaleDateString()}
-          </span>
-        </div>
-        <h3 className="line-clamp-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="pointer-events-none relative flex flex-col p-4">
+        <h3 className="line-clamp-1 text-lg font-bold text-indigo-600 dark:text-indigo-400">
           {item.title}
         </h3>
         {item.description ? (
           <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
             {item.description}
           </p>
-        ) : null}
-        {item.author ? (
-          <p className="mt-2 text-xs text-zinc-500/80 dark:text-zinc-400/80">
-            {t('authorLabel', { author: item.author })}
-          </p>
-        ) : null}
+        ) : (
+          <p className="mt-1 h-5" /> /* Spacer for alignment */
+        )}
 
-        <div className="mt-4 flex items-center justify-between text-xs text-zinc-600/80 dark:text-white/60">
-          <span>{t('itemCount', { count: item.itemCount })}</span>
-          <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-            {t(`statusLabel.${item.status}`)}
-          </span>
+        <div className="mt-4 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center gap-1.5">
+            <User className="h-3.5 w-3.5" />
+            <span className="font-medium">{item.author || 'Unknown'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                'rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider',
+                item.status === 'published'
+                  ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                  : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500',
+              )}
+            >
+              {t(`statusLabel.${item.status}`)}
+            </span>
+            <span>{t('itemCount', { count: item.itemCount })}</span>
+          </div>
         </div>
       </div>
     </div>

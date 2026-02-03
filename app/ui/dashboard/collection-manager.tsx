@@ -34,6 +34,8 @@ import {
 } from '@/app/lib/actions/unified-collections';
 import { Plus, ArrowLeft, Images } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/navigation';
+import { Gallery25 } from '@/components/gallery25';
+import type { GalleryItem } from '@/app/lib/gallery';
 
 type CollectionItem = {
   file: {
@@ -41,6 +43,11 @@ type CollectionItem = {
     title: string | null;
     url: string | null;
     thumbUrl: string | null;
+    mediaType?: string | null;
+    width?: number | null;
+    height?: number | null;
+    blurHash?: string | null;
+    videoDuration?: number | null;
   };
   sortOrder: number;
 };
@@ -62,6 +69,7 @@ export function CollectionManager({
   const tManager = useTranslations('dashboard.collections.manager');
   const [items, setItems] = useState(initialItems);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
@@ -77,27 +85,29 @@ export function CollectionManager({
     const { active, over } = event;
 
     if (active.id !== over?.id) {
-      setItems((items) => {
-        const oldIndex = items.findIndex((item) => item.file.id === active.id);
-        const newIndex = items.findIndex((item) => item.file.id === over?.id);
-        const newItems = arrayMove(items, oldIndex, newIndex);
-        
-        // 更新排序权重
-        const reorderedItems = newItems.map((item, index) => ({
-          ...item,
-          sortOrder: index + 1,
+      const oldIndex = items.findIndex((item) => item.file.id === active.id);
+      const newIndex = items.findIndex((item) => item.file.id === over?.id);
+
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const newItems = arrayMove(items, oldIndex, newIndex);
+
+      // 更新排序权重
+      const reorderedItems = newItems.map((item, index) => ({
+        ...item,
+        sortOrder: index + 1,
+      }));
+
+      // 乐观更新
+      setItems(reorderedItems);
+
+      // 同步服务端排序
+      startTransition(async () => {
+        const updates = reorderedItems.map((item) => ({
+          fileId: item.file.id,
+          sortOrder: item.sortOrder,
         }));
-
-        // 同步服务端排序
-        startTransition(async () => {
-          const updates = reorderedItems.map((item) => ({
-            fileId: item.file.id,
-            sortOrder: item.sortOrder,
-          }));
-          await reorderMedia(collection.id, updates);
-        });
-
-        return reorderedItems;
+        await reorderMedia(collection.id, updates);
       });
     }
   };
@@ -121,8 +131,30 @@ export function CollectionManager({
     });
   };
 
+  const galleryItems: GalleryItem[] = items.map((item) => ({
+    id: item.file.id,
+    type: item.file.mediaType === 'video' ? 'video' : 'photo',
+    src: item.file.url || '',
+    title: item.file.title || '',
+    width: item.file.width,
+    height: item.file.height,
+    blurHash: item.file.blurHash,
+    videoUrl:
+      item.file.mediaType === 'video'
+        ? `/api/media/stream/${item.file.id}`
+        : undefined,
+    duration: item.file.videoDuration,
+  }));
+
   return (
     <div className="space-y-8">
+      <Gallery25
+        items={galleryItems}
+        showGrid={false}
+        showChrome={false}
+        selectedId={selectedId}
+        onSelectedIdChange={setSelectedId}
+      />
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200 pb-6 dark:border-zinc-800">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -189,6 +221,7 @@ export function CollectionManager({
                 imageUrl={item.file.thumbUrl || item.file.url || ''}
                 title={item.file.title}
                 onRemove={handleRemove}
+                onPreview={() => setSelectedId(item.file.id)}
               />
             ))}
           </div>
