@@ -13,7 +13,7 @@ type CollectionCardProps = {
     photo: string;
     video: string;
     mixed: string;
-    itemCount: (count: number) => string;
+    itemCount: string;
   };
 };
 
@@ -52,7 +52,7 @@ export function CollectionCard({ collection, labels }: CollectionCardProps) {
       onMouseLeave={() => setIsHover(false)}
     >
       {/* Stacked Photos Card */}
-      <div className="relative mb-4 h-48 w-full">
+      <div className="relative mb-4 aspect-video w-full">
         {/* Photo Stack (3 layers) */}
         {displayCovers.length > 0 ? (
           displayCovers.slice(0, 3).map((url, index) => (
@@ -121,7 +121,7 @@ export function CollectionCard({ collection, labels }: CollectionCardProps) {
             </h2>
           </div>
           <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
-             <span>{labels.itemCount(collection.count)}</span>
+             <span>{labels.itemCount}</span>
              <span className='rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] uppercase tracking-wider dark:border-zinc-700'>
                {collection.type === 'mixed' ? labels.mixed : collection.type === 'video' ? labels.video : labels.photo}
              </span>
