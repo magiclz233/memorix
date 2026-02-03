@@ -16,6 +16,7 @@ export type Collection = {
   type: 'photo' | 'video' | 'mixed';
   title: string;
   cover: string;
+  covers?: string[];
   count: number;
   description: string;
   tags?: string[];
