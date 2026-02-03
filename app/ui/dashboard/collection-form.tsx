@@ -35,8 +35,8 @@ export type CollectionFormData = {
   author?: string | null;
   type?: 'mixed' | 'photo' | 'video';
   status?: 'draft' | 'published';
-  coverFileId?: number | null;
-  coverUrl?: string | null;
+  coverImages?: number[];
+  coverUrls?: string[];
   coverThumbUrl?: string | null;
   coverMediaType?: 'image' | 'video' | 'animated' | null;
 };
@@ -64,11 +64,15 @@ export function CollectionForm({
     'draft' | 'published'
   >(() => initialData?.status ?? 'draft');
   const [author, setAuthor] = useState(() => initialData?.author ?? defaultAuthor ?? '');
-  const [coverFileId, setCoverFileId] = useState<number | null>(() =>
-    initialData?.coverFileId ?? null,
+  const [coverFileIds, setCoverFileIds] = useState<number[]>(() =>
+    initialData?.coverImages && initialData.coverImages.length > 0
+      ? initialData.coverImages
+      : [],
   );
-  const [coverPreview, setCoverPreview] = useState<string>(() =>
-    initialData?.coverThumbUrl || initialData?.coverUrl || '',
+  const [coverPreviews, setCoverPreviews] = useState<string[]>(() =>
+    initialData?.coverUrls && initialData.coverUrls.length > 0
+      ? initialData.coverUrls
+      : [],
   );
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
@@ -99,17 +103,20 @@ export function CollectionForm({
       mediaType: 'image' | 'video' | 'animated';
     }[],
   ) => {
-    const selected = selectedItems[0];
-    if (!selected) {
+    if (selectedItems.length === 0) {
       setIsPickerOpen(false);
       return;
     }
-    const nextCover =
-      selected.mediaType === 'video'
-        ? selected.thumbUrl || `/api/media/thumb/${selected.id}`
-        : selected.url || selected.thumbUrl || `/api/media/thumb/${selected.id}`;
-    setCoverFileId(selected.id);
-    setCoverPreview(nextCover);
+
+    const nextIds = selectedItems.map((item) => item.id);
+    const nextPreviews = selectedItems.map((item) =>
+      item.mediaType === 'video'
+        ? item.thumbUrl || `/api/media/thumb/${item.id}`
+        : item.url || item.thumbUrl || `/api/media/thumb/${item.id}`,
+    );
+
+    setCoverFileIds(nextIds);
+    setCoverPreviews(nextPreviews);
     setIsPickerOpen(false);
   };
 
@@ -119,7 +126,7 @@ export function CollectionForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <input type="hidden" name="type" value={collectionType} />
       <input type="hidden" name="status" value={collectionStatus} />
-      <input type="hidden" name="coverFileId" value={coverFileId ?? ''} />
+      <input type="hidden" name="coverImages" value={JSON.stringify(coverFileIds)} />
       <div className="space-y-2">
         <Label htmlFor="title">{t('title')}</Label>
         <Input
@@ -199,30 +206,39 @@ export function CollectionForm({
             variant="outline"
             onClick={() => setIsPickerOpen(true)}
           >
-            {coverFileId ? t('coverImageChange') : t('coverImageSelect')}
+            {coverFileIds.length > 0
+              ? t('coverImageChange')
+              : t('coverImageSelect')}
           </Button>
-          {coverFileId ? (
+          {coverFileIds.length > 0 ? (
             <Button
               type="button"
               variant="ghost"
               onClick={() => {
-                setCoverFileId(null);
-                setCoverPreview('');
+                setCoverFileIds([]);
+                setCoverPreviews([]);
               }}
             >
               {t('coverImageClear')}
             </Button>
           ) : null}
         </div>
-        {coverPreview ? (
-          <div className="relative h-32 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <Image
-              src={coverPreview}
-              alt={t('coverImage')}
-              fill
-              sizes="(max-width: 768px) 100vw, 480px"
-              className="object-cover"
-            />
+        {coverPreviews.length > 0 ? (
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {coverPreviews.map((preview, index) => (
+              <div
+                key={index}
+                className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800"
+              >
+                <Image
+                  src={preview}
+                  alt={`${t('coverImage')} ${index + 1}`}
+                  fill
+                  sizes="128px"
+                  className="object-cover"
+                />
+              </div>
+            ))}
           </div>
         ) : null}
         <p className="text-xs text-zinc-500">{t('coverImageHelp')}</p>
@@ -251,11 +267,13 @@ export function CollectionForm({
             <DialogDescription>{t('coverImageHelp')}</DialogDescription>
           </DialogHeader>
           <MediaPicker
-            selectionMode="single"
+            selectionMode="multiple"
+            maxSelect={3}
             onConfirm={() => undefined}
             onConfirmItems={handleCoverSelect}
             onCancel={() => setIsPickerOpen(false)}
             allowedMediaTypes={coverMediaTypes}
+            initialSelectedIds={coverFileIds}
           />
         </DialogContent>
       </Dialog>
