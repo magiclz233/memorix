@@ -238,8 +238,8 @@ export const collections = pgTable('collections', {
   description: text('description'),
   // 作者（自由字符串）
   author: varchar('author', { length: 255 }),
-  // 封面文件 ID（可空，关联 files.id）
-  coverFileId: integer('cover_file_id'),
+  // 封面图片集（存储 file IDs 数组，最多 3 张）
+  coverImages: integer('cover_images').array(),
   // 类型（mixed / photo / video）
   type: varchar('type', { length: 16 }).notNull().default('mixed'),
   // 发布状态（draft / published）
