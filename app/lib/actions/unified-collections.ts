@@ -15,17 +15,17 @@ const CollectionSchema = z.object({
   author: z.string().trim().optional().or(z.literal('')),
   type: z.enum(['mixed', 'photo', 'video']).default('mixed'),
   status: z.enum(['draft', 'published']).default('draft'),
-  coverFileId: z.preprocess((value) => {
-    if (value === null || value === undefined) return undefined;
-    if (typeof value === 'number' && Number.isFinite(value)) return value;
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      const parsed = Number(trimmed);
-      return Number.isFinite(parsed) ? parsed : undefined;
+  coverImages: z.string().nullable().optional().transform((val) => {
+    if (!val) return [];
+    try {
+      const parsed = JSON.parse(val);
+      return Array.isArray(parsed)
+        ? parsed.map((v) => Number(v)).filter(Number.isFinite)
+        : [];
+    } catch {
+      return [];
     }
-    return undefined;
-  }, z.number().int().positive().optional()),
+  }),
 });
 
 const requireAdmin = async () => {
@@ -73,7 +73,7 @@ export async function createCollection(formData: FormData) {
     author: formData.get('author'),
     type: formData.get('type'),
     status: formData.get('status'),
-    coverFileId: formData.get('coverFileId'),
+    coverImages: formData.get('coverImages'),
   });
 
   if (!parsed.success) {
@@ -83,14 +83,14 @@ export async function createCollection(formData: FormData) {
     };
   }
 
-  const { title, description, author, type, status, coverFileId } = parsed.data;
+  const { title, description, author, type, status, coverImages } = parsed.data;
 
   try {
     await db.insert(collections).values({
       title,
       description: normalizeText(description),
       author: resolveAuthor(normalizeText(author), user, true),
-      coverFileId: coverFileId ?? null,
+      coverImages: coverImages ?? [],
       type,
       status,
       createdBy: typeof user.id === 'number' ? user.id : null,
@@ -114,7 +114,7 @@ export async function updateCollection(id: number, formData: FormData) {
     author: formData.get('author'),
     type: formData.get('type'),
     status: formData.get('status'),
-    coverFileId: formData.get('coverFileId'),
+    coverImages: formData.get('coverImages'),
   });
 
   if (!parsed.success) {
@@ -124,7 +124,7 @@ export async function updateCollection(id: number, formData: FormData) {
     };
   }
 
-  const { title, description, author, type, status, coverFileId } = parsed.data;
+  const { title, description, author, type, status, coverImages } = parsed.data;
 
   try {
     await db
@@ -133,7 +133,7 @@ export async function updateCollection(id: number, formData: FormData) {
         title,
         description: normalizeText(description),
         author: resolveAuthor(normalizeText(author), user, false),
-        coverFileId: coverFileId ?? null,
+        coverImages: coverImages ?? [],
         type,
         status,
         updatedBy: typeof user.id === 'number' ? user.id : null,
