@@ -547,13 +547,13 @@ export type CollectionListItem = {
   title: string;
   description: string | null;
   author: string | null;
-  coverFileId: number | null;
   type: CollectionType;
   status: CollectionStatus;
   createdAt: Date;
   updatedAt: Date;
   itemCount: number;
   cover: CollectionCover | null;
+  covers?: CollectionCover[];
 };
 
 export type FetchCollectionsOptions = {
@@ -604,7 +604,7 @@ export async function fetchCollections(
       title: collections.title,
       description: collections.description,
       author: collections.author,
-      coverFileId: collections.coverFileId,
+      coverImages: collections.coverImages,
       type: collections.type,
       status: collections.status,
       createdAt: collections.createdAt,
@@ -642,18 +642,69 @@ export async function fetchCollections(
     counts.map((item) => [item.collectionId, Number(item.itemCount)]),
   );
 
-  const coverFileIds = records
-    .map((record) => record.coverFileId)
-    .filter((id): id is number => typeof id === 'number');
-  const coverMap = await resolveCoverFiles(coverFileIds);
+  // Identify collections that need default covers
+  const collectionsNeedingDefaults = records.filter(
+    (r) =>
+      (!Array.isArray(r.coverImages) || r.coverImages.length === 0)
+  );
 
-  return records.map((record) => ({
-    ...record,
-    type: record.type as CollectionType,
-    status: record.status as CollectionStatus,
-    itemCount: countMap.get(record.id) ?? 0,
-    cover: record.coverFileId ? coverMap.get(record.coverFileId) ?? null : null,
-  }));
+  const defaultCoverMap = new Map<number, number[]>();
+  
+  if (collectionsNeedingDefaults.length > 0) {
+    await Promise.all(collectionsNeedingDefaults.map(async (col) => {
+        const topMedia = await db
+            .select({ fileId: collectionMedia.fileId })
+            .from(collectionMedia)
+            .where(eq(collectionMedia.collectionId, col.id))
+            .orderBy(asc(collectionMedia.sortOrder))
+            .limit(3);
+        if (topMedia.length > 0) {
+            defaultCoverMap.set(col.id, topMedia.map(m => m.fileId));
+        }
+    }));
+  }
+
+  const allCoverFileIds = new Set<number>();
+  records.forEach(r => {
+      if (Array.isArray(r.coverImages)) {
+          r.coverImages.forEach((id: number) => allCoverFileIds.add(id));
+      }
+      const defaults = defaultCoverMap.get(r.id);
+      if (defaults) {
+          defaults.forEach(id => allCoverFileIds.add(id));
+      }
+  });
+
+  const coverMap = await resolveCoverFiles(Array.from(allCoverFileIds));
+
+  return records.map((record) => {
+    let coverIds: number[] = [];
+    
+    // Explicit covers take precedence
+    if (Array.isArray(record.coverImages) && record.coverImages.length > 0) {
+        coverIds = record.coverImages;
+    } else {
+        // Fallback to defaults
+        coverIds = defaultCoverMap.get(record.id) ?? [];
+    }
+    
+    // Resolve to CollectionCover objects
+    const covers = coverIds
+        .map(id => coverMap.get(id))
+        .filter((c): c is CollectionCover => !!c);
+        
+    // For backward compatibility / primary cover
+    const primaryCover = covers.length > 0 ? covers[0] : null;
+
+    return {
+        ...record,
+        type: record.type as CollectionType,
+        status: record.status as CollectionStatus,
+        itemCount: countMap.get(record.id) ?? 0,
+        cover: primaryCover,
+        covers: covers,
+    };
+  });
 }
 
 export async function fetchCollectionById(
@@ -671,7 +722,7 @@ export async function fetchCollectionById(
       title: collections.title,
       description: collections.description,
       author: collections.author,
-      coverFileId: collections.coverFileId,
+      coverImages: collections.coverImages,
       type: collections.type,
       status: collections.status,
       createdAt: collections.createdAt,
@@ -689,18 +740,52 @@ export async function fetchCollectionById(
     .from(collectionMedia)
     .where(eq(collectionMedia.collectionId, id));
 
-  const coverMap = await resolveCoverFiles(
-    collection.coverFileId ? [collection.coverFileId] : [],
-  );
+  const allIds = new Set<number>();
+  if (Array.isArray(collection.coverImages)) {
+    collection.coverImages.forEach((id: number) => allIds.add(id));
+  }
+  
+  let defaultIds: number[] = [];
+  if (!Array.isArray(collection.coverImages) || collection.coverImages.length === 0) {
+     const topMedia = await db
+        .select({ fileId: collectionMedia.fileId })
+        .from(collectionMedia)
+        .where(eq(collectionMedia.collectionId, id))
+        .orderBy(asc(collectionMedia.sortOrder))
+        .limit(3);
+     defaultIds = topMedia.map(m => m.fileId);
+     defaultIds.forEach(id => allIds.add(id));
+  }
+
+  const resolvedFiles = await resolveCoverFiles(Array.from(allIds));
+  
+  let coverUrls: string[] = [];
+    
+  if (Array.isArray(collection.coverImages) && collection.coverImages.length > 0) {
+    coverUrls = collection.coverImages
+      .map(id => {
+        const f = resolvedFiles.get(id);
+        return f ? (f.thumbUrl || f.url || '') : '';
+      })
+      .filter(url => url !== '');
+  } else {
+    coverUrls = defaultIds
+      .map(id => {
+        const f = resolvedFiles.get(id);
+        return f ? (f.thumbUrl || f.url || '') : '';
+      })
+      .filter(url => url !== '');
+  }
+
+  const primaryCover = coverUrls.length > 0 ? coverUrls[0] : null;
 
   return {
     ...collection,
     type: collection.type as CollectionType,
     status: collection.status as CollectionStatus,
     itemCount: Number(countResult?.count ?? 0),
-    cover: collection.coverFileId
-      ? coverMap.get(collection.coverFileId) ?? null
-      : null,
+    cover: primaryCover,
+    covers: coverUrls,
   };
 }
 
