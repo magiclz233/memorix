@@ -371,16 +371,49 @@
         "duration": "Duration",
         "resolution": "Resolution",
         "camera": "Camera",
+        "maker": "Maker",
         "lens": "Lens",
         "aperture": "Aperture",
         "shutter": "Shutter",
         "iso": "ISO",
         "focalLength": "Focal length",
-        "whiteBalance": "White balance",
+        "focalLength35mm": "35mm Equiv.",
+        "whiteBalance": "White Balance",
         "coordinates": "Coordinates",
         "dateShot": "Date shot",
         "fileSize": "File size",
+        "filename": "Filename",
+        "megapixels": "Megapixels",
+        "colorSpace": "Color Space",
+        "city": "City",
+        "country": "Country",
+        "exposureProgram": "Exposure Program",
+        "flash": "Flash",
         "empty": "No details available."
+      },
+      "values": {
+        "exposureProgram": {
+          "0": "Not defined",
+          "1": "Manual",
+          "2": "Normal program",
+          "3": "Aperture priority",
+          "4": "Shutter priority",
+          "5": "Creative program",
+          "6": "Action program",
+          "7": "Portrait mode",
+          "8": "Landscape mode"
+        },
+        "flash": {
+          "fired": "Fired",
+          "off": "Off"
+        }
+      },
+      "sections": {
+        "histogram": "Histogram",
+        "equipment": "Equipment Info",
+        "basic": "Basic Info",
+        "shooting": "Shooting Info",
+        "params": "Technical Params"
       },
       "badges": {
         "video": "VIDEO",

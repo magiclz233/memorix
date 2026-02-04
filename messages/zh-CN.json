@@ -371,16 +371,49 @@
         "duration": "时长",
         "resolution": "分辨率",
         "camera": "相机",
+        "maker": "制造商",
         "lens": "镜头",
         "aperture": "光圈",
         "shutter": "快门",
         "iso": "ISO",
         "focalLength": "焦距",
+        "focalLength35mm": "35mm 等效焦距",
         "whiteBalance": "白平衡",
         "coordinates": "拍摄坐标",
         "dateShot": "拍摄时间",
         "fileSize": "文件大小",
-        "empty": "暂无可用的详细信息。"
+        "filename": "文件名",
+        "megapixels": "像素",
+        "colorSpace": "色彩空间",
+        "city": "城市",
+        "country": "国家",
+        "empty": "暂无可用的详细信息。",
+        "exposureProgram": "曝光程序",
+        "flash": "闪光灯"
+      },
+      "values": {
+        "exposureProgram": {
+          "0": "未定义",
+          "1": "手动",
+          "2": "标准程序",
+          "3": "光圈优先",
+          "4": "快门优先",
+          "5": "创意模式",
+          "6": "运动模式",
+          "7": "人像模式",
+          "8": "风景模式"
+        },
+        "flash": {
+          "fired": "开启",
+          "off": "关闭"
+        }
+      },
+      "sections": {
+        "histogram": "直方图",
+        "equipment": "设备信息",
+        "basic": "基本信息",
+        "shooting": "拍摄信息",
+        "params": "技术参数"
       },
       "badges": {
         "video": "视频",
