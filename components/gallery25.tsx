@@ -309,6 +309,8 @@ const Gallery25 = ({
     return (
       <PhotoDetailModal
         selectedItem={selected}
+        items={visibleItems}
+        onSelect={(id) => setSelectedId(id)}
         onClose={() => setSelectedId(null)}
         onPrev={() => handleNavigate('prev')}
         onNext={() => handleNavigate('next')}
@@ -514,6 +516,8 @@ const Gallery25 = ({
       </div>
       <PhotoDetailModal
         selectedItem={selected}
+        items={visibleItems}
+        onSelect={(id) => setSelectedId(id)}
         onClose={() => setSelectedId(null)}
         onPrev={() => handleNavigate('prev')}
         onNext={() => handleNavigate('next')}
