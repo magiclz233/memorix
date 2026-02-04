@@ -30,7 +30,8 @@ import {
   X,
   Play,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Zap
 } from 'lucide-react';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import { Button } from '@/components/ui/button';
@@ -58,7 +59,6 @@ export function PhotoDetailModal({
   locale
 }: PhotoDetailModalProps) {
   const t = useTranslations('front.galleryGrid');
-  const tDetail = useTranslations('front.gallery');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
@@ -129,7 +129,20 @@ export function PhotoDetailModal({
     return new Date(date).toLocaleString(locale, { hour12: false });
   };
 
-  const resolution = item.resolution ?? (item.width && item.height ? `${item.width} × ${item.height}` : null);
+  const getExposureProgram = (prog: number | null) => {
+    if (prog === null) return null;
+    return t(`values.exposureProgram.${prog}` as any);
+  };
+
+  const getFlashState = (flash: number | null) => {
+    if (flash === null) return null;
+    const fired = (flash & 1) !== 0;
+    return fired ? t('values.flash.fired') : t('values.flash.off');
+  };
+
+  const resolution = item.resolutionWidth && item.resolutionHeight 
+    ? `${item.resolutionWidth} × ${item.resolutionHeight}`
+    : '-';
   const mp = item.width && item.height ? (item.width * item.height / 1000000).toFixed(2) + ' MP' : null;
   
   // Parse location
@@ -279,33 +292,33 @@ export function PhotoDetailModal({
 
             {/* Shooting Params Grid */}
             <section>
-              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-3">{tDetail('details.camera')}</h3>
+              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-3">{t('details.camera')}</h3>
               <div className="grid grid-cols-2 gap-px bg-gray-100 dark:bg-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
                 <div className="bg-white dark:bg-background-dark p-4 flex flex-col">
                   <div className="flex items-center space-x-2 text-gray-400 mb-1">
                     <Ruler className="w-4 h-4" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider">{tDetail('details.focalLength')}</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.focalLength')}</span>
                   </div>
                   <p className="text-[16px] font-bold">{formatNumber(item.focalLength)} mm</p>
                 </div>
                 <div className="bg-white dark:bg-background-dark p-4 flex flex-col">
                   <div className="flex items-center space-x-2 text-gray-400 mb-1">
                     <Aperture className="w-4 h-4" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider">{tDetail('details.aperture')}</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.aperture')}</span>
                   </div>
                   <p className="text-[16px] font-bold">f/{formatNumber(item.aperture)}</p>
                 </div>
                 <div className="bg-white dark:bg-background-dark p-4 flex flex-col">
                   <div className="flex items-center space-x-2 text-gray-400 mb-1">
                     <Timer className="w-4 h-4" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider">{tDetail('details.shutter')}</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.shutter')}</span>
                   </div>
                   <p className="text-[16px] font-bold">{formatExposure(item.exposure)}</p>
                 </div>
                 <div className="bg-white dark:bg-background-dark p-4 flex flex-col">
                   <div className="flex items-center space-x-2 text-gray-400 mb-1">
                     <Gauge className="w-4 h-4" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider">{tDetail('details.iso')}</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.iso')}</span>
                   </div>
                   <p className="text-[16px] font-bold">{item.iso}</p>
                 </div>
@@ -315,7 +328,7 @@ export function PhotoDetailModal({
             {/* Histogram */}
             <section>
                <div className="flex justify-between items-center mb-3">
-                 <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400">Histogram</h3>
+                 <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400">{t('sections.histogram')}</h3>
                  <div className="flex space-x-1">
                    <div className="w-1.5 h-1.5 rounded-full bg-red-400/80"></div>
                    <div className="w-1.5 h-1.5 rounded-full bg-green-400/80"></div>
@@ -329,12 +342,12 @@ export function PhotoDetailModal({
 
             {/* Equipment Info */}
             <section className="space-y-4">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">{tDetail('details.camera')}</h3>
+              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">{t('sections.equipment')}</h3>
               <div className="grid grid-cols-1 gap-4">
                 <div className="flex items-start space-x-3">
                   <Camera className="w-5 h-5 text-gray-400" />
                   <div className="flex-grow">
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">Camera</p>
+                    <p className="text-[10px] text-gray-400 uppercase font-bold">{t('details.camera')}</p>
                     <p className="text-[13px] font-bold text-gray-800 dark:text-gray-100">
                       {item.maker} {item.camera}
                     </p>
@@ -343,14 +356,14 @@ export function PhotoDetailModal({
                 <div className="flex items-start space-x-3">
                   <Aperture className="w-5 h-5 text-gray-400" />
                   <div className="flex-grow">
-                    <p className="text-[10px] text-gray-400 uppercase font-bold">{tDetail('details.lens')}</p>
+                    <p className="text-[10px] text-gray-400 uppercase font-bold">{t('details.lens')}</p>
                     <p className="text-[13px] font-bold text-gray-800 dark:text-gray-100">{item.lens || '-'}</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                    <Maximize className="w-5 h-5 text-gray-400" />
                    <div className="flex-grow flex justify-between items-end">
-                     <p className="text-[13px] text-gray-500">35mm Equiv.</p>
+                     <p className="text-[13px] text-gray-500">{t('details.focalLength35mm')}</p>
                      <p className="text-[13px] font-bold">{item.focalLengthIn35mmFormat ? `${item.focalLengthIn35mmFormat} mm` : '-'}</p>
                    </div>
                 </div>
@@ -359,16 +372,16 @@ export function PhotoDetailModal({
 
             {/* Basic Info */}
             <section className="space-y-3">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">Basic Info</h3>
+              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">{t('sections.basic')}</h3>
               <div className="space-y-2.5">
-                <InfoRow icon={<FileText className="w-4 h-4" />} label="Filename" value={item.title} />
-                <InfoRow icon={<HardDrive className="w-4 h-4" />} label="File Size" value={formatFileSize(item.size)} />
-                <InfoRow icon={<Maximize className="w-4 h-4" />} label="Resolution" value={resolution} />
-                <InfoRow icon={<Grid className="w-4 h-4" />} label="Megapixels" value={mp} />
-                <InfoRow icon={<Calendar className="w-4 h-4" />} label="Date Shot" value={formatDate(item.dateShot)} />
-                <InfoRow icon={<Palette className="w-4 h-4" />} label="Color Space" value={item.colorSpace || 'sRGB'} />
-                {city && <InfoRow icon={<Building2 className="w-4 h-4" />} label="City" value={city} />}
-                {country && <InfoRow icon={<Flag className="w-4 h-4" />} label="Country" value={country} />}
+                <InfoRow icon={<FileText className="w-4 h-4" />} label={t('details.filename')} value={item.title} />
+                <InfoRow icon={<HardDrive className="w-4 h-4" />} label={t('details.fileSize')} value={formatFileSize(item.size)} />
+                <InfoRow icon={<Maximize className="w-4 h-4" />} label={t('details.resolution')} value={resolution} />
+                <InfoRow icon={<Grid className="w-4 h-4" />} label={t('details.megapixels')} value={mp} />
+                <InfoRow icon={<Calendar className="w-4 h-4" />} label={t('details.dateShot')} value={formatDate(item.dateShot)} />
+                <InfoRow icon={<Palette className="w-4 h-4" />} label={t('details.colorSpace')} value={item.colorSpace || 'sRGB'} />
+                {city && <InfoRow icon={<Building2 className="w-4 h-4" />} label={t('details.city')} value={city} />}
+                {country && <InfoRow icon={<Flag className="w-4 h-4" />} label={t('details.country')} value={country} />}
               </div>
             </section>
 
