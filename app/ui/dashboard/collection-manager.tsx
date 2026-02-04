@@ -154,6 +154,8 @@ export function CollectionManager({
     aperture: null,
     iso: null,
     focalLength: null,
+    flash: null,
+    exposureProgram: null,
     whiteBalance: null,
     gpsLatitude: null,
     gpsLongitude: null,
