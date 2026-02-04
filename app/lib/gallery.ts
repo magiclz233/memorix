@@ -17,6 +17,9 @@ export type GalleryItem = {
   aperture?: number | null;
   iso?: number | null;
   focalLength?: number | null;
+  focalLengthIn35mmFormat?: number | null;
+  colorSpace?: string | null;
+  locationName?: string | null;
   whiteBalance?: string | null;
   gpsLatitude?: number | null;
   gpsLongitude?: number | null;
@@ -84,6 +87,9 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
       aperture: record.aperture ?? null,
       iso: record.iso ?? null,
       focalLength: record.focalLength ?? null,
+      focalLengthIn35mmFormat: record.focalLengthIn35mmFormat ?? null,
+      colorSpace: record.colorSpace ?? null,
+      locationName: record.locationName ?? null,
       whiteBalance: record.whiteBalance ?? null,
       gpsLatitude: record.gpsLatitude ?? null,
       gpsLongitude: record.gpsLongitude ?? null,
