@@ -1,0 +1,1 @@
+ALTER TABLE "photo_metadata" ADD COLUMN "location_name" varchar(255);
