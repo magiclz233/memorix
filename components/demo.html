@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumina - 极致全参数详情面板</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Noto+Sans+SC:wght@300;400;500;700&amp;family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1a1a1a",
+                        "background-light": "#ffffff",
+                        "background-dark": "#0a0a0a",
+                        "border-light": "#f0f0f0",
+                        "info-text": "#666666"
+                    },
+                    fontFamily: {
+                        display: ["Playfair Display", "serif"],
+                        sans: ["Inter", "Noto Sans SC", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                    },
+                },
+            },
+        };
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                font-family: 'Inter', 'Noto Sans SC', sans-serif;
+                -webkit-font-smoothing: antialiased;
+            }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #333;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+            font-size: 20px;
+        }
+        .histogram-bar {
+            width: 2px;
+            margin-right: 1px;
+            min-height: 2px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 transition-colors duration-300 overflow-hidden h-screen flex flex-col">
+<header class="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800 z-50">
+<div class="flex items-center space-x-2">
+<h1 class="font-display text-xl tracking-widest uppercase font-bold text-primary dark:text-white">Lumina</h1>
+</div>
+<nav class="hidden md:flex items-center space-x-8 text-[11px] font-medium uppercase tracking-[0.2em]">
+<a class="text-gray-400 hover:text-primary dark:hover:text-white transition-colors" href="#">首页</a>
+<a class="text-primary dark:text-white" href="#">存档</a>
+<a class="text-gray-400 hover:text-primary dark:hover:text-white transition-colors" href="#">收藏</a>
+<a class="text-gray-400 hover:text-primary dark:hover:text-white transition-colors" href="#">关于</a>
+<div class="flex items-center space-x-4 ml-4">
+<button class="w-8 h-8 rounded-full border border-gray-100 dark:border-gray-800 flex items-center justify-center" onclick="document.documentElement.classList.toggle('dark')">
+<span class="material-symbols-outlined !text-lg">contrast</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border border-gray-100 dark:border-gray-800">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNW2IyASmU9_V2s_kA2eTtnzPadjMqtPMMFlb6IqL4bvYygNl_Mi_JspAEU3ThXghmWvE1h_5G6edCLrnCgADD3w5BxromEuKrTjWLUlxQpPjqIj9Z-YuRjTe8wEovKcIZ6sXwg_xGwT7BGc7fnAsMYEddAKQIwdekxvrSJqySAtK7KwqOQ9Yeu7h70hNy41RTZUJgpYb93G7BxRSog-_78scm64OlEF-2RX1iqDCWpp7SUs7NfD6tizZMiRuk4QvFmA2_RF4Uw0G7"/>
+</button>
+</div>
+</nav>
+</header>
+<main class="flex-grow flex flex-row overflow-hidden bg-[#fafafa] dark:bg-[#050505]">
+<div class="flex-grow flex flex-col relative group">
+<div class="flex-grow flex items-center justify-center p-12 relative">
+<button class="absolute left-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white/80 dark:bg-black/40 hover:bg-white dark:hover:bg-black/60 shadow-sm backdrop-blur transition-all">
+<span class="material-symbols-outlined !text-2xl">chevron_left</span>
+</button>
+<div class="relative max-w-full max-h-full flex items-center justify-center">
+<img alt="Urban Skyline" class="max-w-full max-h-[70vh] object-contain shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] rounded-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARqvuB1Gjr86Ij36Lx76wYDOMGzluad-oLAAvW5OUd_bPOros7rsRc2J9mT0UMkMFZNb6Gjuq5OHSJyYxkuLh0FAAw34JxU858IqN2EEuKYBZzpq1hT38ouT3fhYfpYlmzk4qaZQZCRVyIkcbt72NwKdBcw_i0ACD5yy7y9_06mU94VkEaH08Im0rAIywNCWLe2Xfr_VAMG6dKNSQBvw8H4Ml6epzBqLdJfycCE2Rf-nT-Aej0zo7EHJB9XQ6Q3pqWi6pLcP9dm1WT"/>
+</div>
+<button class="absolute right-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white/80 dark:bg-black/40 hover:bg-white dark:hover:bg-black/60 shadow-sm backdrop-blur transition-all">
+<span class="material-symbols-outlined !text-2xl">chevron_right</span>
+</button>
+</div>
+<div class="h-24 px-8 flex items-center justify-center space-x-3 overflow-x-auto custom-scrollbar">
+<div class="flex-shrink-0 w-14 h-14 rounded-sm border-2 border-primary dark:border-white overflow-hidden shadow-lg ring-2 ring-white/20">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARqvuB1Gjr86Ij36Lx76wYDOMGzluad-oLAAvW5OUd_bPOros7rsRc2J9mT0UMkMFZNb6Gjuq5OHSJyYxkuLh0FAAw34JxU858IqN2EEuKYBZzpq1hT38ouT3fhYfpYlmzk4qaZQZCRVyIkcbt72NwKdBcw_i0ACD5yy7y9_06mU94VkEaH08Im0rAIywNCWLe2Xfr_VAMG6dKNSQBvw8H4Ml6epzBqLdJfycCE2Rf-nT-Aej0zo7EHJB9XQ6Q3pqWi6pLcP9dm1WT"/>
+</div>
+<div class="flex-shrink-0 w-14 h-14 rounded-sm overflow-hidden opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1PVfZt67vhFFp4_5crB6oEud5g3reiex7NpeNWCwIZe_K-pnPwsNXn5Gm8RazYvTiM_BNwuqSbCJkaMXfHFjO2zgn0WctUZwTKIA0En01TUwnvCZ3ICBNW5T8lPWTZwcjDPIdNfnbLY6U2ADN1KhTqVDsCJ2l2NqzQWdLQOGnTgXYNQd7S3oENqzttBKz5wTH1w4DJ5nUw1PHgz9Npdg4p4Zbyv5FfgBBolWr2ZIx3ij2hmMvjFvNIqtl70UC0kFWtoiZkpXjqoW1"/>
+</div>
+<div class="flex-shrink-0 w-14 h-14 rounded-sm overflow-hidden opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB918xtm3XALQhzLoHv1McDwrjEKdvIE1RLokEMup_fSXSq6n-K4UsV1--f9dDwNXDhxF02LScYj-HYnb_9efx1bcTkhMqqj-rQFd5TgITtk2CrJO4jStW9grVrIwOF6uVyAge86rdBNvdD_XWkF1Him7umw6s4WvSDICWHT1FEJk498vZHnVagf-M8HuBRODJOvPDX_wTw4G0w_RcOTj93mH17S2GzpWLPJtekadjGckpeD38erYtTkhhvjEAw4BmJ9NweqFXLVMh7"/>
+</div>
+<div class="flex-shrink-0 w-14 h-14 rounded-sm overflow-hidden opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpgfL45sc0Mo4d4ATik0GX_ad305DyU2lSDc1UTNJ28ZJ1jIzDJBWb0MCpYXC_rnoKu7K0Tns0ciOO5Ao1M0cD5vDSDTMXsDoI9d3GpHXZXCfE1yVUIs45GPOf1mKGhHk5YkK3-_VFf9sRRiYgLQi7VwndbV2yeEuTufvaFq2kAHJ5z5K1hRtrx8r3gs7m4Se2S5P0tCdv8NdvdxEs-VT-Z5eP0MjkTC6AGq1m-9OujPmb84MPlNJCtkbqgRokqb-jSIxn0p8hS9Uh"/>
+</div>
+<div class="flex-shrink-0 w-14 h-14 rounded-sm overflow-hidden opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5PxH9xrDIB_wgPHUw1JF3bZ1mKj9DBXvJ8qQG9Rbn6USTa-4w-VwotMWceq0v92ripApIrr92itj-tIp9IBX-gb499MAjHrYCwXaa_RQwRjk1kIJl9mWUNjFe_wTL6JqH1TTlozVNTcz0L1epYUguaNOIV5v4Xd1x9zvo7nhCWcgKwu0TK7MeL1MCPzs6giTHs44O0InrmF0dGoGSs72Tyqk802fgX3IZhTFgNj8jaZmrjXVkafJuylqH1HsZxq3eBVMpF2sanQEI"/>
+</div>
+</div>
+</div>
+<aside class="w-[420px] flex-shrink-0 bg-white dark:bg-background-dark border-l border-gray-100 dark:border-gray-800 flex flex-col h-full overflow-y-auto custom-scrollbar">
+<div class="p-6 space-y-8">
+<section class="flex justify-between items-start">
+<h2 class="text-lg font-bold tracking-tight text-primary dark:text-white leading-tight pr-4">IMG_9802.jpg</h2>
+<div class="flex items-center space-x-3 mt-1">
+<button class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="收藏">
+<span class="material-symbols-outlined !text-[22px]">favorite</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary dark:hover:text-white transition-colors" title="下载">
+<span class="material-symbols-outlined !text-[22px]">download</span>
+</button>
+</div>
+</section>
+<section>
+<div class="relative h-40 w-full bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 mb-2">
+<img alt="Map" class="w-full h-full object-cover grayscale dark:invert opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzcOHpyek7fS7gYPuICIHuPhbAP9eUOdBmDBL5F97UPuy-W7SugZkxZFx2D_rx_jO5YxtkTh42U8d5WUcB9dnjiETr6BOi4jB8pzBkdWfVa1jDboLOSP81zAmsWSkdHjhAm4Y_UsvggoIjjmSoHJd0Zv8w9taSR2LaDgdY457HV9TEV_nC6ZT-TqWut-0orxejmF3lcFcXBIhtEct_h9W8WIGDc2Um7YvSZEl0L1Li7jT_qqNmWBsINc_Yxlluf3f84jPkuanknQL3"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="relative">
+<div class="w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-lg"></div>
+<div class="absolute -inset-2 bg-red-500/30 rounded-full animate-ping"></div>
+</div>
+</div>
+</div>
+<div class="flex items-center space-x-2 text-[11px] text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined !text-[14px]">location_on</span>
+<span>31°28′26.61″N 104°41′14.53″E</span>
+</div>
+</section>
+<section>
+<h3 class="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-3">拍摄参数</h3>
+<div class="grid grid-cols-2 gap-px bg-gray-100 dark:bg-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+<div class="bg-white dark:bg-background-dark p-4 flex flex-col">
+<div class="flex items-center space-x-2 text-gray-400 mb-1">
+<span class="material-symbols-outlined !text-[16px]">straighten</span>
+<span class="text-[10px] uppercase font-bold tracking-wider">焦距</span>
+</div>
+<p class="text-[16px] font-bold">297 mm</p>
+</div>
+<div class="bg-white dark:bg-background-dark p-4 flex flex-col">
+<div class="flex items-center space-x-2 text-gray-400 mb-1">
+<span class="material-symbols-outlined !text-[16px]">camera</span>
+<span class="text-[10px] uppercase font-bold tracking-wider">光圈</span>
+</div>
+<p class="text-[16px] font-bold">f/2.8</p>
+</div>
+<div class="bg-white dark:bg-background-dark p-4 flex flex-col">
+<div class="flex items-center space-x-2 text-gray-400 mb-1">
+<span class="material-symbols-outlined !text-[16px]">shutter_speed</span>
+<span class="text-[10px] uppercase font-bold tracking-wider">曝光时间</span>
+</div>
+<p class="text-[16px] font-bold">1/100 s</p>
+</div>
+<div class="bg-white dark:bg-background-dark p-4 flex flex-col">
+<div class="flex items-center space-x-2 text-gray-400 mb-1">
+<span class="material-symbols-outlined !text-[16px]">iso</span>
+<span class="text-[10px] uppercase font-bold tracking-wider">ISO</span>
+</div>
+<p class="text-[16px] font-bold">40</p>
+</div>
+</div>
+</section>
+<section>
+<div class="flex justify-between items-center mb-3">
+<h3 class="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400">直方图</h3>
+<div class="flex space-x-1">
+<div class="w-1.5 h-1.5 rounded-full bg-red-400/80"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-green-400/80"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-blue-400/80"></div>
+</div>
+</div>
+<div class="h-20 w-full bg-gray-50/50 dark:bg-gray-900/50 rounded-lg flex items-end justify-between px-2 py-1 overflow-hidden border border-gray-100 dark:border-gray-800">
+<div class="histogram-bar bg-blue-400/60 h-[30%]"></div><div class="histogram-bar bg-blue-400/60 h-[45%]"></div><div class="histogram-bar bg-blue-400/60 h-[70%]"></div>
+<div class="histogram-bar bg-green-400/60 h-[90%]"></div><div class="histogram-bar bg-green-400/60 h-[75%]"></div><div class="histogram-bar bg-green-400/60 h-[50%]"></div>
+<div class="histogram-bar bg-red-400/60 h-[30%]"></div><div class="histogram-bar bg-red-400/60 h-[25%]"></div><div class="histogram-bar bg-red-400/60 h-[40%]"></div>
+<div class="histogram-bar bg-gray-400/60 h-[65%]"></div><div class="histogram-bar bg-gray-400/60 h-[85%]"></div><div class="histogram-bar bg-gray-400/60 h-[55%]"></div>
+<div class="histogram-bar bg-blue-400/60 h-[30%]"></div><div class="histogram-bar bg-green-400/60 h-[15%]"></div><div class="histogram-bar bg-red-400/60 h-[25%]"></div>
+<div class="histogram-bar bg-gray-400/60 h-[50%]"></div><div class="histogram-bar bg-gray-400/60 h-[75%]"></div><div class="histogram-bar bg-gray-400/60 h-[95%]"></div>
+<div class="histogram-bar bg-blue-400/60 h-[70%]"></div><div class="histogram-bar bg-green-400/60 h-[40%]"></div><div class="histogram-bar bg-red-400/60 h-[20%]"></div>
+</div>
+</section>
+<section class="space-y-4">
+<h3 class="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">设备信息</h3>
+<div class="grid grid-cols-1 gap-4">
+<div class="flex items-start space-x-3">
+<span class="material-symbols-outlined text-gray-400">camera_alt</span>
+<div class="flex-grow">
+<p class="text-[10px] text-gray-400 uppercase font-bold">相机</p>
+<p class="text-[13px] font-bold text-gray-800 dark:text-gray-100">Apple iPhone 14 Pro Max</p>
+</div>
+</div>
+<div class="flex items-start space-x-3">
+<span class="material-symbols-outlined text-gray-400">lens</span>
+<div class="flex-grow">
+<p class="text-[10px] text-gray-400 uppercase font-bold">镜头</p>
+<p class="text-[13px] font-bold text-gray-800 dark:text-gray-100">back triple camera 9mm f/2.8</p>
+</div>
+</div>
+<div class="flex items-start space-x-3">
+<span class="material-symbols-outlined text-gray-400">crop_free</span>
+<div class="flex-grow flex justify-between items-end">
+<p class="text-[13px] text-gray-500">35mm 等效焦距</p>
+<p class="text-[13px] font-bold">297 mm</p>
+</div>
+</div>
+</div>
+</section>
+<section class="space-y-3">
+<h3 class="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">基本信息</h3>
+<div class="space-y-2.5">
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">description</span>
+<span>文件名</span>
+</div>
+<span class="font-semibold">IMG_9802.jpg</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">data_usage</span>
+<span>文件大小</span>
+</div>
+<span class="font-semibold">3.4 MB</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">aspect_ratio</span>
+<span>分辨率</span>
+</div>
+<span class="font-semibold">3024 × 4032</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">grid_view</span>
+<span>像素</span>
+</div>
+<span class="font-semibold">12.19 MP</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">schedule</span>
+<span>拍摄时间</span>
+</div>
+<span class="font-semibold">2025/09/01 19:06</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">palette</span>
+<span>色彩空间</span>
+</div>
+<span class="font-semibold">sRGB</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">person</span>
+<span>艺术家</span>
+</div>
+<span class="font-semibold">Timothy Yin</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">computer</span>
+<span>软件</span>
+</div>
+<span class="font-semibold">Capture One Macintosh</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">public</span>
+<span>时区</span>
+</div>
+<span class="font-semibold">UTC+8</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">flag</span>
+<span>国家</span>
+</div>
+<span class="font-semibold">中国</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<div class="flex items-center space-x-2 text-gray-400">
+<span class="material-symbols-outlined !text-[16px]">location_city</span>
+<span>城市</span>
+</div>
+<span class="font-semibold">涪城区</span>
+</div>
+</div>
+</section>
+<section class="space-y-3">
+<h3 class="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">拍摄模式</h3>
+<div class="space-y-2.5">
+<div class="flex justify-between text-[12px]">
+<span class="text-gray-400">白平衡</span>
+<span class="font-semibold">自动</span>
+</div>
+<div class="flex justify-between text-[12px]">
+<span class="text-gray-400">曝光程序</span>
+<span class="font-semibold">程序自动曝光</span>
+</div>
+<div class="flex justify-between text-[12px]">
+<span class="text-gray-400">曝光模式</span>
+<span class="font-semibold">自动</span>
+</div>
+<div class="flex justify-between text-[12px]">
+<span class="text-gray-400">测光模式</span>
+<span class="font-semibold">矩阵测光</span>
+</div>
+<div class="flex justify-between text-[12px]">
+<span class="text-gray-400">闪光灯</span>
+<span class="font-semibold">关闭，未闪光</span>
+</div>
+<div class="flex justify-between text-[12px]">
+<span class="text-gray-400">场景捕捉类型</span>
+<span class="font-semibold">标准</span>
+</div>
+</div>
+</section>
+<section class="space-y-3">
+<h3 class="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">技术参数</h3>
+<div class="space-y-2.5">
+<div class="flex justify-between text-[12px]">
+<span class="text-gray-400">亮度</span>
+<span class="font-semibold">5.7 EV</span>
+</div>
+<div class="flex justify-between text-[12px]">
+<span class="text-gray-400">感光方式</span>
+<span class="font-semibold">单片彩色区域传感器</span>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-3">包含的相册</h3>
+<div class="p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 rounded-xl">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden">
+<img alt="Album Cover" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpgfL45sc0Mo4d4ATik0GX_ad305DyU2lSDc1UTNJ28ZJ1jIzDJBWb0MCpYXC_rnoKu7K0Tns0ciOO5Ao1M0cD5vDSDTMXsDoI9d3GpHXZXCfE1yVUIs45GPOf1mKGhHk5YkK3-_VFf9sRRiYgLQi7VwndbV2yeEuTufvaFq2kAHJ5z5K1hRtrx8r3gs7m4Se2S5P0tCdv8NdvdxEs-VT-Z5eP0MjkTC6AGq1m-9OujPmb84MPlNJCtkbqgRokqb-jSIxn0p8hS9Uh"/>
+</div>
+<div>
+<h4 class="text-xs font-bold">好看的云</h4>
+<p class="text-[10px] text-gray-400 line-clamp-1">天空爱好者，云朵收藏家。随手记录的美好事物</p>
+</div>
+</div>
+</div>
+</section>
+<div class="pt-4">
+<button class="w-full bg-primary dark:bg-white text-white dark:text-primary py-3.5 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-lg flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined !text-[18px]">cloud_download</span>
+<span>下载原始图像</span>
+</button>
+</div>
+</div>
+</aside>
+</main>
+<footer class="bg-white dark:bg-background-dark px-8 py-3 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center z-50">
+<div class="flex items-center space-x-10">
+<div class="flex items-center space-x-3">
+<span class="text-[10px] uppercase tracking-[0.15em] font-semibold text-gray-400">媒体库索引</span>
+<span class="text-xs font-bold font-mono text-primary dark:text-white">12 / 480</span>
+</div>
+<div class="w-48 h-[1px] bg-gray-100 dark:bg-gray-800 rounded-full relative hidden sm:block">
+<div class="absolute top-0 left-0 h-full bg-primary dark:bg-white w-[2.5%]"></div>
+</div>
+</div>
+<div class="flex items-center space-x-8">
+<div class="flex items-center space-x-3 text-[10px] text-gray-400 uppercase tracking-widest font-medium">
+<span class="px-2 py-1 border border-gray-100 dark:border-gray-800 rounded bg-gray-50 dark:bg-gray-900">←</span>
+<span class="px-2 py-1 border border-gray-100 dark:border-gray-800 rounded bg-gray-50 dark:bg-gray-900">→</span>
+<span class="opacity-70">快捷键导航</span>
+</div>
+<button class="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 hover:text-primary dark:hover:text-white transition-colors">关闭预览</button>
+</div>
+</footer>
+
+</body></html>
