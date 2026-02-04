@@ -146,12 +146,18 @@ export const photoMetadata = pgTable('photo_metadata', {
   iso: bigint('iso', { mode: 'number' }),
   // 焦距
   focalLength: doublePrecision('focal_length'),
+  // 35mm 等效焦距
+  focalLengthIn35mmFormat: integer('focal_length_in_35mm_format'),
   // 闪光灯状态
   flash: integer('flash'),
   // 方向
   orientation: integer('orientation'),
   // 曝光程序
   exposureProgram: integer('exposure_program'),
+  // 色彩空间
+  colorSpace: varchar('color_space', { length: 32 }),
+  // 拍摄地点名称 (城市, 国家)
+  locationName: varchar('location_name', { length: 255 }),
   // GPS 纬度
   gpsLatitude: doublePrecision('gps_latitude'),
   // GPS 经度
