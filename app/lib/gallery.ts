@@ -18,6 +18,8 @@ export type GalleryItem = {
   iso?: number | null;
   focalLength?: number | null;
   focalLengthIn35mmFormat?: number | null;
+  flash?: number | null;
+  exposureProgram?: number | null;
   colorSpace?: string | null;
   locationName?: string | null;
   whiteBalance?: string | null;
@@ -88,6 +90,8 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
       iso: record.iso ?? null,
       focalLength: record.focalLength ?? null,
       focalLengthIn35mmFormat: record.focalLengthIn35mmFormat ?? null,
+      flash: record.flash ?? null,
+      exposureProgram: record.exposureProgram ?? null,
       colorSpace: record.colorSpace ?? null,
       locationName: record.locationName ?? null,
       whiteBalance: record.whiteBalance ?? null,
