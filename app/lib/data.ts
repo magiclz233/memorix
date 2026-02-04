@@ -1007,6 +1007,8 @@ export async function fetchPublishedMediaForGallery(
         iso: photoMetadata.iso,
         focalLength: photoMetadata.focalLength,
         focalLengthIn35mmFormat: photoMetadata.focalLengthIn35mmFormat,
+        flash: photoMetadata.flash,
+        exposureProgram: photoMetadata.exposureProgram,
         colorSpace: photoMetadata.colorSpace,
         locationName: photoMetadata.locationName,
         whiteBalance: photoMetadata.whiteBalance,
