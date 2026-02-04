@@ -63,6 +63,9 @@ export type ParsedPhotoMetadata = {
   resolutionWidth?: number | null;
   resolutionHeight?: number | null;
   whiteBalance?: string | null;
+  focalLengthIn35mmFormat?: number | null;
+  colorSpace?: string | null;
+  locationName?: string | null;
   // Motion Photo Info
   motionPhoto?: boolean;
   videoOffset?: number | null;
@@ -398,6 +401,7 @@ export async function readPhotoMetadata(filePath: string) {
         exif: true,
         gps: true,
         xmp: true,
+        iptc: true,
       });
     } catch (error) {
       console.warn('Failed to read EXIF, ignored:', filePath, error);
@@ -489,6 +493,24 @@ export async function readPhotoMetadata(filePath: string) {
     whiteBalance: normalizeWhiteBalance(
       (safeMetadata as { WhiteBalance?: unknown }).WhiteBalance,
     ),
+    focalLengthIn35mmFormat:
+      typeof (safeMetadata as { FocalLengthIn35mmFormat?: unknown }).FocalLengthIn35mmFormat ===
+      'number'
+        ? ((safeMetadata as { FocalLengthIn35mmFormat?: number }).FocalLengthIn35mmFormat ?? null)
+        : null,
+    colorSpace: (() => {
+      const cs = (safeMetadata as { ColorSpace?: unknown }).ColorSpace;
+      if (typeof cs === 'number')
+        return cs === 1 ? 'sRGB' : cs === 65535 ? 'Uncalibrated' : `${cs}`;
+      return typeof cs === 'string' ? cs : null;
+    })(),
+    locationName:
+      [
+        (safeMetadata as { City?: string }).City,
+        (safeMetadata as { Country?: string }).Country,
+      ]
+        .filter(Boolean)
+        .join(', ') || null,
     motionPhoto: false,
     videoOffset: null,
   };
