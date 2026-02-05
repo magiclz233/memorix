@@ -58,7 +58,7 @@ export function PhotoDetailModal({
   hasNext,
   locale
 }: PhotoDetailModalProps) {
-  const t = useTranslations('front');
+  const t = useTranslations('front.galleryGrid');
 
   // Lock body scroll
   useEffect(() => {
@@ -196,13 +196,13 @@ function PhotoDetailContent({
 
   const getExposureProgram = (prog: number | null) => {
     if (prog === null) return null;
-    return t(`galleryGrid.values.exposureProgram.${prog}` as any);
+    return t(`values.exposureProgram.${prog}` as any);
   };
 
   const getFlashState = (flash: number | null) => {
     if (flash === null) return null;
     const fired = (flash & 1) !== 0;
-    return fired ? t('galleryGrid.values.flash.fired') : t('galleryGrid.values.flash.off');
+    return fired ? t('values.flash.fired') : t('values.flash.off');
   };
 
   const resolution = item.width && item.height 
@@ -244,26 +244,6 @@ function PhotoDetailContent({
             </Button>
           </div>
           <div className="pointer-events-auto flex items-center gap-2">
-            {isLive && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onMouseEnter={() => setIsLivePreviewing(true)}
-                onMouseLeave={() => {
-                  setIsLivePreviewing(false);
-                  setIsBuffering(false);
-                }}
-                onFocus={() => setIsLivePreviewing(true)}
-                onBlur={() => {
-                  setIsLivePreviewing(false);
-                  setIsBuffering(false);
-                }}
-                aria-label={item.liveType === 'embedded' ? tMedia('motionPhoto') : tMedia('livePhoto')}
-                className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80"
-              >
-                <Sparkles className="h-4 w-4" />
-              </Button>
-            )}
             <Button
               variant="ghost"
               size="sm"
@@ -300,9 +280,9 @@ function PhotoDetailContent({
                 exit="exit"
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className={cn(
-                  "absolute inset-0 flex items-center justify-center w-full h-full",
-                  isFrame ? "p-0" : "p-0"
-                )}
+                    "absolute inset-0 flex items-center justify-center w-full h-full",
+                    isFrame ? "p-8 pt-20 md:p-12 md:pt-24" : "p-0"
+                  )}
               >
                 {(() => {
                   const hasDimensions = !!(item.width && item.height);
@@ -315,7 +295,7 @@ function PhotoDetailContent({
                   const containerClass = useShrinkWrap
                     ? 'relative flex max-w-full max-h-full shadow-2xl rounded-sm overflow-hidden transition-all duration-300'
                     : isFrame
-                      ? 'relative w-full h-full bg-white dark:bg-zinc-100 shadow-none overflow-hidden transition-all duration-300'
+                      ? 'relative w-full h-full bg-white dark:bg-zinc-100 shadow-2xl overflow-hidden transition-all duration-300'
                       : 'relative w-full h-full overflow-hidden bg-black'; // Fallback
 
                   return (
@@ -329,13 +309,35 @@ function PhotoDetailContent({
                         height={useShrinkWrap ? (item.height || undefined) : undefined}
                         className={cn(
                           useShrinkWrap
-                            ? 'w-auto h-auto max-w-full max-h-[85vh] object-contain block'
+                            ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
                             : 'object-contain',
                           isFrame && 'p-8 md:p-16' // Add padding to image in Frame mode to create "matting" effect
                         )}
                         sizes="100vw"
                         priority
                       />
+
+                      {isLive && (
+                         <div 
+                           className={cn(
+                             "absolute top-3 right-3 z-30",
+                             isFrame && "top-3 right-3" 
+                           )}
+                         >
+                            <div
+                               role="button"
+                               className="w-8 h-8 flex items-center justify-center rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-md text-white transition-all cursor-pointer"
+                               onMouseEnter={() => setIsLivePreviewing(true)}
+                               onMouseLeave={() => {
+                                 setIsLivePreviewing(false);
+                                 setIsBuffering(false);
+                               }}
+                               aria-label={item.liveType === 'embedded' ? tMedia('motionPhoto') : tMedia('livePhoto')}
+                            >
+                              <Sparkles className="w-4 h-4" />
+                            </div>
+                         </div>
+                      )}
 
                       {canPlayVideo && isPlaying && (
                         <video
@@ -365,7 +367,7 @@ function PhotoDetailContent({
                           playsInline
                           className={cn(
                             'absolute z-10 inset-0 w-full h-full',
-                            isFrame ? 'object-contain p-6 md:p-12' : 'object-contain'
+                            isFrame ? 'object-contain p-8 md:p-16' : 'object-contain'
                           )}
                           onLoadStart={() => setIsBuffering(true)}
                           onWaiting={() => setIsBuffering(true)}
