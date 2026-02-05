@@ -26,7 +26,8 @@ import {
   Building2,
   X,
   Play,
-  Loader2
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import { Button } from '@/components/ui/button';
@@ -57,7 +58,7 @@ export function PhotoDetailModal({
   hasNext,
   locale
 }: PhotoDetailModalProps) {
-  const t = useTranslations('front.galleryGrid');
+  const t = useTranslations('front');
 
   // Lock body scroll
   useEffect(() => {
@@ -87,19 +88,20 @@ export function PhotoDetailModal({
 
   const modalContent = (
     <AnimatePresence>
-      <PhotoDetailContent
-        key={selectedItem.id}
-        item={selectedItem}
-        items={items}
-        onSelect={onSelect}
-        onClose={onClose}
-        onPrev={onPrev}
-        onNext={onNext}
-        hasPrev={hasPrev}
-        hasNext={hasNext}
-        locale={locale}
-        t={t}
-      />
+      {selectedItem && (
+        <PhotoDetailContent
+          item={selectedItem}
+          items={items}
+          onSelect={onSelect}
+          onClose={onClose}
+          onPrev={onPrev}
+          onNext={onNext}
+          hasPrev={hasPrev}
+          hasNext={hasNext}
+          locale={locale}
+          t={t}
+        />
+      )}
     </AnimatePresence>
   );
 
@@ -129,11 +131,41 @@ function PhotoDetailContent({
   locale: string;
   t: ReturnType<typeof useTranslations>;
 }) {
+  const tMedia = useTranslations('front.media');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [isLivePreviewing, setIsLivePreviewing] = useState(false);
+  const [viewMode, setViewMode] = useState<'fit' | 'frame'>('fit');
+  
+  // Track direction for animation
+  const [direction, setDirection] = useState(0);
+  const [lastItemId, setLastItemId] = useState(item.id);
+
+  const isFrame = viewMode === 'frame';
+  
+  if (item.id !== lastItemId) {
+    const prevIdx = items.findIndex((i) => i.id === lastItemId);
+    const currIdx = items.findIndex((i) => i.id === item.id);
+    // Handle edge case where index might not be found or wrap around logic if needed
+    // Simple logic: if moving forward (curr > prev) or wrapping from end to start (prev is last, curr is 0)
+    // For now, simple index comparison is sufficient for linear navigation
+    const dir = currIdx > prevIdx ? 1 : -1;
+    setDirection(dir);
+    
+    // Reset states
+    setIsPlaying(false);
+    setIsBuffering(false);
+    setIsLivePreviewing(false);
+    
+    setLastItemId(item.id);
+  }
+
+  // Reset states on item change
+  // Removed useEffect to avoid cascading renders, handled in render phase above
+  
   const isVideo = item.type === 'video';
   const isLive = item.liveType && item.liveType !== 'none';
-  const canPlay = isVideo || isLive;
+  const canPlayVideo = isVideo;
   const videoSrc = item.videoUrl ?? `/api/media/stream/${item.id}`;
 
   const formatNumber = (val?: number | null, digits = 1) => 
@@ -164,17 +196,17 @@ function PhotoDetailContent({
 
   const getExposureProgram = (prog: number | null) => {
     if (prog === null) return null;
-    return t(`values.exposureProgram.${prog}` as any);
+    return t(`galleryGrid.values.exposureProgram.${prog}` as any);
   };
 
   const getFlashState = (flash: number | null) => {
     if (flash === null) return null;
     const fired = (flash & 1) !== 0;
-    return fired ? t('values.flash.fired') : t('values.flash.off');
+    return fired ? t('galleryGrid.values.flash.fired') : t('galleryGrid.values.flash.off');
   };
 
-  const resolution = item.resolutionWidth && item.resolutionHeight 
-    ? `${item.resolutionWidth} × ${item.resolutionHeight}`
+  const resolution = item.width && item.height 
+    ? `${item.width} × ${item.height}`
     : '-';
   const mp = item.width && item.height ? (item.width * item.height / 1000000).toFixed(2) + ' MP' : null;
   const focalLength = formatNumber(item.focalLength);
@@ -206,14 +238,44 @@ function PhotoDetailContent({
     >
       <div className="flex-grow flex flex-col relative group h-full overflow-hidden bg-[#fafafa] dark:bg-[#050505]">
         <div className="absolute top-0 left-0 right-0 z-50 p-4 flex justify-between items-start pointer-events-none">
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80">
               <X className="h-5 w-5" />
             </Button>
           </div>
+          <div className="pointer-events-auto flex items-center gap-2">
+            {isLive && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onMouseEnter={() => setIsLivePreviewing(true)}
+                onMouseLeave={() => {
+                  setIsLivePreviewing(false);
+                  setIsBuffering(false);
+                }}
+                onFocus={() => setIsLivePreviewing(true)}
+                onBlur={() => {
+                  setIsLivePreviewing(false);
+                  setIsBuffering(false);
+                }}
+                aria-label={item.liveType === 'embedded' ? tMedia('motionPhoto') : tMedia('livePhoto')}
+                className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setViewMode((prev) => (prev === 'fit' ? 'frame' : 'fit'))}
+              className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80"
+            >
+              {viewMode === 'fit' ? t('modal.viewFrame') : t('modal.viewOriginal')}
+            </Button>
+          </div>
         </div>
 
-        <div className="flex-grow flex items-center justify-center p-4 md:p-12 relative h-full">
+        <div className="flex-grow flex items-center justify-center relative h-full">
           {hasPrev && (
             <button 
               onClick={(e) => { e.stopPropagation(); onPrev(); }}
@@ -223,52 +285,121 @@ function PhotoDetailContent({
             </button>
           )}
           
-          <div className="relative w-full h-full flex items-center justify-center">
-             <div className="relative max-w-full max-h-full aspect-[4/3] md:aspect-auto" style={{ aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : undefined }}>
-              <BlurImage
-                  src={item.src}
-                  alt={item.title}
-                  blurHash={item.blurHash}
-                  fill
-                  className={cn("object-contain shadow-2xl rounded-sm", isPlaying && "hidden")}
-                  sizes="100vw"
-                  priority
-                />
-                
-                {canPlay && isPlaying && (
-                  <video
-                    src={videoSrc}
-                    autoPlay
-                    controls
-                    className="max-w-full max-h-full object-contain shadow-2xl rounded-sm w-full h-full"
-                    onLoadStart={() => setIsBuffering(true)}
-                    onWaiting={() => setIsBuffering(true)}
-                    onCanPlay={() => setIsBuffering(false)}
-                    onPlaying={() => setIsBuffering(false)}
-                    onError={() => {
-                      setIsPlaying(false);
-                      setIsBuffering(false);
-                    }}
-                  />
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            <AnimatePresence initial={false} custom={direction} mode="popLayout">
+              <motion.div
+                key={item.id}
+                custom={direction}
+                variants={{
+                  enter: (dir: number) => ({ x: dir * 50, opacity: 0 }),
+                  center: { x: 0, opacity: 1 },
+                  exit: (dir: number) => ({ x: dir * -50, opacity: 0 }),
+                }}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className={cn(
+                  "absolute inset-0 flex items-center justify-center w-full h-full",
+                  isFrame ? "p-0" : "p-0"
                 )}
+              >
+                {(() => {
+                  const hasDimensions = !!(item.width && item.height);
+                  const isFrame = viewMode === 'frame';
+                  const useShrinkWrap = !isFrame && hasDimensions; // Only shrink-wrap in Fit mode
 
-                {canPlay && !isPlaying && (
-                  <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <button 
-                      onClick={() => setIsPlaying(true)}
-                      className="h-20 w-20 rounded-full bg-black/30 flex items-center justify-center backdrop-blur-sm transition hover:scale-110 hover:bg-black/50 group/play"
-                    >
-                       <Play className="h-10 w-10 fill-white text-white opacity-90 group-hover/play:opacity-100" />
-                    </button>
-                  </div>
-                )}
+                  // Mode 1 (Fit): Image itself has shadow/rounded, no extra border.
+                  // Mode 2 (Frame): Large white container (fills screen area), image centered inside with padding (matting).
+                  
+                  const containerClass = useShrinkWrap
+                    ? 'relative flex max-w-full max-h-full shadow-2xl rounded-sm overflow-hidden transition-all duration-300'
+                    : isFrame
+                      ? 'relative w-full h-full bg-white dark:bg-zinc-100 shadow-none overflow-hidden transition-all duration-300'
+                      : 'relative w-full h-full overflow-hidden bg-black'; // Fallback
 
-                {isBuffering && (
-                   <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-                     <Loader2 className="h-12 w-12 animate-spin text-white" />
-                   </div>
-                )}
-             </div>
+                  return (
+                    <div className={containerClass}>
+                      <BlurImage
+                        src={item.src}
+                        alt={item.title}
+                        blurHash={item.blurHash}
+                        fill={!useShrinkWrap}
+                        width={useShrinkWrap ? (item.width || undefined) : undefined}
+                        height={useShrinkWrap ? (item.height || undefined) : undefined}
+                        className={cn(
+                          useShrinkWrap
+                            ? 'w-auto h-auto max-w-full max-h-[85vh] object-contain block'
+                            : 'object-contain',
+                          isFrame && 'p-8 md:p-16' // Add padding to image in Frame mode to create "matting" effect
+                        )}
+                        sizes="100vw"
+                        priority
+                      />
+
+                      {canPlayVideo && isPlaying && (
+                        <video
+                          src={videoSrc}
+                          autoPlay
+                          controls
+                          className={cn(
+                            'absolute inset-0 w-full h-full z-10',
+                            isFrame ? 'object-contain p-8 md:p-16' : 'object-contain bg-black'
+                          )}
+                          onLoadStart={() => setIsBuffering(true)}
+                          onWaiting={() => setIsBuffering(true)}
+                          onCanPlay={() => setIsBuffering(false)}
+                          onPlaying={() => setIsBuffering(false)}
+                          onError={() => {
+                            setIsPlaying(false);
+                            setIsBuffering(false);
+                          }}
+                        />
+                      )}
+
+                      {isLive && isLivePreviewing && (
+                        <video
+                          src={videoSrc}
+                          autoPlay
+                          muted
+                          playsInline
+                          className={cn(
+                            'absolute z-10 inset-0 w-full h-full',
+                            isFrame ? 'object-contain p-6 md:p-12' : 'object-contain'
+                          )}
+                          onLoadStart={() => setIsBuffering(true)}
+                          onWaiting={() => setIsBuffering(true)}
+                          onCanPlay={() => setIsBuffering(false)}
+                          onPlaying={() => setIsBuffering(false)}
+                          onEnded={() => setIsLivePreviewing(false)}
+                          onError={() => {
+                            setIsLivePreviewing(false);
+                            setIsBuffering(false);
+                          }}
+                        />
+                      )}
+
+                      {canPlayVideo && !isPlaying && (
+                        <div className="absolute inset-0 flex items-center justify-center z-20">
+                          <button
+                            onClick={() => setIsPlaying(true)}
+                            className="h-20 w-20 rounded-full bg-black/30 flex items-center justify-center backdrop-blur-sm transition hover:scale-110 hover:bg-black/50 group/play"
+                          >
+                            <Play className="h-10 w-10 fill-white text-white opacity-90 group-hover/play:opacity-100" />
+                          </button>
+                        </div>
+                      )}
+
+                      {isBuffering && (
+                        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+                          <Loader2 className="h-12 w-12 animate-spin text-white" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {hasNext && (
@@ -399,7 +530,7 @@ function PhotoDetailContent({
                </div>
              </div>
              <div className="h-24 w-full bg-gray-50/50 dark:bg-gray-900/50 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 p-2">
-                <Histogram src={item.thumbUrl || item.src} className="w-full h-full" />
+                <Histogram src={item.src} className="w-full h-full" />
              </div>
           </section>
 
