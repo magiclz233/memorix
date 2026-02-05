@@ -85,12 +85,12 @@
     },
     "home": {
       "carousel": {
-        "prev": "上一张",
+        "action": "浏览作品集",
         "next": "下一张"
       },
       "hero": {
         "eyebrow": "光影 / 视界",
-        "title": "LUMINA 视界",
+        "title": "Lumina Pro",
         "description": "将沉浸式光影与极简排版融合成统一视觉语言，让每一帧影像都成为可收藏的光之记忆。",
         "primaryCta": "进入画廊",
         "secondaryCta": "浏览作品集"
@@ -356,6 +356,8 @@
         "closeAria": "关闭",
         "viewFit": "适配",
         "viewCrop": "裁切",
+        "viewFrame": "相框模式",
+        "viewOriginal": "沉浸模式",
         "close": "关闭",
         "prev": "上一张",
         "next": "下一张"

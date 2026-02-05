@@ -73,6 +73,10 @@
     }
   },
   "front": {
+    "modal": {
+      "viewFrame": "Frame View",
+      "viewOriginal": "Original View"
+    },
     "footer": {
       "title": "Lumina Archive",
       "subtitle": "Recording the meeting point of light, city, and cosmos.",
@@ -356,6 +360,8 @@
         "closeAria": "Close",
         "viewFit": "Fit",
         "viewCrop": "Crop",
+        "viewFrame": "Frame View",
+        "viewOriginal": "Original View",
         "close": "Close",
         "prev": "Previous",
         "next": "Next"
