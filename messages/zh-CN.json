@@ -73,11 +73,7 @@
     }
   },
   "front": {
-    "modal": {
-        "viewFrame": "相框模式",
-        "viewOriginal": "沉浸模式"
-      },
-      "footer": {
+    "footer": {
       "title": "Lumina Archive",
       "subtitle": "用光线记录宇宙与城市的交汇。",
       "links": {
@@ -387,6 +383,7 @@
         "whiteBalance": "白平衡",
         "coordinates": "拍摄坐标",
         "dateShot": "拍摄时间",
+        "takenAt": "拍摄时间",
         "fileSize": "文件大小",
         "filename": "文件名",
         "megapixels": "像素",

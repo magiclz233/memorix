@@ -73,11 +73,7 @@
     }
   },
   "front": {
-    "modal": {
-        "viewFrame": "Frame View",
-        "viewOriginal": "Original View"
-      },
-      "footer": {
+    "footer": {
       "title": "Lumina Archive",
       "subtitle": "Recording the meeting point of light, city, and cosmos.",
       "links": {
@@ -382,11 +378,12 @@
         "aperture": "Aperture",
         "shutter": "Shutter",
         "iso": "ISO",
-        "focalLength": "Focal length",
+        "focalLength": "Focal Length",
         "focalLength35mm": "35mm Equiv.",
         "whiteBalance": "White Balance",
         "coordinates": "Coordinates",
         "dateShot": "Date shot",
+        "takenAt": "Taken At",
         "fileSize": "File size",
         "filename": "Filename",
         "megapixels": "Megapixels",
