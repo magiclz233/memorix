@@ -74,10 +74,10 @@
   },
   "front": {
     "modal": {
-      "viewFrame": "Frame View",
-      "viewOriginal": "Original View"
-    },
-    "footer": {
+        "viewFrame": "Frame View",
+        "viewOriginal": "Original View"
+      },
+      "footer": {
       "title": "Lumina Archive",
       "subtitle": "Recording the meeting point of light, city, and cosmos.",
       "links": {
