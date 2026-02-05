@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { Play } from 'lucide-react';
+import { Play, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -416,12 +416,16 @@ const Gallery25 = ({
                   const isLive = item.liveType && item.liveType !== 'none';
                   const isAnimated = Boolean(item.isAnimated && item.animatedUrl);
                   const isPlaying = hoveredId === item.id;
-                  const canPreview = isVideo || isAnimated || Boolean(isLive);
+                  const canPreview = isVideo || isAnimated;
                   const previewVideoSrc = item.videoUrl ?? `/api/media/stream/${item.id}`;
                   const liveBadgeLabel =
                     item.liveType === 'embedded'
                       ? tMedia('motionBadge')
                       : tMedia('liveBadge');
+                  const livePreviewLabel =
+                    item.liveType === 'embedded'
+                      ? tMedia('motionPhoto')
+                      : tMedia('livePhoto');
 
                   return (
                     <motion.article
@@ -433,10 +437,17 @@ const Gallery25 = ({
                       onMouseEnter={() => canPreview && setHoveredId(item.id)}
                       onMouseLeave={() => setHoveredId(null)}
                     >
-                      <button
-                        type='button'
+                      <div
+                        role='button'
+                        tabIndex={0}
                         onClick={() => setSelectedId(item.id)}
-                        className='block w-full text-left'
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedId(item.id);
+                          }
+                        }}
+                        className='block w-full text-left cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-500'
                       >
                         <div
                           className='relative w-full'
@@ -466,9 +477,10 @@ const Gallery25 = ({
                               poster={item.src}
                               autoPlay
                               muted
-                              loop
+                              loop={isVideo}
                               playsInline
                               className='absolute inset-0 h-full w-full object-cover animate-in fade-in duration-300'
+                              onEnded={isLive ? () => setHoveredId(null) : undefined}
                             />
                           ) : isAnimated && isPlaying ? (
                             <Image
@@ -486,9 +498,27 @@ const Gallery25 = ({
                               <Play className='h-3 w-3 fill-white' />
                             </div>
                           ) : isLive ? (
-                            <div className='absolute right-2 top-2 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md'>
-                              {liveBadgeLabel}
-                            </div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type='button'
+                                    onMouseEnter={() => setHoveredId(item.id)}
+                                    onMouseLeave={() => setHoveredId(null)}
+                                    onFocus={() => setHoveredId(item.id)}
+                                    onBlur={() => setHoveredId(null)}
+                                    onClick={(event) => event.stopPropagation()}
+                                    aria-label={livePreviewLabel}
+                                    className='absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60'
+                                  >
+                                    <Sparkles className='h-3.5 w-3.5' />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side='left'>
+                                  {liveBadgeLabel}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           ) : isAnimated ? (
                             <div className='absolute right-2 top-2 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md'>
                               {t('badges.animated')}
@@ -505,7 +535,7 @@ const Gallery25 = ({
                             ) : null}
                           </div>
                         </div>
-                      </button>
+                      </div>
                     </motion.article>
                   );
                 })}
