@@ -44,7 +44,12 @@ export function FloatingNav() {
   const accountCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const { data: session } = authClient.useSession();
+  const { data: session, refetch: refetchSession } = authClient.useSession();
+
+  useEffect(() => {
+    refetchSession();
+  }, [pathname, refetchSession]);
+
   const user = session?.user;
   const displayName = user?.name || user?.email || t('account.loggedIn');
   const email = user?.email ?? null;
@@ -98,6 +103,29 @@ export function FloatingNav() {
       setAccountOpen(false);
     }, 120);
   };
+
+  useEffect(() => {
+    void refetchSession({ query: { disableCookieCache: true } });
+  }, [pathname, refetchSession]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      void refetchSession({ query: { disableCookieCache: true } });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      void refetchSession({ query: { disableCookieCache: true } });
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refetchSession]);
 
   useEffect(() => {
     return () => {
