@@ -759,25 +759,18 @@ export async function fetchCollectionById(
 
   const resolvedFiles = await resolveCoverFiles(Array.from(allIds));
   
-  let coverUrls: string[] = [];
-    
+  let coverIds: number[] = [];
   if (Array.isArray(collection.coverImages) && collection.coverImages.length > 0) {
-    coverUrls = collection.coverImages
-      .map(id => {
-        const f = resolvedFiles.get(id);
-        return f ? (f.thumbUrl || f.url || '') : '';
-      })
-      .filter(url => url !== '');
+    coverIds = collection.coverImages;
   } else {
-    coverUrls = defaultIds
-      .map(id => {
-        const f = resolvedFiles.get(id);
-        return f ? (f.thumbUrl || f.url || '') : '';
-      })
-      .filter(url => url !== '');
+    coverIds = defaultIds;
   }
 
-  const primaryCover = coverUrls.length > 0 ? coverUrls[0] : null;
+  const covers = coverIds
+      .map(id => resolvedFiles.get(id))
+      .filter((c): c is CollectionCover => !!c);
+
+  const primaryCover = covers.length > 0 ? covers[0] : null;
 
   return {
     ...collection,
@@ -785,7 +778,7 @@ export async function fetchCollectionById(
     status: collection.status as CollectionStatus,
     itemCount: Number(countResult?.count ?? 0),
     cover: primaryCover,
-    covers: coverUrls,
+    covers: covers,
   };
 }
 
