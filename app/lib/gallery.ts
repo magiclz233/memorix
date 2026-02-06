@@ -10,6 +10,7 @@ export type GalleryItem = {
   duration?: number | null;
   title: string;
   description?: string | null;
+  author?: string | null;
   camera?: string | null;
   maker?: string | null;
   lens?: string | null;
@@ -82,6 +83,7 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
       duration: record.videoDuration ?? null,
       title,
       description: record.description ?? null,
+      author: record.author ?? null,
       camera: record.camera ?? null,
       maker: record.maker ?? null,
       lens: record.lens ?? null,
