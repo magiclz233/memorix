@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Histogram } from './histogram';
 import type { GalleryItem } from '@/app/lib/gallery';
+import { updatePhotoDetails } from '@/app/lib/actions';
 
 type PhotoDetailModalProps = {
   selectedItem: GalleryItem | null;
@@ -136,6 +137,10 @@ function PhotoDetailContent({
   const [isBuffering, setIsBuffering] = useState(false);
   const [isLivePreviewing, setIsLivePreviewing] = useState(false);
   const [viewMode, setViewMode] = useState<'fit' | 'frame'>('fit');
+  const [footTitle, setFootTitle] = useState(item.title ?? '');
+  const [footAuthor, setFootAuthor] = useState(item.author ?? '');
+  const [footDate, setFootDate] = useState(item.dateShot ? new Date(item.dateShot).toISOString().slice(0, 10) : '');
+  const [isSaving, startSaving] = useTransition();
   
   // Track direction for animation
   const [direction, setDirection] = useState(0);
@@ -156,6 +161,9 @@ function PhotoDetailContent({
     setIsPlaying(false);
     setIsBuffering(false);
     setIsLivePreviewing(false);
+    setFootTitle(item.title ?? '');
+    setFootAuthor(item.author ?? '');
+    setFootDate(item.dateShot ? new Date(item.dateShot).toISOString().slice(0, 10) : '');
     
     setLastItemId(item.id);
   }
@@ -265,7 +273,12 @@ function PhotoDetailContent({
             </button>
           )}
           
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+          <div
+            className={cn(
+              "relative w-full h-full flex items-center justify-center overflow-hidden transition-colors duration-500",
+              isFrame && "bg-[#f0f0f0] dark:bg-[#050505]"
+            )}
+          >
             <AnimatePresence initial={false} custom={direction} mode="popLayout">
               <motion.div
                 key={item.id}
@@ -280,108 +293,200 @@ function PhotoDetailContent({
                 exit="exit"
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className={cn(
-                    "absolute inset-0 flex items-center justify-center w-full h-full",
-                    isFrame ? "p-8 pt-20 md:p-12 md:pt-24" : "p-0"
-                  )}
+                  "absolute inset-0 flex items-center justify-center w-full h-full",
+                  isFrame ? "p-4 md:p-8" : "p-0"
+                )}
               >
                 {(() => {
                   const hasDimensions = !!(item.width && item.height);
                   const isFrame = viewMode === 'frame';
                   const useShrinkWrap = !isFrame && hasDimensions; // Only shrink-wrap in Fit mode
 
-                  // Mode 1 (Fit): Image itself has shadow/rounded, no extra border.
-                  // Mode 2 (Frame): Large white container (fills screen area), image centered inside with padding (matting).
-                  
                   const containerClass = useShrinkWrap
                     ? 'relative flex max-w-full max-h-full shadow-2xl rounded-sm overflow-hidden transition-all duration-300'
                     : isFrame
-                      ? 'relative w-full h-full bg-white dark:bg-zinc-100 shadow-2xl overflow-hidden transition-all duration-300'
+                      ? 'relative max-w-full max-h-full flex items-center justify-center'
                       : 'relative w-full h-full overflow-hidden bg-black'; // Fallback
 
                   return (
                     <div className={containerClass}>
-                      <BlurImage
-                        src={item.src}
-                        alt={item.title}
-                        blurHash={item.blurHash}
-                        fill={!useShrinkWrap}
-                        width={useShrinkWrap ? (item.width || undefined) : undefined}
-                        height={useShrinkWrap ? (item.height || undefined) : undefined}
-                        className={cn(
-                          useShrinkWrap
-                            ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
-                            : 'object-contain',
-                          isFrame && 'p-8 md:p-16' // Add padding to image in Frame mode to create "matting" effect
-                        )}
-                        sizes="100vw"
-                        priority
-                      />
+                      {isFrame ? (
+                         // code.html structure implementation
+                         <div className="bg-white dark:bg-[#1a1a1a] shadow-[0_10px_50px_-10px_rgba(0,0,0,0.1)] flex flex-col items-center pt-[4%] pr-[6%] pb-[8%] pl-[6%] transition-all duration-700 min-w-[300px]">
+                            {/* Image Container with Lift Shadow */}
+                            <div className="relative shadow-[0_4px_20px_-2px_rgba(0,0,0,0.15)]">
+                              <BlurImage
+                                src={item.src}
+                                alt={item.title}
+                                blurHash={item.blurHash}
+                                width={item.width || undefined}
+                                height={item.height || undefined}
+                                className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block"
+                                sizes="100vw"
+                                priority
+                              />
+                              
+                              {/* Video/Live Elements layered on top */}
+                              {canPlayVideo && isPlaying && (
+                                <video
+                                  src={videoSrc}
+                                  autoPlay
+                                  controls
+                                  className="absolute inset-0 w-full h-full object-contain"
+                                  onLoadStart={() => setIsBuffering(true)}
+                                  onWaiting={() => setIsBuffering(true)}
+                                  onCanPlay={() => setIsBuffering(false)}
+                                  onPlaying={() => setIsBuffering(false)}
+                                  onError={() => {
+                                    setIsPlaying(false);
+                                    setIsBuffering(false);
+                                  }}
+                                />
+                              )}
 
-                      {isLive && (
-                         <div 
-                           className={cn(
-                             "absolute top-3 right-3 z-30",
-                             isFrame && "top-3 right-3" 
-                           )}
-                         >
-                            <div
-                               role="button"
-                               className="w-8 h-8 flex items-center justify-center rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-md text-white transition-all cursor-pointer"
-                               onMouseEnter={() => setIsLivePreviewing(true)}
-                               onMouseLeave={() => {
-                                 setIsLivePreviewing(false);
-                                 setIsBuffering(false);
-                               }}
-                               aria-label={item.liveType === 'embedded' ? tMedia('motionPhoto') : tMedia('livePhoto')}
-                            >
-                              <Sparkles className="w-4 h-4" />
+                              {isLive && isLivePreviewing && (
+                                <video
+                                  src={videoSrc}
+                                  autoPlay
+                                  muted
+                                  playsInline
+                                  className="absolute z-10 inset-0 w-full h-full object-contain"
+                                  onLoadStart={() => setIsBuffering(true)}
+                                  onWaiting={() => setIsBuffering(true)}
+                                  onCanPlay={() => setIsBuffering(false)}
+                                  onPlaying={() => setIsBuffering(false)}
+                                  onEnded={() => setIsLivePreviewing(false)}
+                                  onError={() => {
+                                    setIsLivePreviewing(false);
+                                    setIsBuffering(false);
+                                  }}
+                                />
+                              )}
+                            </div>
+
+                            {/* Metadata Panel inside Mat */}
+                            <div className="mt-8 md:mt-12 text-center w-full">
+                               {/* Title */}
+                               <input
+                                  value={footTitle}
+                                  onChange={(e) => setFootTitle(e.target.value)}
+                                  placeholder={item.title || 'Untitled'}
+                                  className="w-full bg-transparent border-none p-0 text-center font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 focus:ring-0 focus:outline-none placeholder:text-slate-300/50"
+                               />
+                               
+                               {/* Subtitle (Date/Author) */}
+                               <div className="flex items-center justify-center gap-1 mt-1 opacity-40 hover:opacity-100 transition-opacity duration-300 group/meta">
+                                  <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">Captured by</span>
+                                  <input
+                                    value={footAuthor}
+                                    onChange={(e) => setFootAuthor(e.target.value)}
+                                    placeholder={footAuthor || 'Lumina'}
+                                    className="bg-transparent border-none p-0 text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 focus:ring-0 focus:outline-none w-[60px]"
+                                  />
+                                  <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">•</span>
+                                  <input
+                                    value={footDate}
+                                    onChange={(e) => setFootDate(e.target.value)}
+                                    placeholder="YYYY-MM-DD"
+                                    className="bg-transparent border-none p-0 text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 focus:ring-0 focus:outline-none w-[80px]"
+                                  />
+                                  
+                                  {/* Save Button */}
+                                   <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      disabled={isSaving}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        startSaving(async () => {
+                                          const fd = new FormData();
+                                          fd.set('fileId', String(item.id));
+                                          fd.set('title', footTitle ?? '');
+                                          fd.set('author', footAuthor ?? '');
+                                          fd.set('dateShot', footDate ?? '');
+                                          const res = await updatePhotoDetails(fd);
+                                          if (res?.success) {
+                                            item.title = footTitle;
+                                            item.author = footAuthor || null;
+                                            item.dateShot = footDate ? new Date(footDate).toISOString() : null;
+                                          }
+                                        })
+                                      }}
+                                      className={cn(
+                                        "h-4 w-4 rounded-full p-0 ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 transition-opacity",
+                                        (footTitle !== (item.title ?? '') || footAuthor !== (item.author ?? '') || footDate !== (item.dateShot ? new Date(item.dateShot).toISOString().slice(0, 10) : '')) 
+                                          ? "opacity-100" 
+                                          : "opacity-0 group-hover/meta:opacity-50"
+                                      )}
+                                    >
+                                      {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                                    </Button>
+                               </div>
                             </div>
                          </div>
-                      )}
-
-                      {canPlayVideo && isPlaying && (
-                        <video
-                          src={videoSrc}
-                          autoPlay
-                          controls
+                      ) : (
+                        // Existing Fit Mode
+                        <div
                           className={cn(
-                            'absolute inset-0 w-full h-full z-10',
-                            isFrame ? 'object-contain p-8 md:p-16' : 'object-contain bg-black'
+                            'relative flex',
+                            useShrinkWrap && 'w-auto h-auto'
                           )}
-                          onLoadStart={() => setIsBuffering(true)}
-                          onWaiting={() => setIsBuffering(true)}
-                          onCanPlay={() => setIsBuffering(false)}
-                          onPlaying={() => setIsBuffering(false)}
-                          onError={() => {
-                            setIsPlaying(false);
-                            setIsBuffering(false);
-                          }}
-                        />
+                        >
+                          <BlurImage
+                            src={item.src}
+                            alt={item.title}
+                            blurHash={item.blurHash}
+                            fill={!useShrinkWrap}
+                            width={useShrinkWrap ? (item.width || undefined) : undefined}
+                            height={useShrinkWrap ? (item.height || undefined) : undefined}
+                            className={cn(
+                              useShrinkWrap
+                                ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
+                                : 'object-contain'
+                            )}
+                            sizes="100vw"
+                            priority
+                          />
+                           {canPlayVideo && isPlaying && (
+                            <video
+                              src={videoSrc}
+                              autoPlay
+                              controls
+                              className="absolute inset-0 w-full h-full object-contain"
+                              onLoadStart={() => setIsBuffering(true)}
+                              onWaiting={() => setIsBuffering(true)}
+                              onCanPlay={() => setIsBuffering(false)}
+                              onPlaying={() => setIsBuffering(false)}
+                              onError={() => {
+                                setIsPlaying(false);
+                                setIsBuffering(false);
+                              }}
+                            />
+                          )}
+                          {isLive && isLivePreviewing && (
+                            <video
+                              src={videoSrc}
+                              autoPlay
+                              muted
+                              playsInline
+                              className="absolute z-10 inset-0 w-full h-full object-contain"
+                              onLoadStart={() => setIsBuffering(true)}
+                              onWaiting={() => setIsBuffering(true)}
+                              onCanPlay={() => setIsBuffering(false)}
+                              onPlaying={() => setIsBuffering(false)}
+                              onEnded={() => setIsLivePreviewing(false)}
+                              onError={() => {
+                                setIsLivePreviewing(false);
+                                setIsBuffering(false);
+                              }}
+                            />
+                          )}
+                        </div>
                       )}
 
-                      {isLive && isLivePreviewing && (
-                        <video
-                          src={videoSrc}
-                          autoPlay
-                          muted
-                          playsInline
-                          className={cn(
-                            'absolute z-10 inset-0 w-full h-full',
-                            isFrame ? 'object-contain p-8 md:p-16' : 'object-contain'
-                          )}
-                          onLoadStart={() => setIsBuffering(true)}
-                          onWaiting={() => setIsBuffering(true)}
-                          onCanPlay={() => setIsBuffering(false)}
-                          onPlaying={() => setIsBuffering(false)}
-                          onEnded={() => setIsLivePreviewing(false)}
-                          onError={() => {
-                            setIsLivePreviewing(false);
-                            setIsBuffering(false);
-                          }}
-                        />
-                      )}
-
-                      {canPlayVideo && !isPlaying && (
+                      {/* Video/Live controls for Fit mode would go here if not already embedded above */}
+                      
+                      {canPlayVideo && !isPlaying && !isFrame && (
                         <div className="absolute inset-0 flex items-center justify-center z-20">
                           <button
                             onClick={() => setIsPlaying(true)}
