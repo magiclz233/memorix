@@ -2,6 +2,7 @@ import '@/app/ui/global.css';
 import {
   lora,
   notoSansSC,
+  notoSerifSC,
   openSans,
 } from '@/app/ui/fonts';
 import type { Metadata } from 'next';
@@ -26,7 +27,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
-        className={`${openSans.variable} ${notoSansSC.variable} ${lora.variable} font-sans font-medium antialiased`}
+        className={`${openSans.variable} ${notoSansSC.variable} ${notoSerifSC.variable} ${lora.variable} font-sans font-medium antialiased`}
       >
         {children}
       </body>
