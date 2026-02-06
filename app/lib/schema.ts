@@ -90,6 +90,8 @@ export const files = pgTable(
     blurHash: varchar('blur_hash', { length: 64 }),
     // 是否在画廊展示
     isPublished: boolean('is_published').notNull().default(false),
+    // 作者（自由字符串，通用字段）
+    author: varchar('author', { length: 255 }),
   },
   (table) => ({
     storagePathUnique: uniqueIndex('files_storage_path_unique').on(
