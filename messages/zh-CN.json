@@ -86,7 +86,8 @@
     "home": {
       "carousel": {
         "action": "浏览作品集",
-        "next": "下一张"
+        "next": "下一张",
+        "prev": "上一张"
       },
       "hero": {
         "eyebrow": "光影 / 视界",
@@ -360,7 +361,10 @@
         "viewOriginal": "沉浸模式",
         "close": "关闭",
         "prev": "上一张",
-        "next": "下一张"
+        "next": "下一张",
+        "author": "作者",
+        "save": "保存",
+        "saving": "保存中..."
       },
       "playback": {
         "failed": "播放失败",
@@ -503,7 +507,13 @@
           "vs-1": "VLOG: 冰岛之旅",
           "vs-2": "幕后制作：Lumina",
           "vs-3": "旅行短片合集"
-        }
+        },
+        "pc-1": "2024 东京街头",
+        "pc-2": "北欧极光计划",
+        "pc-3": "城市夜航",
+        "vs-1": "VLOG: 冰岛之旅",
+        "vs-2": "幕后制作：Lumina",
+        "vs-3": "旅行短片合集"
       }
     },
     "media": {
@@ -1053,6 +1063,8 @@
       "description": "扫描后可以选择哪些图片进入图库，重新扫描会清空旧记录。",
       "scannedDirs": "已扫描 {count} 个目录...",
       "foundImages": "已发现 {count} 张图片...",
+      "foundVideos": "已发现 {count} 个视频...",
+      "foundAnimated": "已发现 {count} 个动图...",
       "readFailed": "读取目录失败",
       "complete": "扫描完成，共找到 {count} 个文件。",
       "processed": "已处理 {processed}/{total} 张图片"
@@ -1063,7 +1075,10 @@
       "statusUpdated": "图库展示状态已更新。",
       "selectPublished": "请选择已发布的图片。",
       "heroUpdated": "首页展示状态已更新。",
-      "heroRemoved": "已取消首页展示。"
+      "heroRemoved": "已取消首页展示。",
+      "invalid": "参数无效。",
+      "updated": "图片信息已更新。",
+      "updateFailed": "更新失败，请稍后重试。"
     },
     "user": {
       "invalidId": "无效的用户 ID。",

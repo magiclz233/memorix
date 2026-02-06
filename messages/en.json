@@ -85,6 +85,7 @@
     },
     "home": {
       "carousel": {
+        "action": "Browse Portfolio",
         "prev": "Previous",
         "next": "Next"
       },
@@ -360,7 +361,10 @@
         "viewOriginal": "Original View",
         "close": "Close",
         "prev": "Previous",
-        "next": "Next"
+        "next": "Next",
+        "author": "Author",
+        "save": "Save",
+        "saving": "Saving..."
       },
       "playback": {
         "failed": "Playback failed",
@@ -494,6 +498,16 @@
     },
     "data": {
       "collections": {
+        "photo": {
+          "pc-1": "2024 Tokyo Streets",
+          "pc-2": "Nordic Aurora Project",
+          "pc-3": "City Night Flight"
+        },
+        "video": {
+          "vs-1": "VLOG: Iceland Trip",
+          "vs-2": "Behind the Scenes: Lumina",
+          "vs-3": "Travel Shorts Collection"
+        },
         "pc-1": "2024 Tokyo Streets",
         "pc-2": "Nordic Aurora Project",
         "pc-3": "City Night Flight",
@@ -526,6 +540,7 @@
           "animated": "Animated"
         },
         "status": {
+          "label": "Status",
           "all": "All Status",
           "published": "Published",
           "unpublished": "Unpublished"
@@ -1060,7 +1075,10 @@
       "statusUpdated": "Gallery status updated.",
       "selectPublished": "Please select published items.",
       "heroUpdated": "Hero status updated.",
-      "heroRemoved": "Hero status removed."
+      "heroRemoved": "Hero status removed.",
+      "invalid": "Invalid parameters.",
+      "updated": "Photo details updated.",
+      "updateFailed": "Update failed, please try again."
     },
     "user": {
       "invalidId": "Invalid User ID.",
