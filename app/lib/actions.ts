@@ -709,6 +709,88 @@ export async function deleteUser(formData: FormData) {
   }
 }
 
+const UpdatePhotoSchema = z.object({
+  fileId: z.coerce.number().int().positive(),
+  title: z.string().trim().optional(),
+  author: z.string().trim().optional().or(z.literal('')),
+  dateShot: z.string().trim().optional(),
+});
+
+export async function updatePhotoDetails(formData: FormData) {
+  const t = await getTranslations('actions.files');
+  const admin = await requireAdminUser();
+
+  const parsed = UpdatePhotoSchema.safeParse({
+    fileId: formData.get('fileId'),
+    title: formData.get('title'),
+    author: formData.get('author'),
+    dateShot: formData.get('dateShot'),
+  });
+
+  if (!parsed.success) {
+    return { success: false, message: t('invalid') };
+  }
+
+  const { fileId, title, author, dateShot } = parsed.data;
+
+  try {
+    const updates: { title?: string; author?: string | null; updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
+
+    if (title !== undefined) {
+      updates.title = title;
+    }
+
+    if (author !== undefined) {
+      updates.author = author && author.length > 0 ? author : null;
+    }
+
+    if (Object.keys(updates).length > 1) {
+      await db
+        .update(files)
+        .set(updates)
+        .where(eq(files.id, fileId));
+    }
+
+    const nextDate =
+      dateShot && dateShot.length > 0
+        ? (() => {
+            const d = new Date(dateShot);
+            return Number.isNaN(d.getTime()) ? null : d;
+          })()
+        : null;
+
+    // Ensure metadata row exists, then update fields
+    const existing = await db
+      .select({ fileId: photoMetadata.fileId })
+      .from(photoMetadata)
+      .where(eq(photoMetadata.fileId, fileId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      await db.insert(photoMetadata).values({
+        fileId,
+        dateShot: nextDate,
+      });
+    } else {
+      await db
+        .update(photoMetadata)
+        .set({
+          dateShot: nextDate ?? null,
+        })
+        .where(eq(photoMetadata.fileId, fileId));
+    }
+
+    revalidatePathForAllLocales('/gallery');
+    revalidatePathForAllLocales('/dashboard/media');
+    return { success: true, message: t('updated') };
+  } catch (error) {
+    console.error('Failed to update photo details:', error);
+    return { success: false, message: t('updateFailed') };
+  }
+}
+
 export async function updateProfile(prevState: any, formData: FormData) {
   const t = await getTranslations('actions.profile');
   const tSignup = await getTranslations('actions.signup');
