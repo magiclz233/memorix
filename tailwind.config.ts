@@ -21,9 +21,10 @@ const config: Config = {
   				'sans-serif'
   			],
   			serif: [
-  				'var(--font-serif)',
-  				'var(--font-sans-sc)',
-  				'ui-serif',
+				'var(--font-serif)',
+				'var(--font-serif-sc)',
+				'var(--font-sans-sc)',
+				'ui-serif',
   				'Georgia',
   				'serif'
   			]
