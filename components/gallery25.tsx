@@ -37,6 +37,7 @@ type Gallery25Props = {
   className?: string;
   showChrome?: boolean;
   showGrid?: boolean;
+  showHeader?: boolean;
   selectedId?: GalleryId | null;
   onSelectedIdChange?: (id: GalleryId | null) => void;
   statusLabels?: { published: string; unpublished: string };
@@ -112,6 +113,7 @@ const Gallery25 = ({
   className,
   showChrome = true,
   showGrid = true,
+  showHeader = true,
   selectedId: controlledSelectedId,
   onSelectedIdChange,
   statusLabels,
@@ -337,7 +339,7 @@ const Gallery25 = ({
       >
         {chromeVisible ? (
           <>
-            <GalleryHeader />
+            {showHeader ? <GalleryHeader /> : null}
             <div className='flex flex-wrap items-center justify-between gap-4'>
               <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
                 {filters.map((tab) => (
