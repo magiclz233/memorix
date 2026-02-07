@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumina - 沉浸式作品集</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#111111",
+                        "accent": "#1745cf",
+                        "border-light": "#eeeeee",
+                    },
+                    fontFamily: {
+                        "sans": ["Noto Sans SC", "Manrope", "sans-serif"],
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .masonry-grid {
+                column-count: 1;
+                column-gap: 1.5rem;
+            }
+            @media (min-width: 640px) {
+                .masonry-grid {
+                    column-count: 2;
+                }
+            }
+            @media (min-width: 1024px) {
+                .masonry-grid {
+                    column-count: 3;
+                }
+            }
+            .break-inside-avoid {
+                break-inside: avoid;
+            }
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e5e5e5;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d4d4d4;
+        }
+    </style>
+</head>
+<body class="bg-white font-sans text-zinc-900 antialiased overflow-x-hidden">
+<nav class="fixed top-0 left-0 w-full z-50 px-6 py-4 md:px-10 transition-all duration-300 bg-white/70 backdrop-blur-xl border-b border-zinc-100">
+<div class="max-w-[1600px] mx-auto flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">lens_blur</span>
+<h2 class="text-xl font-extrabold tracking-tighter uppercase font-display">Lumina</h2>
+</div>
+<div class="flex items-center gap-8">
+<ul class="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-zinc-500">
+<li><a class="hover:text-primary transition-colors" href="#">探索</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">精选</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">创作者</a></li>
+</ul>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+<span class="material-symbols-outlined text-zinc-600">search</span>
+</button>
+<div class="size-8 rounded-full bg-cover bg-center ring-1 ring-zinc-200" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDgoF33tmQPVIsN8Xevo6o1sHk5h1_R7GCHUSiTyZGZsyA8B7Yn5KWPTVLXbNoHMxP7XHWlCgCDTjcaoq5g9CY17_UzcnnUcEjARsMxhw_8Zy5qGBD3wqDfO8P0rHbTopk8Wwl_N9vFx9qCcZeWSTTsjWpV7etZaBORzLXlSwMRSQhPWCbkrSAAXF9U0f11qDNHOWmz6g0vf8J9NZyIPSePnZr4xM7d2jzdY4MK8FzyB6upojB7jw3i-f-cxTDXePeIZOJAjrJ4OWcU');"></div>
+</div>
+</div>
+</div>
+</nav>
+<header class="relative w-full h-screen overflow-hidden bg-zinc-50">
+<div class="absolute inset-0 transition-opacity duration-1000">
+<img alt="Featured" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdW0RSeFdmLyRNR7ePQPfxUVL7Ph_cXoa4eRr3eyRec0cT-WP-s8FW4EhQf9SJ8WmLJSi0e23iEZTiBoftPn7eH6vxPR6SLruPTI6oN_zXCRzGGorDT02mtzgsjS3C2-Q719nXiFqLumOR-kKBxlrEC-TTEpiOXy3MOXEkGDjCggkBRxVBd5Ao-zefgjCK9i74q5LnC1sllof6l3qxgIM2-MS0KCFltuZfZ2fjOIk2bUJCXplR39mIgu5ZcNxmzCmeG-wpHdxxhCfN"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+</div>
+<div class="absolute inset-0 pointer-events-none flex items-center justify-between px-6 md:px-10">
+<button class="pointer-events-auto size-12 flex items-center justify-center text-white/50 hover:text-white transition-colors bg-white/5 backdrop-blur-sm rounded-full border border-white/10">
+<span class="material-symbols-outlined">west</span>
+</button>
+<button class="pointer-events-auto size-12 flex items-center justify-center text-white/50 hover:text-white transition-colors bg-white/5 backdrop-blur-sm rounded-full border border-white/10">
+<span class="material-symbols-outlined">east</span>
+</button>
+</div>
+<div class="absolute bottom-10 right-10 flex gap-2">
+<div class="h-0.5 w-8 bg-white"></div>
+<div class="h-0.5 w-4 bg-white/30"></div>
+<div class="h-0.5 w-4 bg-white/30"></div>
+</div>
+<div class="absolute bottom-0 left-0 w-full p-8 md:p-20">
+<div class="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-end justify-between gap-8">
+<div class="space-y-6 max-w-2xl">
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold text-white uppercase tracking-tighter">混合</span>
+<span class="px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold text-white uppercase tracking-tighter">4K 视频</span>
+<span class="px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold text-white uppercase tracking-tighter">高动态图片</span>
+</div>
+<div class="space-y-2">
+<h1 class="text-4xl md:text-7xl font-bold text-white tracking-tighter leading-none">
+                        霓虹序列：都会孤独
+                    </h1>
+<p class="text-white/70 text-sm md:text-lg max-w-lg font-light leading-relaxed">
+                        探索繁忙都市背景下的静谧瞬间。通过长曝光与极简色彩，捕捉深夜东京街头的情感涟漪。
+                    </p>
+</div>
+<div class="flex items-center gap-6 text-white/60 text-xs font-medium tracking-wide uppercase">
+<div class="flex items-center gap-2">
+<span class="text-white/40">作者</span>
+<span class="text-white font-bold">ALEX CHEN</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-white/40">日期</span>
+<span class="text-white">2023 / 10 / 24</span>
+</div>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full text-xs font-bold uppercase hover:bg-zinc-200 transition-all">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    下载全集
+                </button>
+<button class="flex items-center justify-center size-12 rounded-full border border-white/30 text-white hover:bg-white hover:text-black transition-all">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-[1600px] mx-auto px-6 md:px-10 py-20">
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-16 gap-4 border-b border-zinc-100 pb-8">
+<div>
+<h3 class="text-2xl font-bold tracking-tight">作品流</h3>
+<p class="text-sm text-zinc-400 mt-1">共有 24 件作品内容</p>
+</div>
+<div class="flex items-center gap-1 bg-zinc-50 p-1 rounded-lg">
+<button class="px-4 py-1.5 text-xs font-bold bg-white shadow-sm rounded-md transition-all">全部内容</button>
+<button class="px-4 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-all">照片</button>
+<button class="px-4 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-all">视频</button>
+</div>
+</div>
+<div class="masonry-grid">
+<div class="break-inside-avoid mb-6 relative group">
+<div class="rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100">
+<img alt="Portrait" class="w-full hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzWPtKz3TQ7eusLnODGP2aNBGyUHGSS6wAEtRHQfF0uzN_HjwilIQDMndex4yLLpDegOdoqoGo6jDNhnBmC6bw_DOBZc2eS6AfKz3sDNH2rc14ZW7gO3MmZowZWdCTFUA9oQ5XRVpelmTjfwpkEaPAUXm_bUPo-t2VpLpS5Bh1b_XrGh7R1RfsJ4mIieFO-Z9GeBb92K8ExAD13gGSI4DnamNwaAY0E4ixi3p-C6wzfC8wGoxyw9OLqRozbWHEV5mNMoOC15DzHZNz"/>
+</div>
+<div class="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+<button class="size-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-zinc-800 hover:bg-white border border-zinc-200 shadow-xl transition-all">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+<button class="size-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-zinc-800 hover:bg-white border border-zinc-200 shadow-xl transition-all">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+</div>
+</div>
+<div class="break-inside-avoid mb-6 relative group">
+<div class="rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100">
+<img alt="Landscape" class="w-full hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAUJRhwdL40K782uYLm1TBNNt8e66Dvk1-hdcbA4kICH1R7y9AC8AnuaTZMVr9-B44eOpyZlzyAB4SvAfVnymvr5drDIBvpsqeEZ43Rtpbs7Uj2LgaGcq41ZYPuslczEdA__BfXykZrBfQ4OnEvVF9MtFhtnwRlQlHt6nR6nrs7yQnCvUEtF5Zq_kM1bVz5ueH5p-M2yzhz31B7BMzpYGQa7AMoFl2LxXFBH-2wrBrF-eDvgZ8_euGf_We9iQC4ON_GKuPU0CVnhHC"/>
+</div>
+<div class="absolute top-4 left-4">
+<span class="bg-black/50 backdrop-blur-md text-white text-[9px] font-bold px-2 py-1 rounded">RAW</span>
+</div>
+</div>
+<div class="break-inside-avoid mb-6 relative group cursor-pointer">
+<div class="rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100 relative">
+<img alt="Video" class="w-full hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnrtSrGHcUFjXymIkvOiu_tItu24db0GjZJ_qwV9SEAsV1uZhrPUPRtE1G9ADR14uGrw10BENA_UBdqcOJc0cg2zsue0PsMIit8oI57sabK5GSORjeuHeRAuqdP6NjqfMKgoilniUpyoXvy0AVDZhm-2AEfJO2Tf67uZ00tJ3eFMZDJOg-TBZO4Q8yDftO-IdR2HFoxxYooqUVET4tBHkWfQJBvhTbe1b6T3BATjsLgxTfhtqfhbCR-u1-zr2_Aegl93aYcIQTMF4V"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/5 group-hover:bg-black/10 transition-colors">
+<div class="size-16 rounded-full border border-white/40 bg-white/10 backdrop-blur-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-4xl ml-1">play_arrow</span>
+</div>
+</div>
+</div>
+<div class="absolute bottom-4 left-4">
+<span class="text-white text-xs font-bold drop-shadow-md">01:24</span>
+</div>
+</div>
+<div class="break-inside-avoid mb-6 relative group">
+<div class="rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100">
+<img alt="Tall Architecture" class="w-full hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDW-xnBXdWysLNVoYaJNb43NWWWDWMd4fuOoS8L2QgFu8pUiCJhjXJDE4eUeeJ3f7gquIko7fX2sF6o1mM3slEtr2BV6LBlt6voFt86jQhUWSFMPdmr0-IX7fQDNFLai9Jf1YG6n3xXkyaHBTRF2_gWLxP2p0wzcdTilyKz4lfDFILwwe0QzyOVFa9T0UxJXw7KIPlDtrVrPrPGWYuP7YMelr-WKOoTzKG1dbanxgX1UOVN1SYuAq_0Ajha-dyX-Es2vJMeupq0zAtW"/>
+</div>
+</div>
+<div class="break-inside-avoid mb-6 relative group">
+<div class="rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100">
+<img alt="Neon Street" class="w-full hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcLMaTiWUrk-S4P_VKUesrFB-FP85rPz905MlJWDSqnPbzMNAZjBqz4mXla1pbKhxuuN0benrq9jeu4az62VFB06u8LdvyHwFLwR4gy8of_LF2mu8wAAvXpkzj7gdT0KEy_lSqP5fTOvAZOGKyOjNj3Ky7Sv8HP1ri5emqPVYgCalvZrTZsBqbxvrKeI1usowFAKUNc3ZExPFSQET5v5u8INnpELej6o29HYuOov_LrYwX-vblrTu-2U5LqRT8Ji5vBIORtQp8S8re"/>
+</div>
+</div>
+<div class="break-inside-avoid mb-6 relative group">
+<div class="rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100">
+<img alt="Rainy Window" class="w-full hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqyzEwzBITl17pqfNzM-ZFc-fh5b-KJF1wxxuwlXfAj3IEy_moWRe6Z3lgaMTCE2ptWN9Z-2A65V0CgNwJ44x8e6DSk8yIM1bdhCnE3pzQf82xsJEtjkAsW2Rn1CLN1QlRA-RUktpaBi5Kyl4yORYzVBLRd4TZ0pH1_N5k5mvSOwWzAC1l4OG340XcMnbT1ZN58Wr4HILy6OQAnvuGLhfRH1NWUpFc4-rmy_NuXnJNKgTDeabaOq_MoIakOqxZq78z_1SBZ_7_FzSW"/>
+</div>
+</div>
+<div class="break-inside-avoid mb-6 relative group">
+<div class="rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100">
+<img alt="Empty Station" class="w-full hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgBGD3z036gJBLStsS2yTOSXrIFbNkFpGbWtzM3vRvx-rntmHYgehTN2u-tKKv7ITMrN_6Md7AYOH-VT4S-iOrgEHUZGqLbBXmZigtPhH8aSRaYOLnfeCKrYFiT4lCrnVoUPZ6u-yJ8SzxzyEp3oC2aOcRhG_KzaQpxvRRPAFQnn_EETyPRXrmveyTuTOKHCARAPnQYPYdu6rKIQ-8kNeuUOJpWNOrShCcish_fNi_WCS3K64MVGYWc4j6nGktDrim7sdFxFI2plH-"/>
+</div>
+</div>
+<div class="break-inside-avoid mb-6 relative group">
+<div class="rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100">
+<img alt="Red Lantern" class="w-full hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCN-2rJspumDGijOSFV7tx8QG3nOHIsMOwTh28T3TRADOGwS95KzCst7DeDi1pbisce43O-FFYqduHIp9rqI1_9Q7NlF8NrjEKsmnvERg0Z5eD6Qa6nWk27ctXuSX6cBdrPeVJ5b2NPgF3afRmAOhutiTV1m73Vqz5gaGD9n28YMOYTYWZf2uMN4Q-Cxnt86LHAmOTOgTc7GFo77-i-my9rcvg9JY5VqBGqMTR7Ur5eax-lstnz5E00nIyL4n-IKmXQaGcpi4wrXfPt"/>
+</div>
+</div>
+<div class="break-inside-avoid mb-6 relative group">
+<div class="rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100">
+<img alt="Abstract" class="w-full hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiygHE2x0qMjdUeoBs-01I9I7KpGRFxxKX71-NRohwZVVaDyRXHtuvKuQEz1Q8Ozgd5Zr0Go1krRxrSeanEjYfSqjJLRqKCz_-d7G3V-GU86eiCq1PnyJ1QT_51tLi8ndtmJ_PVLtQCOikd96epF2ib1LjcrJbKPQ5Pcw4hOdHNBJiEx51tsWLu3Th56vsgHM0B0ZZBI-N0nN9i2d18GsRM6a43y3zlCRNXA5jn8xcUzlaSFzNqDJCGzz-96TEWkqudS1UQeAz6rRU"/>
+</div>
+</div>
+</div>
+<div class="py-24 flex flex-col items-center justify-center">
+<div class="w-6 h-6 border-2 border-zinc-200 border-t-zinc-800 rounded-full animate-spin mb-4"></div>
+<p class="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">正在加载更多作品...</p>
+</div>
+</main>
+<footer class="border-t border-zinc-100 py-12 px-10">
+<div class="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-2 grayscale opacity-40">
+<span class="material-symbols-outlined text-primary text-xl">lens_blur</span>
+<h2 class="text-lg font-extrabold tracking-tighter uppercase font-display">Lumina</h2>
+</div>
+<p class="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">
+            © 2023 LUMINA 视觉实验室 · 保留所有权利
+        </p>
+<div class="flex gap-6 text-zinc-400 text-xs font-bold uppercase">
+<a class="hover:text-primary transition-colors" href="#">隐私政策</a>
+<a class="hover:text-primary transition-colors" href="#">使用条款</a>
+</div>
+</div>
+</footer>
+
+</body></html>
