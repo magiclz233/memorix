@@ -47,7 +47,7 @@ export function CollectionCard({ collection, labels }: CollectionCardProps) {
 
   return (
     <div
-      className="group relative block"
+      className="group relative block mt-2"
       onMouseEnter={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
     >
