@@ -273,7 +273,14 @@
         "countVideo": "{count} 段",
         "countMixed": "{count} 项",
         "author": "作者",
-        "updated": "更新于"
+        "updated": "更新于",
+        "streamTitle": "作品流",
+        "streamSubtitle": "共 {count} 项作品",
+        "actions": {
+          "back": "返回作品集",
+          "like": "点赞",
+          "favorite": "收藏"
+        }
       }
     },
     "about": {
