@@ -273,7 +273,14 @@
         "countVideo": "{count} videos",
         "countMixed": "{count} items",
         "author": "Author",
-        "updated": "Updated"
+        "updated": "Updated",
+        "streamTitle": "Collection Stream",
+        "streamSubtitle": "{count} items",
+        "actions": {
+          "back": "Back to Collections",
+          "like": "Like",
+          "favorite": "Favorite"
+        }
       }
     },
     "about": {
