@@ -173,8 +173,18 @@ function PhotoDetailContent({
   
   const isVideo = item.type === 'video';
   const isLive = item.liveType && item.liveType !== 'none';
+  const isAnimated = Boolean(item.isAnimated && item.animatedUrl);
   const canPlayVideo = isVideo;
   const videoSrc = item.videoUrl ?? `/api/media/stream/${item.id}`;
+  const liveLabel =
+    item.liveType === 'embedded'
+      ? tMedia('motionPhoto')
+      : tMedia('livePhoto');
+
+  const startVideo = () => {
+    setIsPlaying(true);
+    setIsLivePreviewing(false);
+  };
 
   const formatNumber = (val?: number | null, digits = 1) => 
     typeof val === 'number' && !Number.isNaN(val) ? val.toFixed(digits).replace(/\.0+$/, '') : null;
@@ -242,9 +252,9 @@ function PhotoDetailContent({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 transition-colors duration-300 h-screen w-screen overflow-hidden"
+      className="fixed inset-0 z-[100] flex bg-background text-foreground transition-colors duration-300 h-screen w-screen overflow-hidden"
     >
-      <div className="flex-grow flex flex-col relative group h-full overflow-hidden bg-[#fafafa] dark:bg-[#050505]">
+      <div className="flex-grow flex flex-col relative group h-full overflow-hidden bg-zinc-50 dark:bg-zinc-950">
         <div className="absolute top-0 left-0 right-0 z-50 p-4 flex justify-between items-start pointer-events-none">
           <div className="pointer-events-auto flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80">
@@ -276,7 +286,7 @@ function PhotoDetailContent({
           <div
             className={cn(
               "relative w-full h-full flex items-center justify-center overflow-hidden transition-colors duration-500",
-              isFrame && "bg-[#f0f0f0] dark:bg-[#050505]"
+              isFrame && "bg-[#f0f0f0] dark:bg-zinc-950"
             )}
           >
             <AnimatePresence initial={false} custom={direction} mode="popLayout">
@@ -306,25 +316,48 @@ function PhotoDetailContent({
                     ? 'relative flex max-w-full max-h-full shadow-2xl rounded-sm overflow-hidden transition-all duration-300'
                     : isFrame
                       ? 'relative max-w-full max-h-full flex items-center justify-center'
-                      : 'relative w-full h-full overflow-hidden bg-black'; // Fallback
+                      : 'relative w-full h-full overflow-hidden bg-zinc-950'; // Fallback
 
                   return (
                     <div className={containerClass}>
                       {isFrame ? (
                          // code.html structure implementation
-                         <div className="bg-white dark:bg-[#1a1a1a] shadow-[0_10px_50px_-10px_rgba(0,0,0,0.1)] flex flex-col items-center pt-[4%] pr-[6%] pb-[8%] pl-[6%] transition-all duration-700 min-w-[300px]">
+                         <div
+                           className="bg-white dark:bg-[#1a1a1a] shadow-[0_10px_50px_-10px_rgba(0,0,0,0.1)] flex flex-col items-center pt-[4%] pr-[6%] pb-[8%] pl-[6%] transition-all duration-700 min-w-[300px]"
+                           onMouseEnter={() => {
+                             if (isLive) setIsLivePreviewing(true);
+                           }}
+                           onMouseLeave={() => setIsLivePreviewing(false)}
+                           onFocus={() => {
+                             if (isLive) setIsLivePreviewing(true);
+                           }}
+                           onBlur={() => setIsLivePreviewing(false)}
+                         >
                             {/* Image Container with Lift Shadow */}
                             <div className="relative shadow-[0_4px_20px_-2px_rgba(0,0,0,0.15)]">
-                              <BlurImage
-                                src={item.src}
-                                alt={item.title}
-                                blurHash={item.blurHash}
-                                width={item.width || undefined}
-                                height={item.height || undefined}
-                                className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block"
-                                sizes="100vw"
-                                priority
-                              />
+                              {isAnimated ? (
+                                <Image
+                                  src={item.animatedUrl ?? ''}
+                                  alt={item.title}
+                                  width={item.width || undefined}
+                                  height={item.height || undefined}
+                                  unoptimized
+                                  className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block"
+                                  sizes="100vw"
+                                  priority
+                                />
+                              ) : (
+                                <BlurImage
+                                  src={item.src}
+                                  alt={item.title}
+                                  blurHash={item.blurHash}
+                                  width={item.width || undefined}
+                                  height={item.height || undefined}
+                                  className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block"
+                                  sizes="100vw"
+                                  priority
+                                />
+                              )}
                               
                               {/* Video/Live Elements layered on top */}
                               {canPlayVideo && isPlaying && (
@@ -362,6 +395,24 @@ function PhotoDetailContent({
                                   }}
                                 />
                               )}
+                              {isLive ? (
+                                <button
+                                  type="button"
+                                  aria-label={liveLabel}
+                                  onMouseEnter={() => setIsLivePreviewing(true)}
+                                  onMouseLeave={() => setIsLivePreviewing(false)}
+                                  onFocus={() => setIsLivePreviewing(true)}
+                                  onBlur={() => setIsLivePreviewing(false)}
+                                  onClick={(event) => event.stopPropagation()}
+                                  className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
+                                >
+                                  <Sparkles className="h-4 w-4" />
+                                </button>
+                              ) : isAnimated ? (
+                                <div className="absolute right-3 top-3 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
+                                  {t('badges.animated')}
+                                </div>
+                              ) : null}
                             </div>
 
                             {/* Metadata Panel inside Mat */}
@@ -431,22 +482,48 @@ function PhotoDetailContent({
                             'relative flex',
                             useShrinkWrap && 'w-auto h-auto'
                           )}
+                          onMouseEnter={() => {
+                            if (isLive) setIsLivePreviewing(true);
+                          }}
+                          onMouseLeave={() => setIsLivePreviewing(false)}
+                          onFocus={() => {
+                            if (isLive) setIsLivePreviewing(true);
+                          }}
+                          onBlur={() => setIsLivePreviewing(false)}
                         >
-                          <BlurImage
-                            src={item.src}
-                            alt={item.title}
-                            blurHash={item.blurHash}
-                            fill={!useShrinkWrap}
-                            width={useShrinkWrap ? (item.width || undefined) : undefined}
-                            height={useShrinkWrap ? (item.height || undefined) : undefined}
-                            className={cn(
-                              useShrinkWrap
-                                ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
-                                : 'object-contain'
-                            )}
-                            sizes="100vw"
-                            priority
-                          />
+                          {isAnimated ? (
+                            <Image
+                              src={item.animatedUrl ?? ''}
+                              alt={item.title}
+                              unoptimized
+                              fill={!useShrinkWrap}
+                              width={useShrinkWrap ? (item.width || undefined) : undefined}
+                              height={useShrinkWrap ? (item.height || undefined) : undefined}
+                              className={cn(
+                                useShrinkWrap
+                                  ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
+                                  : 'object-contain'
+                              )}
+                              sizes="100vw"
+                              priority
+                            />
+                          ) : (
+                            <BlurImage
+                              src={item.src}
+                              alt={item.title}
+                              blurHash={item.blurHash}
+                              fill={!useShrinkWrap}
+                              width={useShrinkWrap ? (item.width || undefined) : undefined}
+                              height={useShrinkWrap ? (item.height || undefined) : undefined}
+                              className={cn(
+                                useShrinkWrap
+                                  ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
+                                  : 'object-contain'
+                              )}
+                              sizes="100vw"
+                              priority
+                            />
+                          )}
                            {canPlayVideo && isPlaying && (
                             <video
                               src={videoSrc}
@@ -481,15 +558,33 @@ function PhotoDetailContent({
                               }}
                             />
                           )}
+                          {isLive ? (
+                            <button
+                              type="button"
+                              aria-label={liveLabel}
+                              onMouseEnter={() => setIsLivePreviewing(true)}
+                              onMouseLeave={() => setIsLivePreviewing(false)}
+                              onFocus={() => setIsLivePreviewing(true)}
+                              onBlur={() => setIsLivePreviewing(false)}
+                              onClick={(event) => event.stopPropagation()}
+                              className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
+                            >
+                              <Sparkles className="h-4 w-4" />
+                            </button>
+                          ) : isAnimated ? (
+                            <div className="absolute right-3 top-3 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
+                              {t('badges.animated')}
+                            </div>
+                          ) : null}
                         </div>
                       )}
 
                       {/* Video/Live controls for Fit mode would go here if not already embedded above */}
                       
-                      {canPlayVideo && !isPlaying && !isFrame && (
+                      {canPlayVideo && !isPlaying && (
                         <div className="absolute inset-0 flex items-center justify-center z-20">
                           <button
-                            onClick={() => setIsPlaying(true)}
+                            onClick={startVideo}
                             className="h-20 w-20 rounded-full bg-black/30 flex items-center justify-center backdrop-blur-sm transition hover:scale-110 hover:bg-black/50 group/play"
                           >
                             <Play className="h-10 w-10 fill-white text-white opacity-90 group-hover/play:opacity-100" />
@@ -548,7 +643,7 @@ function PhotoDetailContent({
         )}
       </div>
 
-      <aside className="w-[420px] flex-shrink-0 bg-white dark:bg-background-dark border-l border-gray-100 dark:border-gray-800 flex flex-col h-full overflow-y-auto custom-scrollbar">
+      <aside className="w-[420px] flex-shrink-0 bg-white dark:bg-zinc-950/90 border-l border-gray-100 dark:border-zinc-800 flex flex-col h-full overflow-y-auto custom-scrollbar">
         <div className="p-6 space-y-8">
           <section className="flex justify-between items-start">
             <h2 className="text-lg font-bold tracking-tight text-primary dark:text-white leading-tight pr-4 break-words">
@@ -571,8 +666,8 @@ function PhotoDetailContent({
 
           {(item.gpsLatitude || item.locationName) && (
             <section>
-              <div className="relative h-40 w-full bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 mb-2">
-                 <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400">
+              <div className="relative h-40 w-full bg-gray-50 dark:bg-zinc-900/60 rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800 mb-2">
+                 <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-zinc-900/70 text-gray-400">
                     <MapPin className="w-10 h-10 opacity-20" />
                  </div>
                  {item.gpsLatitude && item.gpsLongitude && (
@@ -595,29 +690,29 @@ function PhotoDetailContent({
 
           <section>
             <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-3">{t('details.camera')}</h3>
-            <div className="grid grid-cols-2 gap-px bg-gray-100 dark:bg-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
-              <div className="bg-white dark:bg-background-dark p-4 flex flex-col">
+            <div className="grid grid-cols-2 gap-px bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden">
+              <div className="bg-white dark:bg-zinc-900/70 p-4 flex flex-col">
                 <div className="flex items-center space-x-2 text-gray-400 mb-1">
                   <Ruler className="w-4 h-4" />
                   <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.focalLength')}</span>
                 </div>
                 <p className="text-[16px] font-bold">{focalLength ? `${focalLength} mm` : '-'}</p>
               </div>
-              <div className="bg-white dark:bg-background-dark p-4 flex flex-col">
+              <div className="bg-white dark:bg-zinc-900/70 p-4 flex flex-col">
                 <div className="flex items-center space-x-2 text-gray-400 mb-1">
                   <Aperture className="w-4 h-4" />
                   <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.aperture')}</span>
                 </div>
                 <p className="text-[16px] font-bold">{apertureValue ? `f/${apertureValue}` : '-'}</p>
               </div>
-              <div className="bg-white dark:bg-background-dark p-4 flex flex-col">
+              <div className="bg-white dark:bg-zinc-900/70 p-4 flex flex-col">
                 <div className="flex items-center space-x-2 text-gray-400 mb-1">
                   <Timer className="w-4 h-4" />
                   <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.shutter')}</span>
                 </div>
                 <p className="text-[16px] font-bold">{exposureValue ?? '-'}</p>
               </div>
-              <div className="bg-white dark:bg-background-dark p-4 flex flex-col">
+              <div className="bg-white dark:bg-zinc-900/70 p-4 flex flex-col">
                 <div className="flex items-center space-x-2 text-gray-400 mb-1">
                   <Gauge className="w-4 h-4" />
                   <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.iso')}</span>
@@ -636,7 +731,7 @@ function PhotoDetailContent({
                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400/80"></div>
                </div>
              </div>
-             <div className="h-24 w-full bg-gray-50/50 dark:bg-gray-900/50 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 p-2">
+             <div className="h-24 w-full bg-gray-50/50 dark:bg-zinc-900/50 rounded-lg overflow-hidden border border-gray-100 dark:border-zinc-800 p-2">
                 <Histogram src={item.src} className="w-full h-full" />
              </div>
           </section>
