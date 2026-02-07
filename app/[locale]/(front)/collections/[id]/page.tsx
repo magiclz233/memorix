@@ -1,13 +1,15 @@
 import { fetchCollectionById, fetchCollectionMediaItems } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
-import { Gallery25 } from '@/components/gallery25';
-import { ParallaxHeader } from '@/components/ui/parallax-header';
 import { getTranslations } from 'next-intl/server';
+import { CollectionHero } from '@/app/ui/front/collection-hero';
+import { CollectionMediaSection } from '@/app/ui/front/collection-media-section';
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ filter?: string }>;
 }) {
   const { id } = await params;
   const t = await getTranslations('front.collections');
@@ -68,7 +70,6 @@ export default async function Page({
       duration: isVideo ? videoMetadata?.duration : photoMetadata?.videoDuration,
     };
   });
-
   const badgeLabel = photoOnly
     ? t('detail.badgePhoto')
     : videoOnly
@@ -80,133 +81,41 @@ export default async function Page({
       ? t('detail.countVideo', { count: items.length })
       : t('detail.countMixed', { count: items.length });
 
-  const heroSrc =
-    collection.cover?.url ||
+  const coverUrls = (collection.covers ?? [])
+    .map((cover) => cover.thumbUrl || cover.url)
+    .filter((cover): cover is string => Boolean(cover));
+  const fallbackHero =
     collection.cover?.thumbUrl ||
+    collection.cover?.url ||
     galleryItems[0]?.src ||
     '';
+  const heroImages = coverUrls.length > 0 ? coverUrls : fallbackHero ? [fallbackHero] : [];
+  const updatedAtValue = new Date(collection.updatedAt).toLocaleDateString();
 
   return (
-    <div
-      className={
-        isCinema
-          ? 'min-h-screen bg-zinc-950 text-zinc-50 pb-20'
-          : 'min-h-screen bg-zinc-50 dark:bg-zinc-950 pb-20'
-      }
-    >
-      <ParallaxHeader
-        src={heroSrc}
-        className="h-[70vh]"
-        overlayFrom={isCinema ? 'from-zinc-950' : undefined}
-      >
-        <div className="absolute bottom-0 left-0 right-0 z-20 px-6 pb-12 pt-32 md:px-12">
-          <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-8 duration-1000 fill-mode-forwards">
-            <div className="max-w-3xl space-y-6">
-              <div className="space-y-2">
-                <div
-                  className={
-                    isCinema
-                      ? 'flex items-center gap-3 text-sm font-medium uppercase tracking-wider text-indigo-400'
-                      : 'flex items-center gap-3 text-sm font-medium uppercase tracking-wider text-indigo-500 dark:text-indigo-400'
-                  }
-                >
-                  <span className="h-px w-8 bg-current" />
-                  <span>{badgeLabel}</span>
-                </div>
-                <h1
-                  className={
-                    isCinema
-                      ? 'font-serif text-4xl font-bold tracking-tight text-white md:text-6xl lg:text-7xl'
-                      : 'font-serif text-4xl font-bold tracking-tight text-zinc-900 dark:text-white md:text-6xl lg:text-7xl'
-                  }
-                >
-                  {collection.title}
-                </h1>
-              </div>
+    <div className="relative min-h-screen pb-20">
+      <CollectionHero
+        title={collection.title}
+        description={collection.description}
+        badgeLabel={badgeLabel}
+        countLabel={countLabel}
+        author={collection.author ?? undefined}
+        authorLabel={t('detail.author')}
+        updatedAtLabel={t('detail.updated')}
+        updatedAtValue={updatedAtValue}
+        coverUrls={heroImages}
+        backLabel={t('detail.actions.back')}
+        backHref="/collections"
+        actions={{
+          like: t('detail.actions.like'),
+          favorite: t('detail.actions.favorite'),
+        }}
+      />
 
-              {collection.description ? (
-                <p
-                  className={
-                    isCinema
-                      ? 'text-lg leading-relaxed text-zinc-300 md:text-xl'
-                      : 'text-lg leading-relaxed text-zinc-600 dark:text-zinc-300 md:text-xl'
-                  }
-                >
-                  {collection.description}
-                </p>
-              ) : null}
-
-              <div
-                className={
-                  isCinema
-                    ? 'flex flex-wrap items-center gap-4 text-sm text-zinc-400'
-                    : 'flex flex-wrap items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400'
-                }
-              >
-                <div
-                  className={
-                    isCinema
-                      ? 'flex items-center gap-2 rounded-full border border-zinc-800 bg-black/50 px-3 py-1 backdrop-blur-md'
-                      : 'flex items-center gap-2 rounded-full border border-zinc-200 bg-white/50 px-3 py-1 backdrop-blur-md dark:border-zinc-800 dark:bg-black/50'
-                  }
-                >
-                  <span
-                    className={
-                      isCinema
-                        ? 'font-mono font-semibold text-white'
-                        : 'font-mono font-semibold text-zinc-900 dark:text-white'
-                    }
-                  >
-                    {countLabel}
-                  </span>
-                </div>
-                {collection.author ? (
-                  <div
-                    className={
-                      isCinema
-                        ? 'flex items-center gap-2 rounded-full border border-zinc-800 bg-black/50 px-3 py-1 backdrop-blur-md'
-                        : 'flex items-center gap-2 rounded-full border border-zinc-200 bg-white/50 px-3 py-1 backdrop-blur-md dark:border-zinc-800 dark:bg-black/50'
-                    }
-                  >
-                    <span>{t('detail.author')}</span>
-                    <span
-                      className={
-                        isCinema
-                          ? 'font-mono font-semibold text-white'
-                          : 'font-mono font-semibold text-zinc-900 dark:text-white'
-                      }
-                    >
-                      {collection.author}
-                    </span>
-                  </div>
-                ) : null}
-                <div
-                  className={
-                    isCinema
-                      ? 'hidden items-center gap-2 rounded-full border border-zinc-800 bg-black/50 px-3 py-1 backdrop-blur-md sm:flex'
-                      : 'hidden items-center gap-2 rounded-full border border-zinc-200 bg-white/50 px-3 py-1 backdrop-blur-md dark:border-zinc-800 dark:bg-black/50 sm:flex'
-                  }
-                >
-                  <span>{t('detail.updated')}</span>
-                  <span
-                    className={
-                      isCinema
-                        ? 'font-mono font-semibold text-white'
-                        : 'font-mono font-semibold text-zinc-900 dark:text-white'
-                    }
-                  >
-                    {new Date(collection.updatedAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </ParallaxHeader>
-
-      <section className="relative z-20 mx-auto -mt-8 max-w-[1920px] px-4 md:px-8">
-        <Gallery25 items={galleryItems} showChrome={false} className={isCinema ? 'dark' : undefined} />
-      </section>
+      <CollectionMediaSection
+        items={galleryItems}
+        isCinema={isCinema}
+      />
     </div>
   );
 }
