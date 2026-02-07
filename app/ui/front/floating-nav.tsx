@@ -36,6 +36,8 @@ export function FloatingNav() {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const isHome = pathname === '/';
+  const isCollectionDetail =
+    pathname?.startsWith('/collections/') && pathname !== '/collections';
   const loginHref = pathname
     ? `/login?callbackUrl=${encodeURIComponent(pathname)}`
     : '/login';
@@ -132,6 +134,10 @@ export function FloatingNav() {
       clearAccountCloseTimer();
     };
   }, []);
+
+  if (isCollectionDetail) {
+    return null;
+  }
 
   return (
     <div className='front-floating-nav fixed inset-x-0 top-0 z-50 pointer-events-none transition duration-200 ease-out'>
