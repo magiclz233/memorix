@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { fetchPublicSystemSettings } from '@/app/lib/data';
 
 type AboutCard = {
   title: string;
@@ -12,15 +13,46 @@ type EquipmentCard = AboutCard & {
 
 export default async function Page() {
   const t = await getTranslations('front.about');
-  const capabilities = t.raw('capabilities') as AboutCard[];
-  const equipment = t.raw('equipmentItems') as EquipmentCard[];
+  const locale = await getLocale();
+  const settings = await fetchPublicSystemSettings(locale);
+  const aboutSettings = settings?.about ?? {};
+  const defaultCapabilities = t.raw('capabilities') as AboutCard[];
+  const defaultEquipment = t.raw('equipmentItems') as EquipmentCard[];
+  const capabilities = defaultCapabilities.map((item, index) => {
+    const override = aboutSettings.capabilities?.[index] ?? null;
+    const title = override?.title?.trim() || item.title;
+    const description = override?.description?.trim() || item.description;
+    return { ...item, title, description };
+  });
+  const equipment = defaultEquipment.map((item, index) => {
+    const override = aboutSettings.equipmentItems?.[index] ?? null;
+    const title = override?.title?.trim() || item.title;
+    const description = override?.description?.trim() || item.description;
+    return { ...item, title, description };
+  });
+  const eyebrow = aboutSettings.eyebrow?.trim() || t('eyebrow');
+  const title = aboutSettings.title?.trim() || t('title');
+  const description = aboutSettings.description?.trim() || t('description');
+  const manifestoTitle =
+    aboutSettings.manifestoTitle?.trim() || t('manifesto.title');
+  const manifestoDescription =
+    aboutSettings.manifestoDescription?.trim() || t('manifesto.description');
+  const equipmentEyebrow =
+    aboutSettings.equipmentSection?.eyebrow?.trim() ||
+    t('equipmentSection.eyebrow');
+  const equipmentTitle =
+    aboutSettings.equipmentSection?.title?.trim() ||
+    t('equipmentSection.title');
+  const equipmentDescription =
+    aboutSettings.equipmentSection?.description?.trim() ||
+    t('equipmentSection.description');
 
   return (
     <div className='space-y-20'>
       <section className='front-fade-up grid gap-12 lg:grid-cols-[0.6fr_0.4fr] lg:items-start'>
         <div className='space-y-6'>
           <p className='text-xs uppercase tracking-[0.4em] text-zinc-600/80 dark:text-white/60'>
-            {t('eyebrow')}
+            {eyebrow}
           </p>
           <h1
             className={cn(
@@ -28,10 +60,10 @@ export default async function Page() {
               'text-4xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-6xl'
             )}
           >
-            {t('title')}
+            {title}
           </h1>
           <p className='max-w-xl text-base text-zinc-600/80 dark:text-white/60'>
-            {t('description')}
+            {description}
           </p>
         </div>
         <div className='space-y-6'>
@@ -42,10 +74,10 @@ export default async function Page() {
                 'text-lg font-semibold text-zinc-800/90 dark:text-white/85'
               )}
             >
-              {t('manifesto.title')}
+              {manifestoTitle}
             </h2>
             <p className='mt-3 text-sm text-zinc-600/80 dark:text-white/60'>
-              {t('manifesto.description')}
+              {manifestoDescription}
             </p>
           </div>
           <div className='grid gap-4 md:grid-cols-2'>
@@ -67,7 +99,7 @@ export default async function Page() {
       <section className='front-fade-up space-y-6'>
         <div className='space-y-3'>
           <p className='text-xs uppercase tracking-[0.4em] text-zinc-600/80 dark:text-white/60'>
-            {t('equipmentSection.eyebrow')}
+            {equipmentEyebrow}
           </p>
           <h2
             className={cn(
@@ -75,10 +107,10 @@ export default async function Page() {
               'text-3xl font-semibold text-zinc-800/90 dark:text-white/85 md:text-4xl'
             )}
           >
-            {t('equipmentSection.title')}
+            {equipmentTitle}
           </h2>
           <p className='max-w-2xl text-sm text-zinc-600/80 dark:text-white/60'>
-            {t('equipmentSection.description')}
+            {equipmentDescription}
           </p>
         </div>
         <div className='grid gap-4 md:grid-cols-2'>
