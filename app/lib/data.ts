@@ -25,6 +25,60 @@ import {
   sql,
 } from 'drizzle-orm';
 
+export const buildSystemSettingsKey = (locale: string) =>
+  `system_settings_${locale}`;
+
+export type AboutSettings = {
+  eyebrow?: string | null;
+  title?: string | null;
+  description?: string | null;
+  manifestoTitle?: string | null;
+  manifestoDescription?: string | null;
+  capabilities?: {
+    title?: string | null;
+    description?: string | null;
+  }[] | null;
+  equipmentSection?: {
+    eyebrow?: string | null;
+    title?: string | null;
+    description?: string | null;
+  } | null;
+  equipmentItems?: {
+    title?: string | null;
+    description?: string | null;
+    size?: 'wide' | null;
+  }[] | null;
+};
+
+export type SystemSettings = {
+  siteName?: string | null;
+  seoDescription?: string | null;
+  publicAccess?: boolean | null;
+  about?: AboutSettings | null;
+};
+
+export async function fetchSystemSettings(userId: number, locale: string) {
+  const key = buildSystemSettingsKey(locale);
+  const rows = await db
+    .select({ value: userSettings.value })
+    .from(userSettings)
+    .where(and(eq(userSettings.userId, userId), eq(userSettings.key, key)))
+    .limit(1);
+  return (rows[0]?.value ?? null) as SystemSettings | null;
+}
+
+export async function fetchPublicSystemSettings(locale: string) {
+  const key = buildSystemSettingsKey(locale);
+  const rows = await db
+    .select({ value: userSettings.value })
+    .from(userSettings)
+    .innerJoin(users, eq(userSettings.userId, users.id))
+    .where(and(eq(users.role, 'admin'), eq(userSettings.key, key)))
+    .orderBy(desc(userSettings.updatedAt))
+    .limit(1);
+  return (rows[0]?.value ?? null) as SystemSettings | null;
+}
+
 export async function fetchDashboardOverview(userId: number) {
   const storageCountPromise = db
     .select({ count: count() })
