@@ -322,17 +322,7 @@ function PhotoDetailContent({
                     <div className={containerClass}>
                       {isFrame ? (
                          // code.html structure implementation
-                         <div
-                           className="bg-white dark:bg-[#1a1a1a] shadow-[0_10px_50px_-10px_rgba(0,0,0,0.1)] flex flex-col items-center pt-[4%] pr-[6%] pb-[8%] pl-[6%] transition-all duration-700 min-w-[300px]"
-                           onMouseEnter={() => {
-                             if (isLive) setIsLivePreviewing(true);
-                           }}
-                           onMouseLeave={() => setIsLivePreviewing(false)}
-                           onFocus={() => {
-                             if (isLive) setIsLivePreviewing(true);
-                           }}
-                           onBlur={() => setIsLivePreviewing(false)}
-                         >
+                         <div className="bg-white dark:bg-[#1a1a1a] shadow-[0_10px_50px_-10px_rgba(0,0,0,0.1)] flex flex-col items-center pt-[4%] pr-[6%] pb-[8%] pl-[6%] transition-all duration-700 min-w-[300px]">
                             {/* Image Container with Lift Shadow */}
                             <div className="relative shadow-[0_4px_20px_-2px_rgba(0,0,0,0.15)]">
                               {isAnimated ? (
@@ -482,14 +472,6 @@ function PhotoDetailContent({
                             'relative flex',
                             useShrinkWrap && 'w-auto h-auto'
                           )}
-                          onMouseEnter={() => {
-                            if (isLive) setIsLivePreviewing(true);
-                          }}
-                          onMouseLeave={() => setIsLivePreviewing(false)}
-                          onFocus={() => {
-                            if (isLive) setIsLivePreviewing(true);
-                          }}
-                          onBlur={() => setIsLivePreviewing(false)}
                         >
                           {isAnimated ? (
                             <Image
