@@ -974,7 +974,28 @@
         "seoPlaceholder": "Enter core keywords and intro for search engines.",
         "publicAccess": "Enable Public Access",
         "publicAccessDesc": "If disabled, visitors cannot view the public gallery.",
-        "save": "Save Settings"
+        "save": "Save Settings",
+        "forbidden": "Only admins can access this page.",
+        "aboutSection": {
+          "title": "About Page Content",
+          "description": "Used on the public About page. Leave blank to use defaults."
+        },
+        "about": {
+          "eyebrow": "Eyebrow",
+          "title": "Title",
+          "description": "Description",
+          "manifestoTitle": "Manifesto Title",
+          "manifestoDescription": "Manifesto Description",
+          "capabilities": {
+            "title": "Capabilities"
+          },
+          "equipment": {
+            "title": "Equipment",
+            "eyebrow": "Equipment Eyebrow",
+            "titleLabel": "Equipment Title",
+            "description": "Equipment Description"
+          }
+        }
       },
       "users": {
         "title": "User Management",

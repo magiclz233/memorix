@@ -974,7 +974,28 @@
         "seoPlaceholder": "填写站点的核心关键词与简介，用于搜索展示。",
         "publicAccess": "开启公共访问权限",
         "publicAccessDesc": "关闭后访客将无法浏览前台画廊。",
-        "save": "保存设置"
+        "save": "保存设置",
+        "forbidden": "仅管理员可访问该页面。",
+        "aboutSection": {
+          "title": "关于页内容",
+          "description": "用于前台关于页展示，留空将使用默认文案。"
+        },
+        "about": {
+          "eyebrow": "眉标题",
+          "title": "主标题",
+          "description": "简介",
+          "manifestoTitle": "宣言标题",
+          "manifestoDescription": "宣言描述",
+          "capabilities": {
+            "title": "能力模块"
+          },
+          "equipment": {
+            "title": "设备模块",
+            "eyebrow": "设备眉标题",
+            "titleLabel": "设备标题",
+            "description": "设备描述"
+          }
+        }
       },
       "users": {
         "title": "用户管理",
