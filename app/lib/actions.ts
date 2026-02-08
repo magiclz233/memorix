@@ -21,6 +21,7 @@ import {
 } from './schema'; // 引入表定义
 import { runStorageScan, type StorageScanMode } from './storage-scan';
 import { ApiError } from 'next/dist/server/api-utils';
+import { buildSystemSettingsKey, type SystemSettings } from './data';
 
 export type SignupState = {
   errors?: {
@@ -243,6 +244,8 @@ const StorageConfigSchema = z.object({
 });
 
 const HERO_SETTING_KEY = 'hero_images';
+const SYSTEM_SETTINGS_CAPABILITY_COUNT = 4;
+const SYSTEM_SETTINGS_EQUIPMENT_COUNT = 6;
 
 export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>) {
   const t = await getTranslations('actions.storage');
@@ -648,6 +651,89 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
     success: true,
     message: isHero ? t('heroUpdated') : t('heroRemoved'),
   };
+}
+
+export async function saveSystemSettings(formData: FormData) {
+  const user = await requireAdminUser();
+  const locale = await getLocale();
+  const key = buildSystemSettingsKey(locale);
+  const readText = (field: string) => {
+    const value = formData.get(field);
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  };
+
+  const capabilities = Array.from(
+    { length: SYSTEM_SETTINGS_CAPABILITY_COUNT },
+    (_, index) => {
+      const title = readText(`capabilityTitle${index}`);
+      const description = readText(`capabilityDescription${index}`);
+      return title || description ? { title, description } : null;
+    },
+  );
+  const equipmentItems = Array.from(
+    { length: SYSTEM_SETTINGS_EQUIPMENT_COUNT },
+    (_, index) => {
+      const title = readText(`equipmentItemTitle${index}`);
+      const description = readText(`equipmentItemDescription${index}`);
+      return title || description ? { title, description } : null;
+    },
+  );
+  const normalizedCapabilities = capabilities.filter(
+    (item): item is { title: string | null; description: string | null } =>
+      item !== null,
+  );
+  const normalizedEquipmentItems = equipmentItems.filter(
+    (item): item is { title: string | null; description: string | null } =>
+      item !== null,
+  );
+
+  const payload: SystemSettings = {
+    siteName: readText('siteName'),
+    seoDescription: readText('seoDescription'),
+    publicAccess: formData.get('publicAccess') === 'on',
+    about: {
+      eyebrow: readText('aboutEyebrow'),
+      title: readText('aboutTitle'),
+      description: readText('aboutDescription'),
+      manifestoTitle: readText('manifestoTitle'),
+      manifestoDescription: readText('manifestoDescription'),
+      capabilities:
+        normalizedCapabilities.length > 0 ? normalizedCapabilities : null,
+      equipmentSection: {
+        eyebrow: readText('equipmentEyebrow'),
+        title: readText('equipmentTitle'),
+        description: readText('equipmentDescription'),
+      },
+      equipmentItems:
+        normalizedEquipmentItems.length > 0 ? normalizedEquipmentItems : null,
+    },
+  };
+
+  const existing = await db
+    .select({ id: userSettings.id })
+    .from(userSettings)
+    .where(and(eq(userSettings.userId, user.id), eq(userSettings.key, key)))
+    .limit(1);
+
+  if (existing[0]?.id) {
+    await db
+      .update(userSettings)
+      .set({ value: payload, updatedAt: new Date() })
+      .where(eq(userSettings.id, existing[0].id));
+  } else {
+    await db.insert(userSettings).values({
+      userId: user.id,
+      key,
+      value: payload,
+      updatedAt: new Date(),
+    });
+  }
+
+  revalidatePathForAllLocales('/about');
+  revalidatePathForAllLocales('/dashboard/settings/system');
+  return;
 }
 
 export async function toggleUserBan(formData: FormData) {
