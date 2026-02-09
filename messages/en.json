@@ -284,6 +284,19 @@
       }
     },
     "about": {
+      "avatar": "Avatar",
+      "name": "Name",
+      "location": "Location",
+      "contact": "Contact",
+      "contactFields": {
+        "email": "Email",
+        "github": "GitHub",
+        "wechat": "WeChat",
+        "telegram": "Telegram",
+        "weibo": "Weibo"
+      },
+      "bio": "Bio",
+      "commonEquipment": "Common Equipment",
       "eyebrow": "About / Lumina",
       "title": "Lumina Studio",
       "description": "Minimal layouts carry dense visual narratives, extending light and emotion. Between still and motion, we search for breathing space.",
@@ -967,6 +980,10 @@
         }
       },
       "system": {
+        "changeAvatar": "Change Avatar",
+        "removeAvatar": "Remove Avatar",
+        "selectAvatar": "Select Avatar",
+        "equipmentHelp": "List your common equipment, supports newlines.",
         "title": "System Settings",
         "description": "Manage site name, SEO description and public access.",
         "siteName": "Site Name",
