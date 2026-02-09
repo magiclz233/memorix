@@ -28,7 +28,30 @@ import {
 export const buildSystemSettingsKey = (locale: string) =>
   `system_settings_${locale}`;
 
+export type ContactItem = {
+  id: string;
+  type: string; // 'email' | 'github' | 'wechat' | 'telegram' | 'weibo' | 'twitter' | 'instagram' | 'website' | 'other'
+  label: string;
+  value: string;
+};
+
 export type AboutSettings = {
+  // New simplified fields
+  avatar?: string | null;
+  name?: string | null;
+  location?: string | null;
+  bio?: string | null;
+  commonEquipment?: string | null;
+  contacts?: ContactItem[] | null;
+  
+  // Legacy fields (kept for backward compatibility during migration)
+  contact?: {
+    email?: string | null;
+    github?: string | null;
+    wechat?: string | null;
+    telegram?: string | null;
+    weibo?: string | null;
+  } | null;
   eyebrow?: string | null;
   title?: string | null;
   description?: string | null;
