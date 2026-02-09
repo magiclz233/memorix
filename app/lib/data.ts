@@ -83,11 +83,21 @@ export type SystemSettings = {
 export async function fetchSystemSettings(userId: number, locale: string) {
   const key = buildSystemSettingsKey(locale);
   const rows = await db
-    .select({ value: userSettings.value })
+    .select({ 
+      value: userSettings.value,
+      updatedAt: userSettings.updatedAt,
+    })
     .from(userSettings)
     .where(and(eq(userSettings.userId, userId), eq(userSettings.key, key)))
     .limit(1);
-  return (rows[0]?.value ?? null) as SystemSettings | null;
+  
+  const settings = rows[0]?.value as SystemSettings | null;
+  if (!settings) return null;
+
+  return {
+    ...settings,
+    _lastModified: rows[0].updatedAt.getTime(),
+  };
 }
 
 export async function fetchPublicSystemSettings(locale: string) {
