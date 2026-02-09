@@ -672,28 +672,51 @@ export async function saveSystemSettings(formData: FormData) {
       return title || description ? { title, description } : null;
     },
   );
-  const equipmentItems = Array.from(
-    { length: SYSTEM_SETTINGS_EQUIPMENT_COUNT },
-    (_, index) => {
-      const title = readText(`equipmentItemTitle${index}`);
-      const description = readText(`equipmentItemDescription${index}`);
-      return title || description ? { title, description } : null;
-    },
-  );
   const normalizedCapabilities = capabilities.filter(
     (item): item is { title: string | null; description: string | null } =>
       item !== null,
   );
-  const normalizedEquipmentItems = equipmentItems.filter(
-    (item): item is { title: string | null; description: string | null } =>
-      item !== null,
-  );
+
+  const equipmentItemsJson = readText('equipmentItemsJson');
+  let normalizedEquipmentItems = [];
+  if (equipmentItemsJson) {
+    try {
+      normalizedEquipmentItems = JSON.parse(equipmentItemsJson);
+    } catch (e) {
+      console.error('Failed to parse equipmentItemsJson:', e);
+    }
+  }
+
+  const aboutContactsJson = readText('aboutContactsJson');
+  let normalizedContacts: any[] = [];
+  if (aboutContactsJson) {
+    try {
+      const parsed = JSON.parse(aboutContactsJson);
+      if (Array.isArray(parsed)) {
+        normalizedContacts = parsed;
+      }
+    } catch (e) {
+      console.error('Failed to parse aboutContactsJson:', e);
+    }
+  }
 
   const payload: SystemSettings = {
     siteName: readText('siteName'),
     seoDescription: readText('seoDescription'),
     publicAccess: formData.get('publicAccess') === 'on',
     about: {
+      // New fields
+      avatar: readText('aboutAvatar'),
+      name: readText('aboutName'),
+      location: readText('aboutLocation'),
+      bio: readText('aboutBio'),
+      commonEquipment: readText('commonEquipment'),
+      contacts: normalizedContacts.length > 0 ? normalizedContacts : null,
+      
+      // Legacy contact field (set to null as we are migrating to contacts array)
+      contact: null,
+
+      // Legacy fields (kept but not actively populated by new UI)
       eyebrow: readText('aboutEyebrow'),
       title: readText('aboutTitle'),
       description: readText('aboutDescription'),
@@ -730,6 +753,13 @@ export async function saveSystemSettings(formData: FormData) {
       updatedAt: new Date(),
     });
   }
+
+  // Sync avatar to user profile
+  const avatarUrl = readText('aboutAvatar');
+  await db
+    .update(users)
+    .set({ imageUrl: avatarUrl, updatedAt: new Date() })
+    .where(eq(users.id, user.id));
 
   revalidatePathForAllLocales('/about');
   revalidatePathForAllLocales('/dashboard/settings/system');
