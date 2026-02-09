@@ -284,6 +284,19 @@
       }
     },
     "about": {
+      "avatar": "头像",
+      "name": "姓名",
+      "location": "现居地",
+      "contact": "联系方式",
+      "contactFields": {
+        "email": "邮箱",
+        "github": "GitHub",
+        "wechat": "微信号",
+        "telegram": "Telegram",
+        "weibo": "微博"
+      },
+      "bio": "个人简介",
+      "commonEquipment": "常用设备",
       "eyebrow": "About / Lumina",
       "title": "Lumina Studio",
       "description": "以极简排版承载高密度影像叙事，专注于光影与情绪的延展。在静态与动态之间，寻找更有呼吸感的视觉语言。",
@@ -967,6 +980,10 @@
         }
       },
       "system": {
+        "changeAvatar": "更换头像",
+        "removeAvatar": "移除头像",
+        "selectAvatar": "选择头像",
+        "equipmentHelp": "请列出常用设备，支持换行。",
         "title": "系统设置",
         "description": "管理站点名称、SEO 描述与公共访问权限。",
         "siteName": "站点名称",
