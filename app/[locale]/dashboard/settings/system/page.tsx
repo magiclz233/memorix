@@ -15,6 +15,8 @@ export default async function Page() {
     return <div>{t('forbidden')}</div>;
   }
   const settings = await fetchSystemSettings(user.id, locale);
+  // Using type assertion since we extended the return type at runtime but not in the type definition yet
+  const settingsKey = (settings as any)?._lastModified?.toString() ?? 'initial';
 
   return (
     <div className="space-y-6">
@@ -28,7 +30,7 @@ export default async function Page() {
       </header>
 
       <div className="rounded-2xl border border-zinc-200 bg-white/80 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
-        <SystemSettingsForm settings={settings} />
+        <SystemSettingsForm key={settingsKey} settings={settings} />
       </div>
     </div>
   );
