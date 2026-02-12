@@ -570,6 +570,7 @@ export function MediaLibraryManager({
                   src={src}
                   alt={titleText}
                   fill
+                  unoptimized={src.startsWith('/api/')}
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                   className="object-cover transition duration-700 group-hover:scale-110 cursor-zoom-in"
                   onClick={() => setViewingItemId(item.id)}
