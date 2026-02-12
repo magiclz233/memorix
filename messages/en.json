@@ -1092,6 +1092,7 @@
       "enabled": "Storage configuration enabled.",
       "deleted": "Storage configuration and related files deleted.",
       "scanUnsupported": "Scanning not supported for this storage type.",
+      "s3ConfigIncomplete": "S3 configuration incomplete, please fill bucket/accessKey/secretKey.",
       "configDisabled": "Configuration disabled, please enable first.",
       "noRootPath": "Root path not configured.",
       "scanPrefix": "Storage scan: {message}",

@@ -1092,6 +1092,7 @@
       "enabled": "已启用存储配置。",
       "deleted": "存储配置及相关文件已删除。",
       "scanUnsupported": "当前存储类型暂不支持扫描。",
+      "s3ConfigIncomplete": "S3 配置不完整，请补全 bucket/accessKey/secretKey。",
       "configDisabled": "当前配置已禁用，请先启用。",
       "noRootPath": "根目录路径未配置。",
       "scanPrefix": "存储扫描：{message}",
