@@ -7,12 +7,47 @@ import { db } from '@/app/lib/drizzle';
 import { files, photoMetadata, userStorages, users } from '@/app/lib/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
+import { GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { resolveS3Client, s3BodyToReadable } from '@/app/lib/s3-helper';
 
 export const runtime = 'nodejs';
 
 const isLikelyMp4Header = (buffer: Buffer) => {
   const ftypIndex = buffer.indexOf('ftyp');
   return ftypIndex >= 4 && ftypIndex <= 16;
+};
+
+const readS3RangeBuffer = async (
+  client: S3Client,
+  bucket: string,
+  key: string,
+  start: number,
+  length: number,
+) => {
+  const end = Math.max(start, start + length - 1);
+  const response = await client.send(
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Range: `bytes=${start}-${end}`,
+    }),
+  );
+  const body = s3BodyToReadable(response.Body);
+  if (!body) return Buffer.alloc(0);
+  const chunks: Buffer[] = [];
+  for await (const chunk of body as AsyncIterable<Uint8Array>) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+};
+
+const resolveVideoContentType = (filePath: string, fallback?: string | null) => {
+  if (fallback && fallback.startsWith('video/')) return fallback;
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.webm') return 'video/webm';
+  if (ext === '.mov') return 'video/mp4';
+  if (ext === '.mp4') return 'video/mp4';
+  return 'video/mp4';
 };
 
 type Params = {
@@ -36,6 +71,7 @@ export async function GET(request: Request, { params }: Params) {
       mimeType: files.mimeType,
       mediaType: files.mediaType,
       config: userStorages.config,
+      storageType: userStorages.type,
       liveType: photoMetadata.liveType,
       videoOffset: photoMetadata.videoOffset,
       pairedPath: photoMetadata.pairedPath,
@@ -73,7 +109,191 @@ export async function GET(request: Request, { params }: Params) {
     }
   }
 
-  // 2. Resolve File Path
+  if (item.storageType === 's3') {
+    const config = (item.config ?? {}) as {
+      endpoint?: string | null;
+      region?: string | null;
+      bucket?: string | null;
+      accessKey?: string | null;
+      secretKey?: string | null;
+    };
+    if (!config.bucket || !config.accessKey || !config.secretKey) {
+      return new NextResponse('Storage Config Incomplete', { status: 500 });
+    }
+
+    const client = resolveS3Client(config);
+    let targetKey = '';
+    let offset = 0;
+
+    if (item.mediaType === 'video') {
+      targetKey = item.path;
+      offset = 0;
+    } else if (item.liveType === 'paired' && item.pairedPath) {
+      targetKey = item.pairedPath;
+    } else if (item.liveType === 'embedded' && typeof item.videoOffset === 'number') {
+      targetKey = item.path;
+      offset = item.videoOffset;
+    } else {
+      return new NextResponse('Not a Video', { status: 404 });
+    }
+
+    let objectSize = 0;
+    try {
+      const head = await client.send(
+        new HeadObjectCommand({
+          Bucket: config.bucket,
+          Key: targetKey,
+        }),
+      );
+      objectSize = head.ContentLength ?? 0;
+    } catch (e) {
+      console.error(`[Stream API] S3 head failed for ID ${id}:`, targetKey, e);
+      return new NextResponse('Video File Not Found', { status: 404 });
+    }
+
+    if (item.liveType === 'embedded' && offset > 0 && objectSize > 0) {
+      try {
+        const checkBuffer = await readS3RangeBuffer(
+          client,
+          config.bucket,
+          targetKey,
+          offset,
+          32,
+        );
+        const isMp4Absolute = isLikelyMp4Header(checkBuffer);
+        if (!isMp4Absolute) {
+          const altOffset = objectSize - offset;
+          if (altOffset > 0 && altOffset < objectSize) {
+            const altBuffer = await readS3RangeBuffer(
+              client,
+              config.bucket,
+              targetKey,
+              altOffset,
+              32,
+            );
+            const isMp4Relative = isLikelyMp4Header(altBuffer);
+            if (isMp4Relative) {
+              offset = altOffset;
+            } else {
+              offset = altOffset;
+            }
+          }
+        }
+      } catch (checkErr) {
+        console.error(`[Stream API] Failed to verify MP4 header for ID ${id}:`, checkErr);
+      }
+    }
+
+    if (offset < 0 || offset >= objectSize) {
+      console.error(`[Stream API] Invalid video offset for ID ${id}:`, {
+        objectSize,
+        offset,
+      });
+      return new NextResponse('Invalid Video Offset', { status: 500 });
+    }
+
+    const videoSize = objectSize - offset;
+    if (videoSize <= 0) {
+      console.error(`[Stream API] Invalid video size for ID ${id}:`, {
+        objectSize,
+        offset,
+        videoSize,
+      });
+      return new NextResponse('Invalid Video Size', { status: 500 });
+    }
+
+    const contentType = resolveVideoContentType(targetKey, item.mimeType);
+    const range = request.headers.get('range');
+
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+      if (!match) {
+        return new NextResponse('Invalid Range', { status: 416 });
+      }
+
+      const startPart = match[1];
+      const endPart = match[2];
+      let start: number;
+      let end: number;
+
+      if (!startPart && !endPart) {
+        return new NextResponse('Invalid Range', { status: 416 });
+      }
+
+      if (!startPart) {
+        const suffixLength = parseInt(endPart, 10);
+        if (!Number.isFinite(suffixLength) || suffixLength <= 0) {
+          return new NextResponse('Invalid Range', { status: 416 });
+        }
+        start = Math.max(videoSize - suffixLength, 0);
+        end = videoSize - 1;
+      } else {
+        start = parseInt(startPart, 10);
+        end = endPart ? parseInt(endPart, 10) : videoSize - 1;
+      }
+
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start > end) {
+        return new NextResponse('Invalid Range', { status: 416 });
+      }
+
+      if (start >= videoSize) {
+        return new NextResponse('Range Not Satisfiable', {
+          status: 416,
+          headers: { 'Content-Range': `bytes */${videoSize}` },
+        });
+      }
+
+      if (end >= videoSize) {
+        end = videoSize - 1;
+      }
+
+      const chunksize = end - start + 1;
+      const fileStart = start + offset;
+      const fileEnd = end + offset;
+      const response = await client.send(
+        new GetObjectCommand({
+          Bucket: config.bucket,
+          Key: targetKey,
+          Range: `bytes=${fileStart}-${fileEnd}`,
+        }),
+      );
+      const body = s3BodyToReadable(response.Body);
+      if (!body) {
+        return new NextResponse('Video File Not Found', { status: 404 });
+      }
+      return new NextResponse(Readable.toWeb(body) as BodyInit, {
+        status: 206,
+        headers: {
+          'Content-Range': `bytes ${start}-${end}/${videoSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunksize.toString(),
+          'Content-Type': contentType,
+        },
+      });
+    }
+
+    const rangeHeader = offset > 0 ? `bytes=${offset}-${objectSize - 1}` : undefined;
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: config.bucket,
+        Key: targetKey,
+        Range: rangeHeader,
+      }),
+    );
+    const body = s3BodyToReadable(response.Body);
+    if (!body) {
+      return new NextResponse('Video File Not Found', { status: 404 });
+    }
+    return new NextResponse(Readable.toWeb(body) as BodyInit, {
+      status: 200,
+      headers: {
+        'Content-Length': videoSize.toString(),
+        'Content-Type': contentType,
+        'Accept-Ranges': 'bytes',
+      },
+    });
+  }
+
   const rootPath = (item.config as { rootPath?: string })?.rootPath;
   if (!rootPath) {
     return new NextResponse('Storage Root Not Configured', { status: 500 });
@@ -85,31 +305,22 @@ export async function GET(request: Request, { params }: Params) {
   const normalizedRoot = path.resolve(rootPath);
   const originalPath = path.resolve(normalizedRoot, item.path);
 
-  // 3. Determine Stream Source
   if (item.mediaType === 'video') {
     targetPath = originalPath;
     offset = 0;
   } else if (item.liveType === 'paired' && item.pairedPath) {
-    // Paired Video Mode
     targetPath = path.resolve(normalizedRoot, item.pairedPath);
   } else if (item.liveType === 'embedded' && typeof item.videoOffset === 'number') {
-    // Embedded Video Mode
     targetPath = originalPath;
     offset = item.videoOffset;
   } else {
-    // Not a video or missing data
     return new NextResponse('Not a Video', { status: 404 });
   }
 
-  // Validate Path Security
   if (!targetPath.startsWith(normalizedRoot + path.sep) && targetPath !== normalizedRoot) {
-     // Allow if it's strictly within root. 
-     // Note: `originalPath` is safe by definition of storage scan, but `pairedPath` is derived.
-     // `path.resolve` handles `..`, so checking prefix is good.
      return new NextResponse('Forbidden Path', { status: 403 });
   }
 
-  // 4. Stat File
   let stat;
   try {
     stat = await fs.stat(targetPath);
