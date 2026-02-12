@@ -13,6 +13,7 @@ export default async function Layout({
   const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
+    query: { disableRefresh: true },
   });
 
   if (!session) {
