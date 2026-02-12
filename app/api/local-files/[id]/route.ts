@@ -7,6 +7,8 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/app/lib/drizzle';
 import { files, userStorages, users } from '@/app/lib/schema';
 import { auth } from '@/auth';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { resolveS3Client, s3BodyToReadable } from '@/app/lib/s3-helper';
 
 export const runtime = 'nodejs';
 
@@ -45,6 +47,7 @@ export async function GET(request: Request, { params }: Params) {
       mediaType: files.mediaType,
       isPublished: files.isPublished,
       userId: userStorages.userId,
+      storageType: userStorages.type,
       config: userStorages.config,
     })
     .from(files)
@@ -68,6 +71,54 @@ export async function GET(request: Request, { params }: Params) {
     }
   }
 
+  if (item.mediaType === 'video') {
+    return new NextResponse('Use media stream for videos', { status: 400 });
+  }
+
+  if (item.storageType === 's3') {
+    const config = (item.config ?? {}) as {
+      endpoint?: string | null;
+      region?: string | null;
+      bucket?: string | null;
+      accessKey?: string | null;
+      secretKey?: string | null;
+    };
+    if (!config.bucket || !config.accessKey || !config.secretKey) {
+      return new NextResponse('Storage Config Incomplete', { status: 500 });
+    }
+    try {
+      const client = resolveS3Client(config);
+      const response = await client.send(
+        new GetObjectCommand({
+          Bucket: config.bucket,
+          Key: item.path,
+        }),
+      );
+      const body = s3BodyToReadable(response.Body);
+      if (!body) {
+        return new NextResponse('File Not Found', { status: 404 });
+      }
+      const contentType = resolveContentType(
+        item.path,
+        item.mimeType ?? response.ContentType,
+      );
+      const headers = new Headers({
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      });
+      if (typeof response.ContentLength === 'number') {
+        headers.set('Content-Length', response.ContentLength.toString());
+      }
+      return new NextResponse(Readable.toWeb(body) as BodyInit, {
+        status: 200,
+        headers,
+      });
+    } catch (error) {
+      console.error('S3 file read failed:', error);
+      return new NextResponse('File Not Found', { status: 404 });
+    }
+  }
+
   const rootPath = (item.config as { rootPath?: string })?.rootPath;
   if (!rootPath) {
     return new NextResponse('Storage Root Not Configured', { status: 500 });
@@ -78,10 +129,6 @@ export async function GET(request: Request, { params }: Params) {
 
   if (!isSafePath(normalizedRoot, targetPath)) {
     return new NextResponse('Forbidden Path', { status: 403 });
-  }
-
-  if (item.mediaType === 'video') {
-    return new NextResponse('Use media stream for videos', { status: 400 });
   }
 
   try {
