@@ -19,7 +19,7 @@ import {
   userStorages,
   users,
 } from './schema'; // 引入表定义
-import { runStorageScan, type StorageScanMode } from './storage-scan';
+import { runStorageScan, runS3StorageScan, type StorageScanMode } from './storage-scan';
 import { ApiError } from 'next/dist/server/api-utils';
 import { buildSystemSettingsKey, type SystemSettings } from './data';
 
@@ -292,6 +292,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
           accessKey: data.accessKey ?? null,
           secretKey: data.secretKey ?? null,
           prefix: data.prefix ?? null,
+          alias: data.alias ?? null,
         };
   const config = { ...configBase, isDisabled };
 
@@ -482,13 +483,14 @@ export async function scanStorage(
     return { success: false, message: t('notFound') };
   }
 
-  if (storage.type !== 'local' && storage.type !== 'nas') {
-    return { success: false, message: t('scanUnsupported') };
-  }
-
-  const storageType = storage.type as 'local' | 'nas';
   const storageConfig = (storage.config ?? {}) as {
     rootPath?: string;
+    endpoint?: string | null;
+    region?: string | null;
+    bucket?: string | null;
+    accessKey?: string | null;
+    secretKey?: string | null;
+    prefix?: string | null;
     isDisabled?: boolean;
   };
 
@@ -496,15 +498,52 @@ export async function scanStorage(
     return { success: false, message: t('configDisabled') };
   }
 
-  const rootPath = storageConfig.rootPath;
-  if (!rootPath) {
-    return { success: false, message: t('noRootPath') };
-  }
-
   try {
+    if (storage.type === 's3') {
+      if (!storageConfig.bucket || !storageConfig.accessKey || !storageConfig.secretKey) {
+        return { success: false, message: t('s3ConfigIncomplete') };
+      }
+      const { processed } = await runS3StorageScan({
+        storageId: storage.id,
+        config: {
+          endpoint: storageConfig.endpoint ?? null,
+          region: storageConfig.region ?? null,
+          bucket: storageConfig.bucket ?? null,
+          accessKey: storageConfig.accessKey ?? null,
+          secretKey: storageConfig.secretKey ?? null,
+          prefix: storageConfig.prefix ?? null,
+        },
+        mode,
+        onLog: (entry) => {
+          const text = t('scanPrefix', { message: entry.message });
+          if (entry.level === 'error') {
+            console.error(text);
+            return;
+          }
+          if (entry.level === 'warn') {
+            console.warn(text);
+            return;
+          }
+          console.info(text);
+        },
+      });
+      revalidatePathForAllLocales('/dashboard/media');
+      revalidatePathForAllLocales('/gallery');
+      return { success: true, message: t('scanSuccess', { count: processed }) };
+    }
+
+    if (storage.type !== 'local' && storage.type !== 'nas') {
+      return { success: false, message: t('scanUnsupported') };
+    }
+
+    const rootPath = storageConfig.rootPath;
+    if (!rootPath) {
+      return { success: false, message: t('noRootPath') };
+    }
+
     const { processed } = await runStorageScan({
       storageId: storage.id,
-      storageType,
+      storageType: storage.type as 'local' | 'nas',
       rootPath,
       mode,
       onLog: (entry) => {
