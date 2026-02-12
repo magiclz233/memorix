@@ -6,6 +6,7 @@ import { db } from '@/app/lib/drizzle';
 import { userStorages, users } from '@/app/lib/schema';
 import {
   runStorageScan,
+  runS3StorageScan,
   type StorageScanLog,
   type StorageScanMode,
 } from '@/app/lib/storage-scan';
@@ -81,18 +82,69 @@ export async function GET(request: Request) {
           return;
         }
 
-        if (storage.type !== 'local' && storage.type !== 'nas') {
-          sendError(tStorage('scanUnsupported'));
-          return;
-        }
-
         const storageConfig = (storage.config ?? {}) as {
           rootPath?: string;
+          endpoint?: string | null;
+          region?: string | null;
+          bucket?: string | null;
+          accessKey?: string | null;
+          secretKey?: string | null;
+          prefix?: string | null;
           isDisabled?: boolean;
         };
 
         if (storageConfig.isDisabled) {
           sendError(tStorage('configDisabled'));
+          return;
+        }
+
+        if (storage.type === 's3') {
+          if (!storageConfig.bucket || !storageConfig.accessKey || !storageConfig.secretKey) {
+            sendError(tStorage('s3ConfigIncomplete'));
+            return;
+          }
+
+          const targetLabel = storageConfig.prefix
+            ? `${storageConfig.bucket}/${storageConfig.prefix}`
+            : storageConfig.bucket;
+          send('log', {
+            level: 'info',
+            message: `${tStorage('files.scan.scanning')} ${targetLabel}`,
+          });
+          logToConsole({ level: 'info', message: `Start scanning: ${targetLabel}` });
+
+          const { processed } = await runS3StorageScan({
+            storageId: storage.id,
+            config: {
+              endpoint: storageConfig.endpoint ?? null,
+              region: storageConfig.region ?? null,
+              bucket: storageConfig.bucket ?? null,
+              accessKey: storageConfig.accessKey ?? null,
+              secretKey: storageConfig.secretKey ?? null,
+              prefix: storageConfig.prefix ?? null,
+            },
+            mode,
+            onLog: (entry) => {
+              send('log', entry);
+              logToConsole(entry);
+            },
+            onProgress: (progress) => {
+              send('progress', progress);
+            },
+          });
+
+          revalidatePathForAllLocales('/dashboard/media');
+          revalidatePathForAllLocales('/gallery');
+          send('done', { message: tStorage('files.scan.scanComplete', { count: processed }) });
+          logToConsole({
+            level: 'info',
+            message: tStorage('files.scan.scanCompleteConsole', { count: processed }),
+          });
+          return;
+        }
+
+        if (storage.type !== 'local' && storage.type !== 'nas') {
+          sendError(tStorage('scanUnsupported'));
           return;
         }
 
@@ -102,7 +154,10 @@ export async function GET(request: Request) {
           return;
         }
 
-        send('log', { level: 'info', message: `${tStorage('files.scan.scanning')} ${rootPath}` });
+        send('log', {
+          level: 'info',
+          message: `${tStorage('files.scan.scanning')} ${rootPath}`,
+        });
         logToConsole({ level: 'info', message: `Start scanning: ${rootPath}` });
 
         const { processed } = await runStorageScan({
