@@ -7,7 +7,10 @@ import { SystemSettingsForm } from './system-settings-form';
 export default async function Page() {
   const t = await getTranslations('dashboard.settings.system');
   const locale = await getLocale();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await auth.api.getSession({
+    headers: await headers(),
+    query: { disableRefresh: true },
+  });
   const user = session?.user?.email
     ? await fetchUserByEmail(session.user.email)
     : null;
