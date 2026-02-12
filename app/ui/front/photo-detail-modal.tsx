@@ -616,6 +616,7 @@ function PhotoDetailContent({
                     alt={thumb.title}
                     width={56}
                     height={56}
+                    unoptimized={thumb.src.startsWith('/api/')}
                     className="w-full h-full object-cover"
                   />
                 </button>
