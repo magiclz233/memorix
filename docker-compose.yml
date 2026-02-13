@@ -1,0 +1,64 @@
+services:
+  # 数据库服务
+  db:
+    image: postgres:15-alpine
+    container_name: memorix-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-memorix}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - memorix-net
+
+  # 应用服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: memorix-app
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    environment:
+      # 数据库连接
+      POSTGRES_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-memorix}
+      
+      # 认证配置 (生产环境请务必修改 SECRET)
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-changeme_please_generate_new_secret}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      
+      # 应用环境
+      NODE_ENV: production
+      APP_ENV: prod
+    volumes:
+      # NAS 多盘挂载示例 (根据实际情况修改宿主机路径)
+      # 格式: - /宿主机实际路径:/容器内路径
+      
+      # 盘1 (例如 /volume1/photos 挂载到容器的 /app/media/disk1)
+      - /volume1/photos:/app/media/disk1
+      
+      # 盘2 (例如 /volume2/videos 挂载到容器的 /app/media/disk2)
+      - /volume2/videos:/app/media/disk2
+      
+      # 盘3 (例如 /volume3/downloads 挂载到容器的 /app/media/disk3)
+      - /volume3/downloads:/app/media/disk3
+      
+      # 盘4 (例如 /volume4/others 挂载到容器的 /app/media/disk4)
+      - /volume4/others:/app/media/disk4
+
+    networks:
+      - memorix-net
+
+volumes:
+  db_data:
+
+networks:
+  memorix-net:
+    driver: bridge
