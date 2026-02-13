@@ -89,7 +89,6 @@ function StorageForm({
     { value: 'local', label: tTypes('local') },
     { value: 'nas', label: tTypes('nas') },
     { value: 's3', label: tTypes('s3') },
-    { value: 'qiniu', label: tTypes('qiniu') },
   ] as const;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -173,6 +172,11 @@ function StorageForm({
           <p className="text-xs text-zinc-500">
             {t('hints.permission')}
           </p>
+          {type === 'nas' && (
+            <p className="text-xs text-amber-600/90 dark:text-amber-500/90">
+              {t('hints.nasMapping')}
+            </p>
+          )}
         </div>
       )}
 
