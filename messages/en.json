@@ -818,7 +818,8 @@
             "prefix": "photos/"
           },
           "hints": {
-            "permission": "Please ensure the server has permission to access this path."
+            "permission": "Please ensure the server has permission to access this path.",
+            "nasMapping": "NAS Mapping Hint: If you mounted /volume2/ to /app/media/disk1 via Docker, enter /app/media/disk1/photos here to map /volume2/photos."
           },
           "save": "Save Config",
           "saving": "Saving...",

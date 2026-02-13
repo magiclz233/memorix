@@ -818,7 +818,8 @@
             "prefix": "photos/"
           },
           "hints": {
-            "permission": "请确保服务器有权限访问该路径。"
+            "permission": "请确保服务器有权限访问该路径。",
+            "nasMapping": "NAS 路径映射提示：如果 Docker 挂载了 /volume2/ 到 /app/media/disk1，此处请填写 /app/media/disk1/photos 以对应 /volume2/photos。"
           },
           "save": "保存配置",
           "saving": "保存中...",
