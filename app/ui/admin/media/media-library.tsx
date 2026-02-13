@@ -143,7 +143,6 @@ export function MediaLibraryManager({
     { id: 'local', label: t('storageLabels.local'), icon: HardDrive },
     { id: 'nas', label: t('storageLabels.nas'), icon: Server },
     { id: 's3', label: t('storageLabels.s3'), icon: Cloud },
-    { id: 'qiniu', label: t('storageLabels.qiniu'), icon: Cloud },
   ];
 
   const handleCategoryChange = (category: string) => {
