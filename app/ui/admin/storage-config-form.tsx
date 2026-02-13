@@ -33,7 +33,7 @@ type StorageConfigFormProps = {
   storage: StorageItem | null;
 };
 
-const STORAGE_TYPE_VALUES = ['nas', 's3', 'qiniu', 'local'] as const;
+const STORAGE_TYPE_VALUES = ['s3', 'local'] as const;
 
 export function StorageConfigForm({ storage }: StorageConfigFormProps) {
   const t = useTranslations('dashboard.storage');
@@ -43,7 +43,7 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
   const [editingId, setEditingId] = useState<number | undefined>(
     () => storage?.id,
   );
-  const [type, setType] = useState(() => storage?.type ?? 'nas');
+  const [type, setType] = useState(() => storage?.type ?? 's3');
   const [rootPath, setRootPath] = useState(() => config.rootPath ?? '');
   const [alias, setAlias] = useState(() => config.alias ?? '');
   const [endpoint, setEndpoint] = useState(() => config.endpoint ?? '');
@@ -57,7 +57,7 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
 
   const resetToCreate = () => {
     setEditingId(undefined);
-    setType('nas');
+    setType('s3');
     setRootPath('');
     setAlias('');
     setEndpoint('');
