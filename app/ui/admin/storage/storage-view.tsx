@@ -64,7 +64,7 @@ type ScanMode = 'incremental' | 'full';
 
 const STORAGE_ICONS = {
   local: HardDrive,
-  nas: HardDrive,
+  nas: Server,
   s3: Cloud,
   qiniu: Server,
 } as const;
