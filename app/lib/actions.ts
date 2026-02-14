@@ -1,6 +1,8 @@
 'use server';
 
 import { z } from 'zod';
+import path from 'path';
+import { promises as fs } from 'fs';
 import { revalidatePathForAllLocales } from './revalidate';
 import { headers } from 'next/headers';
 import { redirect } from '@/i18n/navigation';
@@ -22,6 +24,7 @@ import {
 import { runStorageScan, runS3StorageScan, type StorageScanMode } from './storage-scan';
 import { ApiError } from 'next/dist/server/api-utils';
 import { buildSystemSettingsKey, type SystemSettings } from './data';
+import { getStorageCacheRoot } from './storage';
 
 export type SignupState = {
   errors?: {
@@ -243,6 +246,12 @@ const StorageConfigSchema = z.object({
   isDisabled: z.boolean().optional(),
 });
 
+const StorageCacheClearSchema = z.object({
+  storageId: z.number().int().positive(),
+  mode: z.enum(['all', 'lru']),
+  days: z.number().int().positive().optional(),
+});
+
 const HERO_SETTING_KEY = 'hero_images';
 const SYSTEM_SETTINGS_CAPABILITY_COUNT = 4;
 const SYSTEM_SETTINGS_EQUIPMENT_COUNT = 6;
@@ -361,6 +370,63 @@ export async function setUserStorageDisabled(storageId: number, isDisabled: bool
     success: true,
     message: isDisabled ? t('disabled') : t('enabled'),
   };
+}
+
+export async function clearStorageCache(
+  storageId: number,
+  mode: 'all' | 'lru',
+  days?: number,
+) {
+  const t = await getTranslations('actions.storage');
+  const user = await requireAdminUser();
+  const parsed = StorageCacheClearSchema.safeParse({ storageId, mode, days });
+  if (!parsed.success) {
+    return { success: false, message: t('cacheInvalid') };
+  }
+
+  const storage = await db.query.userStorages.findFirst({
+    where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
+  });
+
+  if (!storage) {
+    return { success: false, message: t('notFound') };
+  }
+
+  const cacheRoot = getStorageCacheRoot(storageId);
+  try {
+    const stat = await fs.stat(cacheRoot).catch(() => null);
+    if (!stat || !stat.isDirectory()) {
+      return { success: true, message: t('cacheEmpty') };
+    }
+
+    if (mode === 'all') {
+      await fs.rm(cacheRoot, { recursive: true, force: true });
+      return { success: true, message: t('cacheCleared') };
+    }
+
+    const keepDays = parsed.data.days ?? 0;
+    if (keepDays <= 0) {
+      return { success: false, message: t('cacheInvalidDays') };
+    }
+
+    const cutoff = Date.now() - keepDays * 24 * 60 * 60 * 1000;
+    const entries = await fs.readdir(cacheRoot);
+    let removed = 0;
+    for (const entry of entries) {
+      const entryPath = path.join(cacheRoot, entry);
+      const entryStat = await fs.stat(entryPath).catch(() => null);
+      if (!entryStat || !entryStat.isFile()) continue;
+      if (entryStat.mtime.getTime() < cutoff) {
+        await fs.rm(entryPath, { force: true });
+        removed += 1;
+      }
+    }
+
+    return { success: true, message: t('cacheClearedLru', { count: removed }) };
+  } catch (error) {
+    console.error('Failed to clear storage cache:', error);
+    return { success: false, message: t('cacheClearFailed') };
+  }
 }
 
 export async function checkStorageDependencies(storageId: number) {
