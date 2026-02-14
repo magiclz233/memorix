@@ -13,8 +13,9 @@ import { files, userStorages, users } from '@/app/lib/schema';
 import { auth } from '@/auth';
 import { generateVideoPoster } from '@/app/lib/video';
 import { generateImageThumbnail } from '@/app/lib/image-preview';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { resolveS3Client, s3BodyToReadable, normalizeS3Prefix, isNoSuchKeyError } from '@/app/lib/s3-helper';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { resolveS3Client, s3BodyToReadable } from '@/app/lib/s3-helper';
+import { getStorageCacheRoot } from '@/app/lib/storage';
 
 export const runtime = 'nodejs';
 
@@ -65,9 +66,6 @@ const respondPlaceholderWebp = async () => {
   });
 };
 
-const buildS3ThumbKey = (prefix: string, id: number) =>
-  `${prefix ? `${prefix}.memorix/thumbs/` : '.memorix/thumbs/'}${id}.webp`;
-
 export async function GET(request: Request, { params }: Params) {
   const { id } = await params;
   const fileId = Number(id);
@@ -84,6 +82,7 @@ export async function GET(request: Request, { params }: Params) {
       mediaType: files.mediaType,
       isPublished: files.isPublished,
       userId: userStorages.userId,
+      storageId: userStorages.id,
       storageType: userStorages.type,
       config: userStorages.config,
     })
@@ -108,6 +107,36 @@ export async function GET(request: Request, { params }: Params) {
     }
   }
 
+  const thumbRoot = getStorageCacheRoot(item.storageId);
+  await fs.mkdir(thumbRoot, { recursive: true });
+  const thumbPath = path.resolve(thumbRoot, `${item.id}.webp`);
+  if (!isSafePath(thumbRoot, thumbPath)) {
+    return new NextResponse('Forbidden Path', { status: 403 });
+  }
+
+  const respondThumb = async () => {
+    const stat = await fs.stat(thumbPath);
+    const stream = createReadStream(thumbPath);
+    const response = new NextResponse(Readable.toWeb(stream) as BodyInit, {
+      status: 200,
+      headers: {
+        'Content-Length': stat.size.toString(),
+        'Content-Type': 'image/webp',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    });
+    try {
+      const now = new Date();
+      await fs.utimes(thumbPath, now, now);
+    } catch {}
+    return response;
+  };
+
+  try {
+    await fs.stat(thumbPath);
+    return await respondThumb();
+  } catch {}
+
   if (item.storageType === 's3') {
     const config = (item.config ?? {}) as {
       endpoint?: string | null;
@@ -115,47 +144,17 @@ export async function GET(request: Request, { params }: Params) {
       bucket?: string | null;
       accessKey?: string | null;
       secretKey?: string | null;
-      prefix?: string | null;
     };
     if (!config.bucket || !config.accessKey || !config.secretKey) {
       return new NextResponse('Storage Config Incomplete', { status: 500 });
     }
 
     const client = resolveS3Client(config);
-    const prefix = normalizeS3Prefix(config.prefix);
-    const thumbKey = buildS3ThumbKey(prefix, item.id);
-
-    try {
-      const response = await client.send(
-        new GetObjectCommand({
-          Bucket: config.bucket,
-          Key: thumbKey,
-        }),
-      );
-      const body = s3BodyToReadable(response.Body);
-      if (body) {
-        const headers = new Headers({
-          'Content-Type': response.ContentType ?? 'image/webp',
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        });
-        if (typeof response.ContentLength === 'number') {
-          headers.set('Content-Length', response.ContentLength.toString());
-        }
-        return new NextResponse(Readable.toWeb(body) as BodyInit, {
-          status: 200,
-          headers,
-        });
-      }
-    } catch (error) {
-      console.warn('S3 thumb miss, generating:', error);
-    }
-
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'memorix-s3-thumb-'));
     const originalTemp = path.join(
       tempRoot,
       `${crypto.randomUUID()}${path.extname(item.path)}`,
     );
-    const thumbTemp = path.join(tempRoot, `${item.id}.webp`);
     try {
       const originalResponse = await client.send(
         new GetObjectCommand({
@@ -170,31 +169,13 @@ export async function GET(request: Request, { params }: Params) {
       await pipeline(originalBody, createWriteStream(originalTemp));
 
       if (item.mediaType === 'video') {
-        const poster = await generateVideoPoster(originalTemp, thumbTemp, null);
-        if (poster) {
-          await client.send(
-            new PutObjectCommand({
-              Bucket: config.bucket,
-              Key: thumbKey,
-              Body: createReadStream(thumbTemp),
-              ContentType: 'image/webp',
-            }),
-          );
-        } else {
+        const poster = await generateVideoPoster(originalTemp, thumbPath, null);
+        if (!poster) {
           return new NextResponse('Thumbnail Not Found', { status: 404 });
         }
       } else {
-        const thumb = await generateImageThumbnail(originalTemp, thumbTemp);
-        if (thumb) {
-          await client.send(
-            new PutObjectCommand({
-              Bucket: config.bucket,
-              Key: thumbKey,
-              Body: createReadStream(thumbTemp),
-              ContentType: 'image/webp',
-            }),
-          );
-        } else {
+        const thumb = await generateImageThumbnail(originalTemp, thumbPath);
+        if (!thumb) {
           const ext = path.extname(originalTemp).toLowerCase();
           if (ext === '.heic' || ext === '.heif') {
             return respondPlaceholderWebp();
@@ -223,15 +204,7 @@ export async function GET(request: Request, { params }: Params) {
         }
       }
 
-      const buffer = await fs.readFile(thumbTemp);
-      return new NextResponse(new Uint8Array(buffer), {
-        status: 200,
-        headers: {
-          'Content-Length': buffer.length.toString(),
-          'Content-Type': 'image/webp',
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        },
-      });
+      return await respondThumb();
     } catch (error) {
       console.error('S3 thumb read failed:', error);
       return new NextResponse('File Not Found', { status: 404 });
@@ -246,59 +219,38 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const normalizedRoot = path.resolve(rootPath);
-  const thumbPath = path.resolve(
-    normalizedRoot,
-    '.memorix',
-    'thumbs',
-    `${item.id}.webp`,
-  );
   const originalPath = path.resolve(normalizedRoot, item.path);
 
-  if (!isSafePath(normalizedRoot, thumbPath) || !isSafePath(normalizedRoot, originalPath)) {
+  if (!isSafePath(normalizedRoot, originalPath)) {
     return new NextResponse('Forbidden Path', { status: 403 });
   }
 
-  let targetPath = thumbPath;
-  try {
-    await fs.stat(thumbPath);
-  } catch {
-    if (item.mediaType === 'video') {
-      const poster = await generateVideoPoster(originalPath, thumbPath, null);
-      if (!poster) {
-        return new NextResponse('Thumbnail Not Found', { status: 404 });
-      }
-      targetPath = thumbPath;
-      try {
-        await fs.stat(thumbPath);
-      } catch (error) {
-        console.error('Video poster write failed:', error);
-        return new NextResponse('Thumbnail Not Found', { status: 404 });
-      }
-    } else {
-      const thumb = await generateImageThumbnail(originalPath, thumbPath);
-      if (thumb) {
-        targetPath = thumbPath;
-      } else {
-        const ext = path.extname(originalPath).toLowerCase();
-        if (ext === '.heic' || ext === '.heif') {
-          return respondPlaceholderWebp();
-        }
-        targetPath = originalPath;
-      }
+  if (item.mediaType === 'video') {
+    const poster = await generateVideoPoster(originalPath, thumbPath, null);
+    if (!poster) {
+      return new NextResponse('Thumbnail Not Found', { status: 404 });
     }
+    return await respondThumb();
+  }
+
+  const thumb = await generateImageThumbnail(originalPath, thumbPath);
+  if (thumb) {
+    return await respondThumb();
+  }
+
+  const ext = path.extname(originalPath).toLowerCase();
+  if (ext === '.heic' || ext === '.heif') {
+    return respondPlaceholderWebp();
   }
 
   try {
-    const stat = await fs.stat(targetPath);
-    const stream = createReadStream(targetPath);
+    const stat = await fs.stat(originalPath);
+    const stream = createReadStream(originalPath);
     return new NextResponse(Readable.toWeb(stream) as BodyInit, {
       status: 200,
       headers: {
         'Content-Length': stat.size.toString(),
-        'Content-Type': resolveContentType(
-          targetPath,
-          targetPath === originalPath ? item.mimeType : 'image/webp',
-        ),
+        'Content-Type': resolveContentType(originalPath, item.mimeType),
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
