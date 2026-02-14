@@ -1,5 +1,5 @@
 import { eq, sql, inArray, and } from 'drizzle-orm';
-import { promises as fs, createWriteStream, createReadStream } from 'fs';
+import { promises as fs, createWriteStream } from 'fs';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
@@ -7,7 +7,7 @@ import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
 import { db } from './drizzle';
 import { files, photoMetadata, videoMetadata } from './schema';
-import { readPhotoMetadata, scanMediaFiles, type ScanWalkEvent } from './storage';
+import { getStorageCacheRoot, readPhotoMetadata, scanMediaFiles, type ScanWalkEvent } from './storage';
 import { detectAnimatedImage, generateImageThumbnail } from './image-preview';
 import { generateVideoPoster, probeVideoMetadata } from './video';
 import { getTranslations } from 'next-intl/server';
@@ -15,7 +15,6 @@ import {
   S3Client,
   ListObjectsV2Command,
   GetObjectCommand,
-  PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import {
   resolveS3Client,
@@ -61,6 +60,15 @@ const safeRm = async (targetPath: string, options: Parameters<typeof fs.rm>[1]) 
       return;
     }
   }
+};
+
+const removeThumbCacheFiles = async (thumbRoot: string, ids: number[]) => {
+  if (ids.length === 0) return;
+  await Promise.all(
+    ids.map((id) =>
+      safeRm(path.join(thumbRoot, `${id}.webp`), { force: true }),
+    ),
+  );
 };
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
@@ -231,24 +239,6 @@ const downloadS3Object = async (
   await pipeline(readable, createWriteStream(targetPath));
 };
 
-const uploadS3File = async (
-  client: S3Client,
-  bucket: string,
-  key: string,
-  filePath: string,
-  contentType?: string,
-) => {
-  const stream = createReadStream(filePath);
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: stream,
-      ContentType: contentType,
-    }),
-  );
-};
-
 export async function runStorageScan({
   storageId,
   storageType,
@@ -333,7 +323,7 @@ export async function runStorageScan({
   );
 
   let processed = 0;
-  const thumbRoot = path.join(rootPath, '.memorix', 'thumbs');
+  const thumbRoot = getStorageCacheRoot(storageId);
   await fs.mkdir(thumbRoot, { recursive: true });
 
   await db.transaction(async (tx) => {
@@ -376,6 +366,7 @@ export async function runStorageScan({
           await tx
             .delete(videoMetadata)
             .where(inArray(videoMetadata.fileId, idBatch));
+          await removeThumbCacheFiles(thumbRoot, idBatch);
         }
         await tx
           .delete(files)
@@ -695,7 +686,8 @@ export async function runS3StorageScan({
 
   let processed = 0;
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'memorix-s3-'));
-  const thumbPrefix = prefix ? `${prefix}.memorix/thumbs/` : '.memorix/thumbs/';
+  const thumbRoot = getStorageCacheRoot(storageId);
+  await fs.mkdir(thumbRoot, { recursive: true });
 
   try {
     await db.transaction(async (tx) => {
@@ -735,6 +727,7 @@ export async function runS3StorageScan({
             await tx
               .delete(videoMetadata)
               .where(inArray(videoMetadata.fileId, idBatch));
+            await removeThumbCacheFiles(thumbRoot, idBatch);
           }
           await tx
             .delete(files)
@@ -841,8 +834,7 @@ export async function runS3StorageScan({
             tempRoot,
             `${crypto.randomUUID()}${path.extname(file.key)}`,
           );
-          const thumbTemp = path.join(tempRoot, `${saved.id}.webp`);
-          const thumbKey = `${thumbPrefix}${saved.id}.webp`;
+          const thumbPath = path.join(thumbRoot, `${saved.id}.webp`);
           let fileBlurHash: string | null = null;
 
           try {
@@ -856,15 +848,11 @@ export async function runS3StorageScan({
               const videoInfo = await probeVideoMetadata(tempPath);
               const poster = await generateVideoPoster(
                 tempPath,
-                thumbTemp,
+                thumbPath,
                 videoInfo?.duration ?? null,
               );
 
               fileBlurHash = poster?.blurHash ?? null;
-
-              if (poster) {
-                await uploadS3File(client, bucket, thumbKey, thumbTemp, 'image/webp');
-              }
 
               if (videoInfo) {
                 await tx
@@ -932,12 +920,8 @@ export async function runS3StorageScan({
                 .where(eq(videoMetadata.fileId, saved.id));
 
               const metadata = await readPhotoMetadata(tempPath);
-              const thumbnail = await generateImageThumbnail(tempPath, thumbTemp);
+              const thumbnail = await generateImageThumbnail(tempPath, thumbPath);
               fileBlurHash = thumbnail?.blurHash ?? null;
-
-              if (thumbnail) {
-                await uploadS3File(client, bucket, thumbKey, thumbTemp, 'image/webp');
-              }
 
               if (metadata) {
                 const hasEmbedded =
@@ -1020,7 +1004,6 @@ export async function runS3StorageScan({
             continue;
           } finally {
             await safeRm(tempPath, { force: true });
-            await safeRm(thumbTemp, { force: true });
           }
         }
 
