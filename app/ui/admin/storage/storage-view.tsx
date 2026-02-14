@@ -8,7 +8,8 @@ import {
   setUserStorageDisabled,
   scanStorage,
   checkStorageDependencies,
-  setStoragePublished
+  setStoragePublished,
+  clearStorageCache
 } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
 import { StorageModal } from './storage-modal';
@@ -42,6 +43,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 type StorageItem = {
@@ -61,6 +79,7 @@ type StorageConfig = {
 };
 
 type ScanMode = 'incremental' | 'full';
+type CacheMode = 'all' | 'lru';
 
 const STORAGE_ICONS = {
   local: HardDrive,
@@ -74,6 +93,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isPending, startTransition] = useTransition();
+  const [isClearing, startClearing] = useTransition();
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -88,6 +108,22 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
   } | null>(null);
 
   const [scanningId, setScanningId] = useState<number | null>(null);
+  const [cacheOpen, setCacheOpen] = useState(false);
+  const [cacheStorageId, setCacheStorageId] = useState<string>('');
+  const [cacheMode, setCacheMode] = useState<CacheMode>('all');
+  const [cacheDays, setCacheDays] = useState('30');
+
+  const storageOptions = storages.map((storage) => {
+    const config = (storage.config ?? {}) as StorageConfig;
+    const label = t(`view.types.${storage.type}`) || storage.type;
+    const name =
+      config.alias ||
+      config.rootPath ||
+      config.bucket ||
+      config.endpoint ||
+      `${label} #${storage.id}`;
+    return { id: storage.id, label: `${label} · ${name}` };
+  });
 
   const handleAdd = () => {
     setEditingStorage(null);
@@ -97,6 +133,41 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
   const handleEdit = (storage: StorageItem) => {
     setEditingStorage(storage);
     setIsModalOpen(true);
+  };
+
+  const handleOpenCache = () => {
+    if (storages.length === 0) {
+      alert(t('view.cache.noStorage'));
+      return;
+    }
+    if (!cacheStorageId) {
+      setCacheStorageId(String(storages[0]?.id ?? ''));
+    }
+    setCacheOpen(true);
+  };
+
+  const handleClearCache = () => {
+    const storageId = Number(cacheStorageId);
+    if (!Number.isFinite(storageId) || storageId <= 0) {
+      alert(t('view.cache.selectStorage'));
+      return;
+    }
+    const days = Number(cacheDays);
+    if (cacheMode === 'lru' && (!Number.isFinite(days) || days <= 0)) {
+      alert(t('view.cache.invalidDays'));
+      return;
+    }
+    startClearing(async () => {
+      const result = await clearStorageCache(
+        storageId,
+        cacheMode,
+        cacheMode === 'lru' ? days : undefined,
+      );
+      alert(result.message);
+      if (result.success) {
+        setCacheOpen(false);
+      }
+    });
   };
 
   const handleScan = (storageId: number, mode: ScanMode = 'incremental') => {
@@ -204,7 +275,12 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
               <ListIcon className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={handleAdd}>{t('view.actions.add')}</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleOpenCache}>
+              {t('view.cache.button')}
+            </Button>
+            <Button onClick={handleAdd}>{t('view.actions.add')}</Button>
+          </div>
         </div>
 
         {viewMode === 'grid' ? (
@@ -265,6 +341,64 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
               : t('view.alerts.disableDesc')
           }
         />
+
+        <Dialog open={cacheOpen} onOpenChange={setCacheOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{t('view.cache.title')}</DialogTitle>
+              <DialogDescription>{t('view.cache.description')}</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <div className="grid gap-2">
+                <Label>{t('view.cache.storageLabel')}</Label>
+                <Select value={cacheStorageId} onValueChange={setCacheStorageId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('view.cache.storagePlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {storageOptions.map((option) => (
+                      <SelectItem key={option.id} value={String(option.id)}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>{t('view.cache.modeLabel')}</Label>
+                <Select value={cacheMode} onValueChange={(value) => setCacheMode(value as CacheMode)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('view.cache.modeAll')}</SelectItem>
+                    <SelectItem value="lru">{t('view.cache.modeLru')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {cacheMode === 'lru' ? (
+                <div className="grid gap-2">
+                  <Label>{t('view.cache.daysLabel')}</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={cacheDays}
+                    onChange={(event) => setCacheDays(event.target.value)}
+                    placeholder={t('view.cache.daysPlaceholder')}
+                  />
+                </div>
+              ) : null}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCacheOpen(false)}>
+                {t('view.cache.cancel')}
+              </Button>
+              <Button onClick={handleClearCache} disabled={isClearing}>
+                {isClearing ? t('view.cache.clearing') : t('view.cache.confirm')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );
