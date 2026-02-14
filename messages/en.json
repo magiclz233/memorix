@@ -778,6 +778,24 @@
           "hideAll": "Hide All",
           "delete": "Delete"
         },
+        "cache": {
+          "button": "Clear Cache",
+          "title": "Clear Cache",
+          "description": "Select a storage and mode to release thumbnail cache space.",
+          "storageLabel": "Storage",
+          "storagePlaceholder": "Select storage to clear",
+          "modeLabel": "Clear Mode",
+          "modeAll": "Clear All Cache",
+          "modeLru": "Clear by LRU",
+          "daysLabel": "Clear cache unused for X days",
+          "daysPlaceholder": "Enter days",
+          "confirm": "Confirm",
+          "cancel": "Cancel",
+          "clearing": "Clearing...",
+          "noStorage": "No available storage configurations.",
+          "selectStorage": "Please select a storage to clear.",
+          "invalidDays": "Please enter a valid number of days."
+        },
         "alerts": {
           "confirmPublish": "Are you sure you want to publish all images from this source?",
           "confirmHide": "Are you sure you want to hide all images from this source?",
@@ -1101,6 +1119,12 @@
       "scanFailed": "Scan failed, please check path accessibility.",
       "published": "All items from this source published.",
       "hidden": "All items from this source hidden.",
+      "cacheInvalid": "Invalid cache clear parameters.",
+      "cacheInvalidDays": "Invalid LRU days.",
+      "cacheEmpty": "Cache folder is empty.",
+      "cacheCleared": "Cache cleared successfully.",
+      "cacheClearedLru": "Cleared {count} expired cache files.",
+      "cacheClearFailed": "Failed to clear cache, please try again.",
       "dependency": {
         "collection": "Collection: {title}"
       }

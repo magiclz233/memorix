@@ -778,6 +778,24 @@
           "hideAll": "全部隐藏",
           "delete": "删除"
         },
+        "cache": {
+          "button": "清理缓存",
+          "title": "清理缓存",
+          "description": "选择存储配置与清理模式，按需释放缩略图缓存空间。",
+          "storageLabel": "存储配置",
+          "storagePlaceholder": "选择要清理的存储",
+          "modeLabel": "清理模式",
+          "modeAll": "清理全部缓存",
+          "modeLru": "按 LRU 规则清理",
+          "daysLabel": "清理 X 天未使用的缓存",
+          "daysPlaceholder": "输入天数",
+          "confirm": "确认清理",
+          "cancel": "取消",
+          "clearing": "清理中...",
+          "noStorage": "暂无可用的存储配置。",
+          "selectStorage": "请选择要清理的存储配置。",
+          "invalidDays": "请输入有效的天数。"
+        },
         "alerts": {
           "confirmPublish": "确定要发布该数据源下的所有图片吗？",
           "confirmHide": "确定要隐藏该数据源下的所有图片吗？",
@@ -1101,6 +1119,12 @@
       "scanFailed": "扫描目录失败，请检查路径是否可访问。",
       "published": "已发布该数据源下的所有图片。",
       "hidden": "已隐藏该数据源下的所有图片。",
+      "cacheInvalid": "缓存清理参数无效。",
+      "cacheInvalidDays": "LRU 天数参数无效。",
+      "cacheEmpty": "缓存目录为空，无需清理。",
+      "cacheCleared": "缓存已清理完成。",
+      "cacheClearedLru": "已清理 {count} 个过期缓存。",
+      "cacheClearFailed": "缓存清理失败，请稍后重试。",
       "dependency": {
         "collection": "作品集：{title}"
       }
