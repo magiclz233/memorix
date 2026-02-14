@@ -29,6 +29,9 @@ const VIDEO_MIME_BY_EXT: Record<string, string> = {
   '.ts': 'video/mp2t',
 };
 
+export const getStorageCacheRoot = (storageId: number) =>
+  path.resolve(process.cwd(), '.cache', 'memorix', 'thumbs', String(storageId));
+
 const MOTION_XMP_SCAN_BYTES = 512 * 1024;
 const MIN_EMBEDDED_VIDEO_BYTES = 8 * 1024;
 const MP4_HEADER_SCAN_BYTES = 64;
