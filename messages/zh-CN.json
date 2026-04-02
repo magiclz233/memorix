@@ -449,6 +449,19 @@
     }
   },
   "api": {
+    "upload": {
+      "missingParameters": "缺少必要参数。",
+      "storageNotFound": "存储源不存在。",
+      "storageDisabled": "存储源已禁用。",
+      "fileTooLarge": "文件过大，最大支持 {maxSize}。",
+      "unsupportedFileType": "不支持的文件类型。",
+      "storageNotConfigured": "存储源未配置路径。",
+      "s3UploadNotImplemented": "S3 上传功能暂未实现。",
+      "unsupportedStorageType": "不支持的存储类型。",
+      "databaseError": "数据库操作失败。",
+      "processingError": "文件处理失败。",
+      "uploadComplete": "上传完成：成功 {success} 个，失败 {failed} 个。"
+    },
     "errors": {
       "paramError": "参数错误。",
       "fileNotFound": "文件不存在。",

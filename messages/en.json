@@ -449,6 +449,19 @@
     }
   },
   "api": {
+    "upload": {
+      "missingParameters": "Missing required parameters.",
+      "storageNotFound": "Storage not found.",
+      "storageDisabled": "Storage is disabled.",
+      "fileTooLarge": "File too large, maximum size is {maxSize}.",
+      "unsupportedFileType": "Unsupported file type.",
+      "storageNotConfigured": "Storage path not configured.",
+      "s3UploadNotImplemented": "S3 upload not implemented yet.",
+      "unsupportedStorageType": "Unsupported storage type.",
+      "databaseError": "Database operation failed.",
+      "processingError": "File processing failed.",
+      "uploadComplete": "Upload complete: {success} succeeded, {failed} failed."
+    },
     "errors": {
       "paramError": "Invalid parameter.",
       "fileNotFound": "File not found.",
