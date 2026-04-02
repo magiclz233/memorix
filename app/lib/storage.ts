@@ -325,7 +325,7 @@ const resolveEmbeddedMp4Offset = (
   return null;
 };
 
-const detectMotionPhotoInfo = (
+export const detectMotionPhotoInfo = (
   buffer: Buffer,
   metadata: Record<string, unknown>,
 ): { motionPhoto: boolean; videoOffset: number | null } => {
