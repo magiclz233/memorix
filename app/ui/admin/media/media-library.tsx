@@ -17,6 +17,8 @@ import {
   Server,
   Database,
   AlertCircle,
+  Download,
+  Trash2,
 } from 'lucide-react';
 
 import {
@@ -101,11 +103,14 @@ export function MediaLibraryManager({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isPending, startTransition] = useTransition();
+
+  // 批量选择状态
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
   const heroIdSet = useMemo(() => new Set(heroIds), [heroIds]);
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('media-library-columns', 6),
@@ -184,9 +189,17 @@ export function MediaLibraryManager({
   );
 
   useEffect(() => {
-    // 使用 flushSync 避免同步 setState 导致的级联渲染问题
+    // 清理不再存在的选中项
     queueMicrotask(() => {
-      setSelectedIds((prev) => prev.filter((id) => selectableIds.includes(id)));
+      setSelectedIds((prev) => {
+        const next = new Set<number>();
+        prev.forEach((id) => {
+          if (selectableIds.includes(id)) {
+            next.add(id);
+          }
+        });
+        return next;
+      });
     });
   }, [selectableIds]);
 
@@ -251,35 +264,41 @@ export function MediaLibraryManager({
 
   const toggleSelect = (id: number) => {
     if (!selectableIds.includes(id)) return;
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const handlePublish = (publish: boolean) => {
-    if (!selectedIds.length) {
+    if (selectedIds.size === 0) {
       setMessage(t('library.selectFirst'));
       return;
     }
     setMessage(null);
     startTransition(async () => {
-      const result = await setFilesPublished(selectedIds, publish);
+      const result = await setFilesPublished(Array.from(selectedIds), publish);
       setMessage(result.message ?? null);
-      setSelectedIds([]);
+      setSelectedIds(new Set());
       router.refresh();
     });
   };
 
   const handleHero = (isHero: boolean) => {
-    if (!selectedIds.length) {
+    if (selectedIds.size === 0) {
       setMessage(t('library.selectFirst'));
       return;
     }
     setMessage(null);
     startTransition(async () => {
-      const result = await setHeroPhotos(selectedIds, isHero);
+      const result = await setHeroPhotos(Array.from(selectedIds), isHero);
       setMessage(result.message ?? null);
-      setSelectedIds([]);
+      setSelectedIds(new Set());
       router.refresh();
     });
   };
@@ -288,7 +307,105 @@ export function MediaLibraryManager({
     return storages?.some((s) => (s.config as any)?.isDisabled);
   }, [storages]);
 
-  const selectedCount = selectedIds.length;
+  // 批量删除处理
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) {
+      setMessage(t('library.selectFirst'));
+      return;
+    }
+
+    const confirmed = confirm(
+      t('library.deleteConfirm', { count: selectedIds.size })
+    );
+
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    setMessage(null);
+    try {
+      const { deleteMediaFiles } = await import('@/app/lib/actions');
+      const result = await deleteMediaFiles(Array.from(selectedIds));
+
+      if (result.success) {
+        setSelectedIds(new Set());
+        setMessage(t('library.deleteSuccess'));
+        router.refresh();
+      } else {
+        setMessage(result.message || t('library.deleteFailed'));
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      setMessage(t('library.deleteFailed'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // 批量下载处理
+  const handleBatchDownload = async () => {
+    if (selectedIds.size === 0) {
+      setMessage(t('library.selectFirst'));
+      return;
+    }
+
+    setIsDownloading(true);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileIds: Array.from(selectedIds),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+
+      // 触发浏览器下载
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // 从响应头获取文件名，或使用默认名称
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `media_${Date.now()}.zip`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Download error:', error);
+      setMessage(t('library.downloadFailed'));
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // 全选/取消全选
+  const toggleSelectAll = () => {
+    if (selectedIds.size === selectableIds.length && selectableIds.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableIds));
+    }
+  };
+
+  const selectedCount = selectedIds.size;
 
   return (
     <div className="space-y-6">
@@ -388,14 +505,8 @@ export function MediaLibraryManager({
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={selectableIds.length > 0 && selectedIds.length === selectableIds.length}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setSelectedIds(selectableIds);
-                  } else {
-                    setSelectedIds([]);
-                  }
-                }}
+                checked={selectableIds.length > 0 && selectedIds.size === selectableIds.length}
+                onChange={toggleSelectAll}
                 disabled={selectableIds.length === 0}
                 className="h-4 w-4 cursor-pointer rounded border-zinc-300 accent-indigo-600 focus:ring-indigo-500"
                 title={t('library.selectAllPage')}
@@ -500,11 +611,42 @@ export function MediaLibraryManager({
             {selectedCount > 0 && (
               <>
                 <div className="mx-1 h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  onClick={handleBatchDownload}
+                  disabled={isDownloading}
+                  title={t('library.downloadSelected')}
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {isDownloading ? t('library.downloading') : t('library.download')}
+                  </span>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                  onClick={handleBatchDelete}
+                  disabled={isDeleting}
+                  title={t('library.deleteSelected')}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {isDeleting ? t('library.deleting') : t('library.delete')}
+                  </span>
+                </Button>
+
+                <div className="mx-1 h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
+                
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-8 px-2 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  onClick={() => setSelectedIds([])}
+                  onClick={() => setSelectedIds(new Set())}
                   title={t('library.clearSelection')}
                 >
                   <span className="text-xs">✕</span>
@@ -541,7 +683,7 @@ export function MediaLibraryManager({
           const src = resolveMediaSrc(item);
           const isVideo = item.mediaType === 'video';
           const isAnimated = item.mediaType === 'animated';
-          const isSelected = selectedIds.includes(item.id);
+          const isSelected = selectedIds.has(item.id);
           const rawTitle = item.title ?? item.path ?? null;
           const titleText = rawTitle
             ? resolveMessage(messages, rawTitle)
