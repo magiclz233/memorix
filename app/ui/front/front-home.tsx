@@ -4,13 +4,25 @@ import { Link } from '@/i18n/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { featuredCollections } from '@/app/lib/front-data';
 import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { SectionHeader } from '@/app/ui/front/section-header';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { CollectionListItem } from '@/app/lib/data';
 
 type HeroTone = 'light' | 'dark';
+
+interface HeroPhoto {
+  id: number;
+  title: string | null;
+  path: string;
+  mtime: Date | null;
+}
+
+interface FrontHomeProps {
+  heroPhotos: HeroPhoto[];
+  featuredCollections: CollectionListItem[];
+}
 
 const HERO_IMAGES = {
   desktop: [
@@ -127,21 +139,27 @@ const resolveHeroTone = (
   return weightedAverage < 155 ? 'light' : 'dark';
 };
 
-export function FrontHome() {
+export function FrontHome({ heroPhotos, featuredCollections }: FrontHomeProps) {
   const t = useTranslations('front.home');
   const tData = useTranslations();
-  const featured = featuredCollections.slice(0, 3);
   const heroRef = useRef<HTMLElement | null>(null);
   const heroTextRef = useRef<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   const [heroTone, setHeroTone] = useState<HeroTone>('light');
   const [activeIndex, setActiveIndex] = useState(0);
+  
+  // 使用真实 Hero 照片数据，如果没有则降级到默认图片
   const heroImages = useMemo(() => {
+    if (heroPhotos.length > 0) {
+      // 使用真实照片的缩略图 URL
+      return heroPhotos.map(photo => `/api/media/thumb/${photo.id}`);
+    }
+    // 降级方案：使用默认图片
     if (viewportSize.width > 0 && viewportSize.width < 640) {
       return HERO_IMAGES.mobile;
     }
     return HERO_IMAGES.desktop;
-  }, [viewportSize.width]);
+  }, [heroPhotos, viewportSize.width]);
   const safeIndex = heroImages.length ? activeIndex % heroImages.length : 0;
   const heroImageSrc = heroImages[safeIndex] ?? heroImages[0];
   
@@ -296,45 +314,49 @@ export function FrontHome() {
           actionHref='/collections'
         />
         <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
-          {featured.map((collection) => (
-            <Link
-              key={collection.id}
-              href='/collections'
-              className='block'
-            >
-              <SpotlightCard className='h-full min-h-[280px]'>
-                <div className='relative flex h-full flex-col justify-between gap-6 p-6'>
-                  <div
-                    className={cn(
-                      'absolute inset-0 bg-gradient-to-br opacity-30 dark:opacity-70',
-                      collection.cover
+          {featuredCollections.map((collection) => {
+            // 使用集合封面图片，如果没有则使用默认渐变
+            const hasCover = collection.covers && collection.covers.length > 0;
+            const coverImageUrl = hasCover ? collection.covers![0].thumbUrl : null;
+            
+            return (
+              <Link
+                key={collection.id}
+                href={`/collections/${collection.id}`}
+                className='block'
+              >
+                <SpotlightCard className='h-full min-h-[280px]'>
+                  <div className='relative flex h-full flex-col justify-between gap-6 p-6'>
+                    {coverImageUrl ? (
+                      <div
+                        className='absolute inset-0 bg-cover bg-center opacity-20 dark:opacity-30'
+                        style={{ backgroundImage: `url(${coverImageUrl})` }}
+                      />
+                    ) : (
+                      <div className='absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 opacity-30 dark:opacity-70' />
                     )}
-                  />
-                  <div className='relative z-10 space-y-4'>
-                    <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
-                      {collection.type === 'photo'
-                        ? t('sections.featuredCollections.badgePhoto')
-                        : collection.type === 'video'
-                          ? t('sections.featuredCollections.badgeVideo')
-                          : t('sections.featuredCollections.badgeMixed')}
-                    </span>
-                    <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
-                      {tData(collection.title)}
-                    </h3>
-                    <p className='text-sm text-zinc-600/80 dark:text-white/60'>
-                      {tData(collection.description)}
-                    </p>
+                    <div className='relative z-10 space-y-4'>
+                      <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
+                        {collection.type === 'photo'
+                          ? t('sections.featuredCollections.badgePhoto')
+                          : collection.type === 'video'
+                            ? t('sections.featuredCollections.badgeVideo')
+                            : t('sections.featuredCollections.badgeMixed')}
+                      </span>
+                      <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
+                        {collection.title}
+                      </h3>
+                      {collection.description && (
+                        <p className='text-sm text-zinc-600/80 dark:text-white/60'>
+                          {collection.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className='relative z-10 flex items-center justify-between text-xs text-zinc-600/80 dark:text-white/60'>
-                    <span>{t('itemCount', { count: collection.count })}</span>
-                    <span className='text-indigo-600 dark:text-indigo-400'>
-                      {(collection.tags ?? []).map(tag => tData(tag)).join(' / ')}
-                    </span>
-                  </div>
-                </div>
-              </SpotlightCard>
-            </Link>
-          ))}
+                </SpotlightCard>
+              </Link>
+            );
+          })}
         </div>
       </section>
     </div>
