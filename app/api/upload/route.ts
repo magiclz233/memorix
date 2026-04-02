@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { db } from '@/app/lib/drizzle';
-import { files, photoMetadata, videoMetadata, userStorages } from '@/app/lib/schema';
+import { files, userStorages } from '@/app/lib/schema';
 import { and, eq } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs/promises';
-import { getImageMimeType, getVideoMimeType, getStorageCacheRoot } from '@/app/lib/storage';
-import { generateImageThumbnail } from '@/app/lib/image-preview';
-import { generateVideoPoster, probeVideoMetadata } from '@/app/lib/video';
-import { readPhotoMetadata, detectMotionPhotoInfo } from '@/app/lib/storage';
+import { extractMetadataAsync } from '@/app/lib/metadata-extractor';
 import { getTranslations } from 'next-intl/server';
 
 // 文件大小限制：500MB
@@ -17,6 +15,33 @@ const MAX_FILE_SIZE = 500 * 1024 * 1024;
 // 支持的文件类型
 const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
 const SUPPORTED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
+
+// 简单的 MIME 类型判断
+function getImageMimeType(fileName: string): string {
+  const ext = path.extname(fileName).toLowerCase();
+  const mimeMap: Record<string, string> = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.heic': 'image/heic',
+    '.heif': 'image/heif',
+  };
+  return mimeMap[ext] || 'image/jpeg';
+}
+
+function getVideoMimeType(fileName: string): string {
+  const ext = path.extname(fileName).toLowerCase();
+  const mimeMap: Record<string, string> = {
+    '.mp4': 'video/mp4',
+    '.mov': 'video/quicktime',
+    '.avi': 'video/x-msvideo',
+    '.mkv': 'video/x-matroska',
+    '.webm': 'video/webm',
+  };
+  return mimeMap[ext] || 'video/mp4';
+}
 
 type UploadResult = {
   success: boolean;
@@ -28,7 +53,10 @@ type UploadResult = {
 export async function POST(request: NextRequest) {
   try {
     // 1. 验证用户权限
-    const session = await auth();
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -223,133 +251,5 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
-}
-
-// 异步提取元数据
-async function extractMetadataAsync(
-  fileId: number,
-  absolutePath: string,
-  mediaType: string,
-  storageId: number
-) {
-  const thumbRoot = getStorageCacheRoot(storageId);
-  const thumbPath = path.join(thumbRoot, `${fileId}.webp`);
-
-  // 确保缩略图目录存在
-  await fs.mkdir(thumbRoot, { recursive: true });
-
-  let fileBlurHash: string | null = null;
-
-  if (mediaType === 'video') {
-    // 删除可能存在的照片元数据
-    await db.delete(photoMetadata).where(eq(photoMetadata.fileId, fileId));
-
-    // 提取视频信息
-    const videoInfo = await probeVideoMetadata(absolutePath);
-    const poster = await generateVideoPoster(
-      absolutePath,
-      thumbPath,
-      videoInfo?.duration ?? null
-    );
-
-    fileBlurHash = poster?.blurHash ?? null;
-
-    if (videoInfo) {
-      await db
-        .insert(videoMetadata)
-        .values({
-          fileId,
-          duration: videoInfo.duration ?? null,
-          width: videoInfo.width ?? null,
-          height: videoInfo.height ?? null,
-          bitrate: videoInfo.bitrate ?? null,
-          fps: videoInfo.fps ?? null,
-          frameCount: videoInfo.frameCount ?? null,
-          codecVideo: videoInfo.codecVideo ?? null,
-          codecAudio: videoInfo.codecAudio ?? null,
-        })
-        .onConflictDoUpdate({
-          target: [videoMetadata.fileId],
-          set: {
-            duration: videoInfo.duration ?? null,
-            width: videoInfo.width ?? null,
-            height: videoInfo.height ?? null,
-            bitrate: videoInfo.bitrate ?? null,
-            fps: videoInfo.fps ?? null,
-            frameCount: videoInfo.frameCount ?? null,
-            codecVideo: videoInfo.codecVideo ?? null,
-            codecAudio: videoInfo.codecAudio ?? null,
-          },
-        });
-    }
-  } else {
-    // 删除可能存在的视频元数据
-    await db.delete(videoMetadata).where(eq(videoMetadata.fileId, fileId));
-
-    // 提取照片元数据
-    const metadata = await readPhotoMetadata(absolutePath);
-    const thumbnail = await generateImageThumbnail(absolutePath, thumbPath);
-    fileBlurHash = thumbnail?.blurHash ?? null;
-
-    // 检测实况照片
-    const motionInfo = await detectMotionPhotoInfo(absolutePath);
-    const liveType =
-      motionInfo?.type === 'google'
-        ? 'google'
-        : motionInfo?.type === 'apple'
-          ? 'apple'
-          : 'none';
-
-    await db
-      .insert(photoMetadata)
-      .values({
-        fileId,
-        description: metadata.description ?? null,
-        camera: metadata.camera ?? null,
-        maker: metadata.maker ?? null,
-        lens: metadata.lens ?? null,
-        dateShot: metadata.dateShot ?? null,
-        exposure: metadata.exposure ?? null,
-        aperture: metadata.aperture ?? null,
-        iso: metadata.iso ?? null,
-        focalLength: metadata.focalLength ?? null,
-        whiteBalance: metadata.whiteBalance ?? null,
-        gpsLatitude: metadata.gpsLatitude ?? null,
-        gpsLongitude: metadata.gpsLongitude ?? null,
-        resolutionWidth: thumbnail?.width ?? null,
-        resolutionHeight: thumbnail?.height ?? null,
-        liveType,
-        pairedPath: motionInfo?.videoPath ?? null,
-      })
-      .onConflictDoUpdate({
-        target: [photoMetadata.fileId],
-        set: {
-          description: metadata.description ?? null,
-          camera: metadata.camera ?? null,
-          maker: metadata.maker ?? null,
-          lens: metadata.lens ?? null,
-          dateShot: metadata.dateShot ?? null,
-          exposure: metadata.exposure ?? null,
-          aperture: metadata.aperture ?? null,
-          iso: metadata.iso ?? null,
-          focalLength: metadata.focalLength ?? null,
-          whiteBalance: metadata.whiteBalance ?? null,
-          gpsLatitude: metadata.gpsLatitude ?? null,
-          gpsLongitude: metadata.gpsLongitude ?? null,
-          resolutionWidth: thumbnail?.width ?? null,
-          resolutionHeight: thumbnail?.height ?? null,
-          liveType,
-          pairedPath: motionInfo?.videoPath ?? null,
-        },
-      });
-  }
-
-  // 更新文件的 BlurHash
-  if (fileBlurHash) {
-    await db
-      .update(files)
-      .set({ blurHash: fileBlurHash })
-      .where(eq(files.id, fileId));
   }
 }
