@@ -462,6 +462,11 @@
       "processingError": "File processing failed.",
       "uploadComplete": "Upload complete: {success} succeeded, {failed} failed."
     },
+    "download": {
+      "missingParameters": "Missing required parameters.",
+      "noFiles": "No files found.",
+      "noAccessibleFiles": "No accessible files."
+    },
     "errors": {
       "paramError": "Invalid parameter.",
       "fileNotFound": "File not found.",
@@ -645,6 +650,16 @@
         "selectedCount": "{count} selected",
         "selectableCount": "{count} selectable on page",
         "totalCount": "Total {count} items",
+        "download": "Download",
+        "downloading": "Downloading...",
+        "downloadSelected": "Download Selected",
+        "delete": "Delete",
+        "deleting": "Deleting...",
+        "deleteSelected": "Delete Selected",
+        "deleteConfirm": "Are you sure you want to delete {count} selected files? This action cannot be undone.",
+        "deleteSuccess": "Deleted successfully",
+        "deleteFailed": "Delete failed",
+        "downloadFailed": "Download failed, please try again later",
         "columns": {
           "label": "Per row",
           "aria": "Items per row",

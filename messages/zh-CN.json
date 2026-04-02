@@ -462,6 +462,11 @@
       "processingError": "文件处理失败。",
       "uploadComplete": "上传完成：成功 {success} 个，失败 {failed} 个。"
     },
+    "download": {
+      "missingParameters": "缺少必要参数。",
+      "noFiles": "未找到文件。",
+      "noAccessibleFiles": "没有可访问的文件。"
+    },
     "errors": {
       "paramError": "参数错误。",
       "fileNotFound": "文件不存在。",
@@ -645,6 +650,16 @@
         "selectedCount": "已选 {count} 项",
         "selectableCount": "当前页可选 {count} 项",
         "totalCount": "资源总数 {count} 项",
+        "download": "下载",
+        "downloading": "下载中...",
+        "downloadSelected": "下载选中",
+        "delete": "删除",
+        "deleting": "删除中...",
+        "deleteSelected": "删除选中",
+        "deleteConfirm": "确定要删除选中的 {count} 个文件吗？此操作无法撤销。",
+        "deleteSuccess": "删除成功",
+        "deleteFailed": "删除失败",
+        "downloadFailed": "下载失败，请稍后重试",
         "columns": {
           "label": "每行",
           "aria": "每行显示数量",
