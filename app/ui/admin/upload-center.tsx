@@ -60,26 +60,64 @@ export function UploadCenter({ storages }: UploadCenterProps) {
   }, []);
 
   const startUpload = useCallback(
-    (item: UploadItem) => {
+    async (item: UploadItem) => {
+      if (!selectedStorageId) return;
+
       updateUpload(item.id, { status: 'uploading', progress: 0 });
-      const reader = new FileReader();
-      reader.onprogress = (event) => {
-        if (!event.lengthComputable) return;
-        const progress = Math.min(
-          100,
-          Math.round((event.loaded / event.total) * 100),
-        );
-        updateUpload(item.id, { progress });
-      };
-      reader.onload = () => {
-        updateUpload(item.id, { progress: 100, status: 'done' });
-      };
-      reader.onerror = () => {
+
+      try {
+        // 创建 FormData
+        const formData = new FormData();
+        formData.append('storageId', selectedStorageId.toString());
+        formData.append('files', item.file);
+
+        // 使用 XMLHttpRequest 以支持进度监听
+        const xhr = new XMLHttpRequest();
+
+        // 监听上传进度
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.min(
+              100,
+              Math.round((event.loaded / event.total) * 100),
+            );
+            updateUpload(item.id, { progress });
+          }
+        };
+
+        // 监听上传完成
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              if (response.success || response.results?.[0]?.success) {
+                updateUpload(item.id, { progress: 100, status: 'done' });
+              } else {
+                updateUpload(item.id, { status: 'error' });
+              }
+            } catch (error) {
+              console.error('Failed to parse response:', error);
+              updateUpload(item.id, { status: 'error' });
+            }
+          } else {
+            updateUpload(item.id, { status: 'error' });
+          }
+        };
+
+        // 监听上传错误
+        xhr.onerror = () => {
+          updateUpload(item.id, { status: 'error' });
+        };
+
+        // 发送请求
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
+      } catch (error) {
+        console.error('Upload error:', error);
         updateUpload(item.id, { status: 'error' });
-      };
-      reader.readAsArrayBuffer(item.file);
+      }
     },
-    [updateUpload],
+    [selectedStorageId, updateUpload],
   );
 
   const enqueueFiles = useCallback(
@@ -94,7 +132,39 @@ export function UploadCenter({ storages }: UploadCenterProps) {
         status: 'waiting',
       }));
       setUploads((prev) => [...nextItems, ...prev]);
-      nextItems.forEach(startUpload);
+      
+      // 并发上传控制：限制同时上传 3 个文件
+      const MAX_CONCURRENT = 3;
+      let activeCount = 0;
+      let currentIndex = 0;
+
+      const uploadNext = () => {
+        if (currentIndex >= nextItems.length) {
+          // 所有文件上传完成，重新验证媒体库页面
+          if (activeCount === 0) {
+            // 使用 router.refresh() 或其他方式重新验证
+            // 这里简单地延迟一下，让用户看到完成状态
+            setTimeout(() => {
+              // 可以在这里添加成功提示
+              console.log('All uploads completed');
+            }, 500);
+          }
+          return;
+        }
+
+        while (activeCount < MAX_CONCURRENT && currentIndex < nextItems.length) {
+          const item = nextItems[currentIndex];
+          currentIndex++;
+          activeCount++;
+
+          startUpload(item).finally(() => {
+            activeCount--;
+            uploadNext();
+          });
+        }
+      };
+
+      uploadNext();
     },
     [selectedStorageId, startUpload],
   );
