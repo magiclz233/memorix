@@ -17,6 +17,7 @@ import {
   collections,
   files,
   photoMetadata,
+  videoMetadata,
   userSettings,
   userStorages,
   users,
@@ -1113,3 +1114,216 @@ export async function changePasswordAction(prevState: any, formData: FormData) {
 }
 
 
+
+
+/**
+ * 批量删除媒体文件
+ * @param fileIds 文件 ID 数组
+ */
+export async function deleteMediaFiles(fileIds: number[]) {
+  const t = await getTranslations('actions.files');
+  const user = await requireAdminUser();
+
+  if (!fileIds || fileIds.length === 0) {
+    return { success: false, message: t('noneSelected') };
+  }
+
+  try {
+    // 查询文件信息，验证所有权
+    const filesToDelete = await db
+      .select({
+        id: files.id,
+        path: files.path,
+        storageId: files.userStorageId,
+        storageType: userStorages.type,
+        storageConfig: userStorages.config,
+      })
+      .from(files)
+      .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+      .where(
+        and(
+          inArray(files.id, fileIds),
+          eq(userStorages.userId, user.id)
+        )
+      );
+
+    if (filesToDelete.length === 0) {
+      return { success: false, message: t('noStorage') };
+    }
+
+    // 开启数据库事务
+    await db.transaction(async (tx) => {
+      // 删除集合关联
+      await tx
+        .delete(collectionMedia)
+        .where(inArray(collectionMedia.fileId, fileIds));
+
+      // 删除照片元数据
+      await tx
+        .delete(photoMetadata)
+        .where(inArray(photoMetadata.fileId, fileIds));
+
+      // 删除视频元数据
+      await tx
+        .delete(videoMetadata)
+        .where(inArray(videoMetadata.fileId, fileIds));
+
+      // 清理 Hero 照片引用
+      await cleanHeroReferences(tx, fileIds, user.id);
+
+      // 清理集合封面引用
+      await cleanCollectionCoverReferences(tx, fileIds);
+
+      // 删除文件记录
+      await tx.delete(files).where(inArray(files.id, fileIds));
+    });
+
+    // 删除物理文件（在事务外执行，避免阻塞）
+    const deletePromises = filesToDelete.map(async (file) => {
+      try {
+        const storageConfig = file.storageConfig as { basePath?: string };
+        if (file.storageType === 'local' || file.storageType === 'nas') {
+          const basePath = storageConfig.basePath || '';
+          if (basePath) {
+            const absolutePath = path.join(basePath, file.path);
+            await fs.unlink(absolutePath).catch(() => {
+              // 忽略文件不存在的错误
+            });
+          }
+        }
+
+        // 删除缩略图
+        const thumbRoot = getStorageCacheRoot(file.storageId);
+        const thumbPath = path.join(thumbRoot, `${file.id}.webp`);
+        await fs.unlink(thumbPath).catch(() => {
+          // 忽略文件不存在的错误
+        });
+      } catch (error) {
+        console.error(`Failed to delete physical file ${file.id}:`, error);
+      }
+    });
+
+    await Promise.allSettled(deletePromises);
+
+    // 重新验证相关页面
+    revalidatePathForAllLocales('/dashboard/media');
+    revalidatePathForAllLocales('/gallery');
+    revalidatePathForAllLocales('/');
+
+    return {
+      success: true,
+      message: t('statusUpdated'),
+    };
+  } catch (error) {
+    console.error('Delete media files error:', error);
+    return {
+      success: false,
+      message: t('updateFailed'),
+    };
+  }
+}
+
+/**
+ * 清理 Hero 照片引用
+ * @param tx 事务对象
+ * @param deletedFileIds 已删除的文件 ID
+ * @param userId 用户 ID
+ */
+async function cleanHeroReferences(
+  tx: any,
+  deletedFileIds: number[],
+  userId: number
+) {
+  const HERO_SETTING_KEY = 'hero_images';
+
+  // 读取用户的 hero_images 设置
+  const heroSettings = await tx
+    .select({ value: userSettings.value })
+    .from(userSettings)
+    .where(
+      and(
+        eq(userSettings.userId, userId),
+        eq(userSettings.key, HERO_SETTING_KEY)
+      )
+    )
+    .limit(1);
+
+  if (heroSettings.length === 0) return;
+
+  const currentHeroIds = Array.isArray(heroSettings[0].value)
+    ? heroSettings[0].value.filter((id: any) => typeof id === 'number')
+    : [];
+
+  // 过滤掉已删除的文件 ID
+  const remainingHeroIds = currentHeroIds.filter(
+    (id: number) => !deletedFileIds.includes(id)
+  );
+
+  if (remainingHeroIds.length === 0) {
+    // 没有剩余的 Hero 照片，删除设置记录
+    await tx
+      .delete(userSettings)
+      .where(
+        and(
+          eq(userSettings.userId, userId),
+          eq(userSettings.key, HERO_SETTING_KEY)
+        )
+      );
+  } else if (remainingHeroIds.length !== currentHeroIds.length) {
+    // 有剩余的 Hero 照片，更新设置记录
+    await tx
+      .update(userSettings)
+      .set({
+        value: remainingHeroIds,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userSettings.userId, userId),
+          eq(userSettings.key, HERO_SETTING_KEY)
+        )
+      );
+  }
+}
+
+/**
+ * 清理集合封面引用
+ * @param tx 事务对象
+ * @param deletedFileIds 已删除的文件 ID
+ */
+async function cleanCollectionCoverReferences(
+  tx: any,
+  deletedFileIds: number[]
+) {
+  // 查询所有包含已删除文件作为封面的集合
+  const affectedCollections = await tx
+    .select({
+      id: collections.id,
+      coverImages: collections.coverImages,
+    })
+    .from(collections);
+
+  for (const collection of affectedCollections) {
+    if (!Array.isArray(collection.coverImages)) continue;
+
+    const currentCovers = collection.coverImages.filter(
+      (id: any) => typeof id === 'number'
+    );
+
+    // 过滤掉已删除的文件 ID
+    const remainingCovers = currentCovers.filter(
+      (id: number) => !deletedFileIds.includes(id)
+    );
+
+    if (remainingCovers.length !== currentCovers.length) {
+      // 更新集合的 coverImages 字段
+      await tx
+        .update(collections)
+        .set({
+          coverImages: remainingCovers,
+          updatedAt: new Date(),
+        })
+        .where(eq(collections.id, collection.id));
+    }
+  }
+}
