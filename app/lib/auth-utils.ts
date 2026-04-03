@@ -1,4 +1,4 @@
-import { auth } from './auth';
+import { auth } from '@/auth';
 import { headers } from 'next/headers';
 import { UnauthorizedError, ForbiddenError } from './errors';
 
