@@ -8,6 +8,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import { extractMetadataAsync } from '@/app/lib/metadata-extractor';
 import { getTranslations } from 'next-intl/server';
+import { resolveS3Client, normalizeS3Prefix } from '@/app/lib/s3-helper';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 
 // 文件大小限制：500MB
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
@@ -16,31 +18,15 @@ const MAX_FILE_SIZE = 500 * 1024 * 1024;
 const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
 const SUPPORTED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
 
-// 简单的 MIME 类型判断
-function getImageMimeType(fileName: string): string {
+function getMimeType(fileName: string): string {
   const ext = path.extname(fileName).toLowerCase();
   const mimeMap: Record<string, string> = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.heic': 'image/heic',
-    '.heif': 'image/heif',
+    '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+    '.gif': 'image/gif', '.webp': 'image/webp', '.heic': 'image/heic', '.heif': 'image/heif',
+    '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.avi': 'video/x-msvideo',
+    '.mkv': 'video/x-matroska', '.webm': 'video/webm',
   };
-  return mimeMap[ext] || 'image/jpeg';
-}
-
-function getVideoMimeType(fileName: string): string {
-  const ext = path.extname(fileName).toLowerCase();
-  const mimeMap: Record<string, string> = {
-    '.mp4': 'video/mp4',
-    '.mov': 'video/quicktime',
-    '.avi': 'video/x-msvideo',
-    '.mkv': 'video/x-matroska',
-    '.webm': 'video/webm',
-  };
-  return mimeMap[ext] || 'video/mp4';
+  return mimeMap[ext] || 'application/octet-stream';
 }
 
 type UploadResult = {
@@ -50,18 +36,29 @@ type UploadResult = {
   error?: string;
 };
 
+type LocalStorageConfig = {
+  rootPath?: string;
+  alias?: string | null;
+  isDisabled?: boolean;
+};
+
+type S3StorageConfig = {
+  endpoint?: string | null;
+  bucket?: string | null;
+  region?: string | null;
+  accessKey?: string | null;
+  secretKey?: string | null;
+  prefix?: string | null;
+  alias?: string | null;
+  isDisabled?: boolean;
+};
+
 export async function POST(request: NextRequest) {
   try {
     // 1. 验证用户权限
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-    
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = Number(session.user.id);
@@ -73,33 +70,21 @@ export async function POST(request: NextRequest) {
     const uploadedFiles = formData.getAll('files') as File[];
 
     if (!storageId || !uploadedFiles.length) {
-      return NextResponse.json(
-        { error: t('missingParameters') },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: t('missingParameters') }, { status: 400 });
     }
 
     // 3. 验证存储源
     const storage = await db.query.userStorages.findFirst({
-      where: and(
-        eq(userStorages.id, storageId),
-        eq(userStorages.userId, userId)
-      ),
+      where: and(eq(userStorages.id, storageId), eq(userStorages.userId, userId)),
     });
 
     if (!storage) {
-      return NextResponse.json(
-        { error: t('storageNotFound') },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: t('storageNotFound') }, { status: 404 });
     }
 
-    const storageConfig = storage.config as { isDisabled?: boolean; basePath?: string };
+    const storageConfig = storage.config as LocalStorageConfig & S3StorageConfig;
     if (storageConfig.isDisabled) {
-      return NextResponse.json(
-        { error: t('storageDisabled') },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: t('storageDisabled') }, { status: 400 });
     }
 
     // 4. 处理每个文件
@@ -109,11 +94,7 @@ export async function POST(request: NextRequest) {
       try {
         // 验证文件大小
         if (file.size > MAX_FILE_SIZE) {
-          results.push({
-            success: false,
-            fileName: file.name,
-            error: t('fileTooLarge', { maxSize: '500MB' }),
-          });
+          results.push({ success: false, fileName: file.name, error: t('fileTooLarge', { maxSize: '500MB' }) });
           continue;
         }
 
@@ -123,67 +104,66 @@ export async function POST(request: NextRequest) {
         const isVideo = SUPPORTED_VIDEO_EXTENSIONS.includes(ext);
 
         if (!isImage && !isVideo) {
-          results.push({
-            success: false,
-            fileName: file.name,
-            error: t('unsupportedFileType'),
-          });
+          results.push({ success: false, fileName: file.name, error: t('unsupportedFileType') });
           continue;
         }
 
-        // 确定媒体类型
         const mediaType = isImage ? 'image' : 'video';
-        const mimeType = isImage ? getImageMimeType(file.name) : getVideoMimeType(file.name);
+        const mimeType = getMimeType(file.name);
 
-        // 5. 保存文件到存储源
+        // 生成唯一文件名
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(2, 8);
+        const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const uniqueFileName = `${timestamp}_${randomStr}_${sanitizedName}`;
+
         let filePath: string;
-        let absolutePath: string;
+        let absolutePath: string | null = null;
 
         if (storage.type === 'local' || storage.type === 'nas') {
-          // 本地或 NAS 存储
-          const basePath = storageConfig.basePath || '';
-          if (!basePath) {
-            results.push({
-              success: false,
-              fileName: file.name,
-              error: t('storageNotConfigured'),
-            });
+          // ── 本地 / NAS 存储 ──────────────────────────────────────────
+          const rootPath = storageConfig.rootPath?.trim();
+          if (!rootPath) {
+            results.push({ success: false, fileName: file.name, error: t('storageNotConfigured') });
             continue;
           }
 
-          // 生成唯一文件名（保留原始扩展名）
-          const timestamp = Date.now();
-          const randomStr = Math.random().toString(36).substring(2, 8);
-          const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          const uniqueFileName = `${timestamp}_${randomStr}_${sanitizedName}`;
-          
           filePath = uniqueFileName;
-          absolutePath = path.join(basePath, uniqueFileName);
+          absolutePath = path.join(rootPath, uniqueFileName);
 
-          // 确保目录存在
           await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-
-          // 保存文件
           const buffer = Buffer.from(await file.arrayBuffer());
           await fs.writeFile(absolutePath, buffer);
-        } else if (storage.type === 's3') {
-          // S3 存储 - 暂时返回错误，需要实现 S3 上传逻辑
-          results.push({
-            success: false,
-            fileName: file.name,
-            error: t('s3UploadNotImplemented'),
-          });
-          continue;
+
+        } else if (storage.type === 's3' || storage.type === 'qiniu') {
+          // ── S3 / 七牛云存储 ──────────────────────────────────────────
+          const { bucket, accessKey, secretKey } = storageConfig;
+          if (!bucket || !accessKey || !secretKey) {
+            results.push({ success: false, fileName: file.name, error: t('storageNotConfigured') });
+            continue;
+          }
+
+          const prefix = normalizeS3Prefix(storageConfig.prefix);
+          const s3Key = `${prefix}${uniqueFileName}`;
+          filePath = s3Key;
+
+          const client = resolveS3Client(storageConfig);
+          const buffer = Buffer.from(await file.arrayBuffer());
+
+          await client.send(new PutObjectCommand({
+            Bucket: bucket,
+            Key: s3Key,
+            Body: buffer,
+            ContentType: mimeType,
+            ContentLength: buffer.length,
+          }));
+
         } else {
-          results.push({
-            success: false,
-            fileName: file.name,
-            error: t('unsupportedStorageType'),
-          });
+          results.push({ success: false, fileName: file.name, error: t('unsupportedStorageType') });
           continue;
         }
 
-        // 6. 创建数据库记录
+        // 5. 创建数据库记录
         const [savedFile] = await db
           .insert(files)
           .values({
@@ -202,41 +182,30 @@ export async function POST(request: NextRequest) {
           .returning({ id: files.id });
 
         if (!savedFile?.id) {
-          // 如果数据库插入失败，删除已保存的文件
-          try {
-            await fs.unlink(absolutePath);
-          } catch (cleanupError) {
-            console.error('Failed to cleanup file:', cleanupError);
+          // 回滚：删除已保存的本地文件
+          if (absolutePath) {
+            await fs.unlink(absolutePath).catch(() => {});
           }
-          results.push({
-            success: false,
-            fileName: file.name,
-            error: t('databaseError'),
-          });
+          results.push({ success: false, fileName: file.name, error: t('databaseError') });
           continue;
         }
 
-        // 7. 异步提取元数据（不阻塞响应）
-        extractMetadataAsync(savedFile.id, absolutePath, mediaType, storageId).catch((error) => {
-          console.error(`Failed to extract metadata for file ${savedFile.id}:`, error);
-        });
+        // 6. 异步提取元数据（不阻塞响应）
+        if (absolutePath) {
+          extractMetadataAsync(savedFile.id, absolutePath, mediaType, storageId).catch((err) => {
+            console.error(`Metadata extraction failed for file ${savedFile.id}:`, err);
+          });
+        }
 
-        results.push({
-          success: true,
-          fileName: file.name,
-          fileId: savedFile.id,
-        });
+        results.push({ success: true, fileName: file.name, fileId: savedFile.id });
+
       } catch (fileError) {
         console.error(`Error processing file ${file.name}:`, fileError);
-        results.push({
-          success: false,
-          fileName: file.name,
-          error: t('processingError'),
-        });
+        results.push({ success: false, fileName: file.name, error: t('processingError') });
       }
     }
 
-    // 8. 返回结果
+    // 7. 返回结果
     const successCount = results.filter((r) => r.success).length;
     const failureCount = results.length - successCount;
 
@@ -245,11 +214,9 @@ export async function POST(request: NextRequest) {
       message: t('uploadComplete', { success: successCount, failed: failureCount }),
       results,
     });
+
   } catch (error) {
     console.error('Upload API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
