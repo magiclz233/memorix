@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { revalidatePathForAllLocales } from './revalidate';
+import { revalidatePathForAllLocales, revalidateHomeCache } from './revalidate';
 import { headers } from 'next/headers';
 import { redirect } from '@/i18n/navigation';
 import { stripLocalePrefix } from '@/i18n/paths';
@@ -490,12 +490,11 @@ export async function deleteUserStorage(storageId: number) {
     const fileIds = fileList.map((f) => f.id);
 
     if (fileIds.length > 0) {
-      await tx
-        .delete(collectionMedia)
-        .where(inArray(collectionMedia.fileId, fileIds));
-      await tx
-        .delete(photoMetadata)
-        .where(inArray(photoMetadata.fileId, fileIds));
+      await tx.delete(collectionMedia).where(inArray(collectionMedia.fileId, fileIds));
+      await tx.delete(photoMetadata).where(inArray(photoMetadata.fileId, fileIds));
+      await tx.delete(videoMetadata).where(inArray(videoMetadata.fileId, fileIds));
+      await cleanHeroReferences(tx, fileIds, user.id);
+      await cleanCollectionCoverReferences(tx, fileIds);
       await tx.delete(files).where(eq(files.userStorageId, storageId));
     }
 
@@ -507,6 +506,8 @@ export async function deleteUserStorage(storageId: number) {
   revalidatePathForAllLocales('/dashboard/storage');
   revalidatePathForAllLocales('/dashboard/media');
   revalidatePathForAllLocales('/gallery');
+  revalidatePathForAllLocales('/');
+  revalidateHomeCache();
   return { success: true, message: t('deleted') };
 }
 
@@ -753,6 +754,7 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
 
   revalidatePathForAllLocales('/dashboard/media');
   revalidatePathForAllLocales('/');
+  revalidateHomeCache();
   return {
     success: true,
     message: isHero ? t('heroUpdated') : t('heroRemoved'),
@@ -1181,9 +1183,9 @@ export async function deleteMediaFiles(fileIds: number[]) {
     // 删除物理文件（在事务外执行，避免阻塞）
     const deletePromises = filesToDelete.map(async (file) => {
       try {
-        const storageConfig = file.storageConfig as { basePath?: string };
+        const storageConfig = file.storageConfig as { rootPath?: string };
         if (file.storageType === 'local' || file.storageType === 'nas') {
-          const basePath = storageConfig.basePath || '';
+          const basePath = storageConfig.rootPath || '';
           if (basePath) {
             const absolutePath = path.join(basePath, file.path);
             await fs.unlink(absolutePath).catch(() => {
@@ -1209,6 +1211,7 @@ export async function deleteMediaFiles(fileIds: number[]) {
     revalidatePathForAllLocales('/dashboard/media');
     revalidatePathForAllLocales('/gallery');
     revalidatePathForAllLocales('/');
+    revalidateHomeCache();
 
     return {
       success: true,
