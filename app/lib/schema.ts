@@ -386,6 +386,31 @@ export const authVerifications = pgTable('verification', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// 元数据提取失败记录表
+export const metadataExtractionFailures = pgTable(
+  'metadata_extraction_failures',
+  {
+    // 主键 ID
+    id: serial('id').primaryKey(),
+    // 关联文件 ID（未设置外键约束）
+    fileId: integer('file_id').notNull(),
+    // 错误信息
+    errorMessage: text('error_message').notNull(),
+    // 尝试次数
+    attemptCount: integer('attempt_count').notNull().default(0),
+    // 最后尝试时间
+    lastAttemptAt: timestamp('last_attempt_at').defaultNow().notNull(),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    fileIdIndex: index('metadata_extraction_failures_file_id_idx').on(table.fileId),
+    attemptCountIndex: index('metadata_extraction_failures_attempt_count_idx').on(
+      table.attemptCount,
+    ),
+  }),
+);
+
 // 上传任务表：记录分片上传任务
 export const uploadTasks = pgTable(
   'upload_tasks',
