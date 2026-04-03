@@ -92,12 +92,16 @@ export const files = pgTable(
     isPublished: boolean('is_published').notNull().default(false),
     // 作者（自由字符串，通用字段）
     author: varchar('author', { length: 255 }),
+    // 文件哈希值（用于秒传和去重）
+    fileHash: varchar('file_hash', { length: 64 }),
   },
   (table) => ({
     storagePathUnique: uniqueIndex('files_storage_path_unique').on(
       table.userStorageId,
       table.path,
     ),
+    // 文件哈希索引（用于秒传查询）
+    fileHashIndex: index('files_file_hash_idx').on(table.fileHash),
     // 画廊查询：按发布状态 + 修改时间排序
     publishedMtimeIndex: index('files_published_mtime_idx').on(
       table.isPublished,
@@ -194,50 +198,69 @@ export const photoMetadata = pgTable(
   (table) => ({
     // 按拍摄时间排序的索引
     dateShotIndex: index('photo_metadata_date_shot_idx').on(table.dateShot),
+    // 按相机型号过滤
+    cameraIndex: index('photo_metadata_camera_idx').on(table.camera),
+    // 按制造商过滤
+    makerIndex: index('photo_metadata_maker_idx').on(table.maker),
+    // 按镜头过滤
+    lensIndex: index('photo_metadata_lens_idx').on(table.lens),
+    // GPS 查询索引
+    gpsIndex: index('photo_metadata_gps_idx').on(table.gpsLatitude, table.gpsLongitude),
   }),
 );
 
 // 视频元数据表
-export const videoMetadata = pgTable('video_metadata', {
-  // 关联 files.id（未设置外键约束）
-  fileId: integer('file_id').primaryKey(),
-  // 时长（秒）
-  duration: doublePrecision('duration'),
-  // 分辨率
-  width: integer('width'),
-  height: integer('height'),
-  // 码率（bps）
-  bitrate: integer('bitrate'),
-  // 帧率
-  fps: doublePrecision('fps'),
-  // 帧数
-  frameCount: integer('frame_count'),
-  // 视频编码
-  codecVideo: varchar('codec_video', { length: 64 }),
-  codecVideoProfile: varchar('codec_video_profile', { length: 64 }),
-  // 像素格式与色彩信息
-  pixelFormat: varchar('pixel_format', { length: 64 }),
-  colorSpace: varchar('color_space', { length: 64 }),
-  colorRange: varchar('color_range', { length: 64 }),
-  colorPrimaries: varchar('color_primaries', { length: 64 }),
-  colorTransfer: varchar('color_transfer', { length: 64 }),
-  bitDepth: integer('bit_depth'),
-  // 音频信息
-  codecAudio: varchar('codec_audio', { length: 64 }),
-  audioChannels: integer('audio_channels'),
-  audioSampleRate: integer('audio_sample_rate'),
-  audioBitrate: integer('audio_bitrate'),
-  hasAudio: boolean('has_audio'),
-  // 旋转
-  rotation: integer('rotation'),
-  // 容器
-  containerFormat: varchar('container_format', { length: 64 }),
-  containerLong: varchar('container_long', { length: 255 }),
-  // Poster 抽帧时间
-  posterTime: doublePrecision('poster_time'),
-  // 原始 ffprobe 数据
-  raw: jsonb('raw'),
-});
+export const videoMetadata = pgTable(
+  'video_metadata',
+  {
+    // 关联 files.id（未设置外键约束）
+    fileId: integer('file_id').primaryKey(),
+    // 时长（秒）
+    duration: doublePrecision('duration'),
+    // 分辨率
+    width: integer('width'),
+    height: integer('height'),
+    // 码率（bps）
+    bitrate: integer('bitrate'),
+    // 帧率
+    fps: doublePrecision('fps'),
+    // 帧数
+    frameCount: integer('frame_count'),
+    // 视频编码
+    codecVideo: varchar('codec_video', { length: 64 }),
+    codecVideoProfile: varchar('codec_video_profile', { length: 64 }),
+    // 像素格式与色彩信息
+    pixelFormat: varchar('pixel_format', { length: 64 }),
+    colorSpace: varchar('color_space', { length: 64 }),
+    colorRange: varchar('color_range', { length: 64 }),
+    colorPrimaries: varchar('color_primaries', { length: 64 }),
+    colorTransfer: varchar('color_transfer', { length: 64 }),
+    bitDepth: integer('bit_depth'),
+    // 音频信息
+    codecAudio: varchar('codec_audio', { length: 64 }),
+    audioChannels: integer('audio_channels'),
+    audioSampleRate: integer('audio_sample_rate'),
+    audioBitrate: integer('audio_bitrate'),
+    hasAudio: boolean('has_audio'),
+    // 旋转
+    rotation: integer('rotation'),
+    // 容器
+    containerFormat: varchar('container_format', { length: 64 }),
+    containerLong: varchar('container_long', { length: 255 }),
+    // Poster 抽帧时间
+    posterTime: doublePrecision('poster_time'),
+    // 原始 ffprobe 数据
+    raw: jsonb('raw'),
+  },
+  (table) => ({
+    // 视频分辨率过滤
+    resolutionIndex: index('video_metadata_resolution_idx').on(table.width, table.height),
+    // 视频编码过滤
+    codecIndex: index('video_metadata_codec_idx').on(table.codecVideo),
+    // 视频时长过滤
+    durationIndex: index('video_metadata_duration_idx').on(table.duration),
+  }),
+);
 
 // 存储配置表：后台管理员可配置的存储源
 export const storageConfigs = pgTable('storage_configs', {
@@ -362,3 +385,83 @@ export const authVerifications = pgTable('verification', {
   // 更新时间
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// 上传任务表：记录分片上传任务
+export const uploadTasks = pgTable(
+  'upload_tasks',
+  {
+    // 主键 ID
+    id: serial('id').primaryKey(),
+    // 上传任务唯一标识（UUID）
+    uploadId: varchar('upload_id', { length: 64 }).notNull().unique(),
+    // 关联用户存储 ID（未设置外键约束）
+    userStorageId: integer('user_storage_id').notNull(),
+    // 文件名
+    fileName: varchar('file_name', { length: 255 }).notNull(),
+    // 文件大小（字节）
+    fileSize: bigint('file_size', { mode: 'number' }).notNull(),
+    // 文件哈希值（MD5）
+    fileHash: varchar('file_hash', { length: 64 }).notNull(),
+    // MIME 类型
+    mimeType: varchar('mime_type', { length: 100 }).notNull(),
+    // 分片大小（字节）
+    chunkSize: integer('chunk_size').notNull(),
+    // 总分片数
+    totalChunks: integer('total_chunks').notNull(),
+    // 已上传分片数
+    uploadedChunks: integer('uploaded_chunks').notNull().default(0),
+    // 目标存储路径
+    targetPath: text('target_path').notNull(),
+    // 任务状态（pending / uploading / completed / failed）
+    status: varchar('status', { length: 20 }).notNull().default('pending'),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // 更新时间
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    // 过期时间（24小时后自动清理）
+    expiresAt: timestamp('expires_at').notNull(),
+  },
+  (table) => ({
+    // 按哈希查询索引（用于秒传）
+    fileHashIndex: index('upload_tasks_file_hash_idx').on(table.fileHash),
+    // 按状态和过期时间查询索引（用于清理）
+    statusExpiresIndex: index('upload_tasks_status_expires_idx').on(
+      table.status,
+      table.expiresAt,
+    ),
+  }),
+);
+
+// 上传分片表：记录每个分片的上传状态
+export const uploadChunks = pgTable(
+  'upload_chunks',
+  {
+    // 主键 ID
+    id: serial('id').primaryKey(),
+    // 关联上传任务 ID（未设置外键约束）
+    uploadTaskId: integer('upload_task_id').notNull(),
+    // 分片序号（从 0 开始）
+    chunkIndex: integer('chunk_index').notNull(),
+    // 分片哈希值（MD5）
+    chunkHash: varchar('chunk_hash', { length: 64 }).notNull(),
+    // 分片大小（字节）
+    chunkSize: integer('chunk_size').notNull(),
+    // 分片存储路径
+    storagePath: text('storage_path').notNull(),
+    // 上传状态（pending / uploaded）
+    status: varchar('status', { length: 20 }).notNull().default('pending'),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // 更新时间
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    // 联合主键：任务 ID + 分片序号
+    taskChunkUnique: uniqueIndex('upload_chunks_task_chunk_unique').on(
+      table.uploadTaskId,
+      table.chunkIndex,
+    ),
+    // 按任务 ID 查询索引
+    uploadTaskIndex: index('upload_chunks_upload_task_idx').on(table.uploadTaskId),
+  }),
+);
