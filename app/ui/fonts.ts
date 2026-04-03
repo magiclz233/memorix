@@ -1,34 +1,26 @@
-import {
-  Lora,
-  Noto_Sans_SC,
-  Noto_Serif_SC,
-  Open_Sans,
-} from 'next/font/google';
+// 使用 fontsource 本地字体，避免在线加载 Google Fonts
+import '@fontsource/open-sans/400.css';
+import '@fontsource/open-sans/500.css';
+import '@fontsource/open-sans/600.css';
+import '@fontsource/open-sans/700.css';
 
-export const openSans = Open_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-sans',
-  display: 'swap',
-});
+import '@fontsource/noto-sans-sc/400.css';
+import '@fontsource/noto-sans-sc/500.css';
+import '@fontsource/noto-sans-sc/700.css';
 
-export const notoSansSC = Noto_Sans_SC({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
-  variable: '--font-sans-sc',
-  display: 'swap',
-});
+import '@fontsource/noto-serif-sc/300.css';
+import '@fontsource/noto-serif-sc/400.css';
+import '@fontsource/noto-serif-sc/700.css';
 
-export const notoSerifSC = Noto_Serif_SC({
-  subsets: ['latin'],
-  weight: ['300', '400', '700'],
-  variable: '--font-serif-sc',
-  display: 'swap',
-});
+import '@fontsource/lora/400.css';
+import '@fontsource/lora/500.css';
+import '@fontsource/lora/600.css';
+import '@fontsource/lora/700.css';
 
-export const lora = Lora({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-serif',
-  display: 'swap',
-});
+// 导出字体配置供 Tailwind 使用
+export const fontConfig = {
+  sans: ['Open Sans', 'system-ui', 'sans-serif'],
+  sansSC: ['Noto Sans SC', 'system-ui', 'sans-serif'],
+  serifSC: ['Noto Serif SC', 'Georgia', 'serif'],
+  serif: ['Lora', 'Georgia', 'serif'],
+};

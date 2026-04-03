@@ -14,16 +14,16 @@ const config: Config = {
   		},
   		fontFamily: {
   			sans: [
-  				'var(--font-sans)',
-  				'var(--font-sans-sc)',
+  				'Open Sans',
+  				'Noto Sans SC',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif'
   			],
   			serif: [
-				'var(--font-serif)',
-				'var(--font-serif-sc)',
-				'var(--font-sans-sc)',
+				'Lora',
+				'Noto Serif SC',
+				'Noto Sans SC',
 				'ui-serif',
   				'Georgia',
   				'serif'

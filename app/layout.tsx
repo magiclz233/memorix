@@ -1,10 +1,5 @@
 import '@/app/ui/global.css';
-import {
-  lora,
-  notoSansSC,
-  notoSerifSC,
-  openSans,
-} from '@/app/ui/fonts';
+import '@/app/ui/fonts'; // 导入 fontsource 字体 CSS
 import type { Metadata } from 'next';
 import { getLocale } from 'next-intl/server';
 
@@ -26,9 +21,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body
-        className={`${openSans.variable} ${notoSansSC.variable} ${notoSerifSC.variable} ${lora.variable} font-sans font-medium antialiased`}
-      >
+      <body className="font-sans font-medium antialiased">
         {children}
       </body>
     </html>
