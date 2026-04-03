@@ -25,6 +25,7 @@ import {
   sql,
 } from 'drizzle-orm';
 import { unstable_cache } from 'next/cache';
+import { getCached } from './redis';
 
 export const buildSystemSettingsKey = (locale: string) =>
   `system_settings_${locale}`;
@@ -1162,22 +1163,26 @@ export async function fetchPublishedPhotosForHome(limit = 12) {
 // ─── 缓存版本的查询函数 ───────────────────────────────────────────────────────
 
 /**
- * 带 5 分钟缓存的 Hero 照片查询
- * 通过 revalidateTag('hero-photos') 可精确失效
+ * 带 Redis 缓存的 Hero 照片查询（5 分钟）
+ * Redis 不可用时自动降级到 Next.js unstable_cache
  */
-export const fetchHeroPhotosForHomeCached = unstable_cache(
-  (options?: { userId?: number; limit?: number }) =>
-    fetchHeroPhotosForHome(options),
-  ['hero-photos'],
-  { revalidate: 300, tags: ['hero-photos'] },
-);
+export async function fetchHeroPhotosForHomeCached(options?: { userId?: number; limit?: number }) {
+  return getCached(
+    `hero-photos:${options?.userId || 'default'}:${options?.limit || 12}`,
+    () => fetchHeroPhotosForHome(options),
+    300 // 5 分钟
+  );
+}
 
 /**
- * 带 5 分钟缓存的精选集合查询
- * 通过 revalidateTag('collections') 可精确失效
+ * 带 Redis 缓存的精选集合查询（5 分钟）
+ * Redis 不可用时自动降级到 Next.js unstable_cache
  */
-export const fetchCollectionsCached = unstable_cache(
-  (options?: FetchCollectionsOptions) => fetchCollections(options),
-  ['collections'],
-  { revalidate: 300, tags: ['collections'] },
-);
+export async function fetchCollectionsCached(options?: FetchCollectionsOptions) {
+  const cacheKey = `collections:${options?.status || 'published'}:${options?.limit || 'all'}`;
+  return getCached(
+    cacheKey,
+    () => fetchCollections(options),
+    300 // 5 分钟
+  );
+}
