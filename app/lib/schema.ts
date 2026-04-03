@@ -98,6 +98,16 @@ export const files = pgTable(
       table.userStorageId,
       table.path,
     ),
+    // 画廊查询：按发布状态 + 修改时间排序
+    publishedMtimeIndex: index('files_published_mtime_idx').on(
+      table.isPublished,
+      table.mtime,
+    ),
+    // 存储源下的已发布文件
+    storagePublishedIndex: index('files_storage_published_idx').on(
+      table.userStorageId,
+      table.isPublished,
+    ),
   }),
 );
 
@@ -127,58 +137,65 @@ export const userSettings = pgTable(
 );
 
 // 图片元数据表：用于保存 EXIF 等信息
-export const photoMetadata = pgTable('photo_metadata', {
-  // 关联 files.id（未设置外键约束）
-  fileId: integer('file_id').primaryKey(),
-  // 描述（可为空）
-  description: text('description'),
-  // 相机型号
-  camera: varchar('camera', { length: 255 }),
-  // 制造商
-  maker: varchar('maker', { length: 255 }),
-  // 镜头型号
-  lens: varchar('lens', { length: 255 }),
-  // 拍摄日期
-  dateShot: timestamp('date_shot'),
-  // 曝光时间
-  exposure: doublePrecision('exposure'),
-  // 光圈值
-  aperture: doublePrecision('aperture'),
-  // ISO 值
-  iso: bigint('iso', { mode: 'number' }),
-  // 焦距
-  focalLength: doublePrecision('focal_length'),
-  // 35mm 等效焦距
-  focalLengthIn35mmFormat: integer('focal_length_in_35mm_format'),
-  // 闪光灯状态
-  flash: integer('flash'),
-  // 方向
-  orientation: integer('orientation'),
-  // 曝光程序
-  exposureProgram: integer('exposure_program'),
-  // 色彩空间
-  colorSpace: varchar('color_space', { length: 32 }),
-  // 拍摄地点名称 (城市, 国家)
-  locationName: varchar('location_name', { length: 255 }),
-  // GPS 纬度
-  gpsLatitude: doublePrecision('gps_latitude'),
-  // GPS 经度
-  gpsLongitude: doublePrecision('gps_longitude'),
-  // 分辨率宽度
-  resolutionWidth: integer('resolution_width'),
-  // 分辨率高度
-  resolutionHeight: integer('resolution_height'),
-  // 白平衡
-  whiteBalance: varchar('white_balance', { length: 255 }),
-  // Live Photo 类型: none | embedded | paired
-  liveType: varchar('live_type', { length: 20 }).default('none'),
-  // 内嵌视频偏移量
-  videoOffset: integer('video_offset'),
-  // 配对视频路径
-  pairedPath: text('paired_path'),
-  // 视频时长
-  videoDuration: doublePrecision('video_duration'),
-});
+export const photoMetadata = pgTable(
+  'photo_metadata',
+  {
+    // 关联 files.id（未设置外键约束）
+    fileId: integer('file_id').primaryKey(),
+    // 描述（可为空）
+    description: text('description'),
+    // 相机型号
+    camera: varchar('camera', { length: 255 }),
+    // 制造商
+    maker: varchar('maker', { length: 255 }),
+    // 镜头型号
+    lens: varchar('lens', { length: 255 }),
+    // 拍摄日期
+    dateShot: timestamp('date_shot'),
+    // 曝光时间
+    exposure: doublePrecision('exposure'),
+    // 光圈值
+    aperture: doublePrecision('aperture'),
+    // ISO 值
+    iso: bigint('iso', { mode: 'number' }),
+    // 焦距
+    focalLength: doublePrecision('focal_length'),
+    // 35mm 等效焦距
+    focalLengthIn35mmFormat: integer('focal_length_in_35mm_format'),
+    // 闪光灯状态
+    flash: integer('flash'),
+    // 方向
+    orientation: integer('orientation'),
+    // 曝光程序
+    exposureProgram: integer('exposure_program'),
+    // 色彩空间
+    colorSpace: varchar('color_space', { length: 32 }),
+    // 拍摄地点名称 (城市, 国家)
+    locationName: varchar('location_name', { length: 255 }),
+    // GPS 纬度
+    gpsLatitude: doublePrecision('gps_latitude'),
+    // GPS 经度
+    gpsLongitude: doublePrecision('gps_longitude'),
+    // 分辨率宽度
+    resolutionWidth: integer('resolution_width'),
+    // 分辨率高度
+    resolutionHeight: integer('resolution_height'),
+    // 白平衡
+    whiteBalance: varchar('white_balance', { length: 255 }),
+    // Live Photo 类型: none | embedded | paired
+    liveType: varchar('live_type', { length: 20 }).default('none'),
+    // 内嵌视频偏移量
+    videoOffset: integer('video_offset'),
+    // 配对视频路径
+    pairedPath: text('paired_path'),
+    // 视频时长
+    videoDuration: doublePrecision('video_duration'),
+  },
+  (table) => ({
+    // 按拍摄时间排序的索引
+    dateShotIndex: index('photo_metadata_date_shot_idx').on(table.dateShot),
+  }),
+);
 
 // 视频元数据表
 export const videoMetadata = pgTable('video_metadata', {

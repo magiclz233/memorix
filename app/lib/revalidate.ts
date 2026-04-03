@@ -1,4 +1,4 @@
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { routing } from '@/i18n/routing';
 
 const normalizePath = (path: string) => {
@@ -20,4 +20,10 @@ export const revalidatePathForAllLocales = (path: string) => {
   routing.locales.forEach((locale) => {
     revalidatePath(withLocale(locale, normalized));
   });
+};
+
+/** 失效首页相关缓存（Hero 照片 + 集合） */
+export const revalidateHomeCache = () => {
+  revalidateTag('hero-photos');
+  revalidateTag('collections');
 };

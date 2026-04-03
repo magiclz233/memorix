@@ -24,6 +24,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm';
+import { unstable_cache } from 'next/cache';
 
 export const buildSystemSettingsKey = (locale: string) =>
   `system_settings_${locale}`;
@@ -1052,6 +1053,7 @@ type FetchGalleryOptions = {
   limit?: number;
   offset?: number;
   mediaTypes?: Array<'image' | 'video' | 'animated'>;
+  sortOrder?: 'newest' | 'oldest';
 };
 
 export async function fetchPublishedMediaForGallery(
@@ -1107,7 +1109,7 @@ export async function fetchPublishedMediaForGallery(
       .where(
         and(eq(files.isPublished, true), inArray(files.mediaType, mediaTypes)),
       )
-      .orderBy(desc(files.mtime))
+      .orderBy(options.sortOrder === 'oldest' ? asc(files.mtime) : desc(files.mtime))
       .$dynamic();
     if (typeof options.limit === 'number') {
       query = query.limit(options.limit);
@@ -1156,3 +1158,26 @@ export async function fetchPublishedPhotosForHome(limit = 12) {
     .map(({ storageConfig, ...rest }) => rest);
 }
 
+
+// ─── 缓存版本的查询函数 ───────────────────────────────────────────────────────
+
+/**
+ * 带 5 分钟缓存的 Hero 照片查询
+ * 通过 revalidateTag('hero-photos') 可精确失效
+ */
+export const fetchHeroPhotosForHomeCached = unstable_cache(
+  (options?: { userId?: number; limit?: number }) =>
+    fetchHeroPhotosForHome(options),
+  ['hero-photos'],
+  { revalidate: 300, tags: ['hero-photos'] },
+);
+
+/**
+ * 带 5 分钟缓存的精选集合查询
+ * 通过 revalidateTag('collections') 可精确失效
+ */
+export const fetchCollectionsCached = unstable_cache(
+  (options?: FetchCollectionsOptions) => fetchCollections(options),
+  ['collections'],
+  { revalidate: 300, tags: ['collections'] },
+);
