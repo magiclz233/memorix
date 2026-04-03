@@ -23,16 +23,29 @@ export async function GET(request: Request) {
   const pageSize = clampPageSize(
     parsePositiveInt(url.searchParams.get('pageSize'), DEFAULT_PAGE_SIZE),
   );
+
+  // 筛选参数
+  const mediaTypeParam = url.searchParams.get('mediaType') || 'all';
+  const sortOrder = url.searchParams.get('sortOrder') === 'oldest' ? 'oldest' : 'newest';
+
+  const mediaTypes: Array<'image' | 'video' | 'animated'> =
+    mediaTypeParam === 'photo' ? ['image', 'animated'] :
+    mediaTypeParam === 'video' ? ['video'] :
+    ['image', 'video', 'animated'];
+
   const limit = pageSize + 1;
   const offset = (page - 1) * pageSize;
-  const records = await fetchPublishedMediaForGallery({ limit, offset });
+
+  const records = await fetchPublishedMediaForGallery({
+    limit,
+    offset,
+    mediaTypes,
+    sortOrder,
+  });
+
   const hasNext = records.length > pageSize;
   const pageRecords = hasNext ? records.slice(0, pageSize) : records;
   const items = buildGalleryItems(pageRecords);
 
-  return NextResponse.json({
-    items,
-    hasNext,
-    page,
-  });
+  return NextResponse.json({ items, hasNext, page });
 }
