@@ -1,5 +1,6 @@
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { routing } from '@/i18n/routing';
+import { deleteCached } from './redis';
 
 const normalizePath = (path: string) => {
   if (!path.startsWith('/')) {
@@ -26,4 +27,8 @@ export const revalidatePathForAllLocales = (path: string) => {
 export const revalidateHomeCache = () => {
   revalidateTag('hero-photos');
   revalidateTag('collections');
+
+  // 同时清除 Redis 缓存
+  deleteCached('hero-photos:*');
+  deleteCached('collections:*');
 };
