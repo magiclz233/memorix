@@ -126,7 +126,9 @@
         "all": "全部",
         "photo": "照片",
         "video": "视频",
-        "timeline": "时间线"
+        "timeline": "时间线",
+        "newest": "最新优先",
+        "oldest": "最旧优先"
       }
     },
     "media": {
@@ -456,7 +458,6 @@
       "fileTooLarge": "文件过大，最大支持 {maxSize}。",
       "unsupportedFileType": "不支持的文件类型。",
       "storageNotConfigured": "存储源未配置路径。",
-      "s3UploadNotImplemented": "S3 上传功能暂未实现。",
       "unsupportedStorageType": "不支持的存储类型。",
       "databaseError": "数据库操作失败。",
       "processingError": "文件处理失败。",
@@ -1099,7 +1100,6 @@
   },
   "actions": {
     "signup": {
-      "nameRequired": "请输入姓名。",
       "emailInvalid": "请输入有效邮箱。",
       "passwordMin": "密码至少需要 6 位。",
       "confirmPasswordMin": "请再次输入至少 6 位密码。",
