@@ -41,6 +41,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { showErrorToast, showLoadingToast, showSuccessToast, updateToast } from '@/app/lib/batch-operations';
 
 const formatSize = (size: number | null, unknownLabel: string) => {
   if (!size && size !== 0) return unknownLabel;
@@ -112,9 +113,7 @@ export function MediaLibraryManager({
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const heroIdSet = useMemo(() => new Set(heroIds), [heroIds]);
-  const [columnCount, setColumnCount] = useState(() =>
-    readStoredNumber('media-library-columns', 6),
-  );
+  const [columnCount, setColumnCount] = useState(6);
 
   // Filter States
   const currentCategory = searchParams.get('category') || 'all';
@@ -310,46 +309,47 @@ export function MediaLibraryManager({
   // 批量删除处理
   const handleBatchDelete = async () => {
     if (selectedIds.size === 0) {
-      setMessage(t('library.selectFirst'));
+      showErrorToast(t('library.selectFirst'));
       return;
     }
 
-    const confirmed = confirm(
-      t('library.deleteConfirm', { count: selectedIds.size })
-    );
-
+    const confirmed = confirm(t('library.deleteConfirm', { count: selectedIds.size }));
     if (!confirmed) return;
+
+    const fileIds = Array.from(selectedIds);
+    const toastId = showLoadingToast(t('library.deleting'));
 
     setIsDeleting(true);
     setMessage(null);
+
     try {
       const { deleteMediaFiles } = await import('@/app/lib/actions');
-      const result = await deleteMediaFiles(Array.from(selectedIds));
+      const result = await deleteMediaFiles(fileIds);
 
       if (result.success) {
         setSelectedIds(new Set());
-        setMessage(t('library.deleteSuccess'));
         router.refresh();
+        updateToast(toastId, 'success', t('library.deleteSuccess'));
       } else {
-        setMessage(result.message || t('library.deleteFailed'));
+        updateToast(toastId, 'error', result.message || t('library.deleteFailed'));
       }
     } catch (error) {
       console.error('Delete error:', error);
-      setMessage(t('library.deleteFailed'));
+      updateToast(toastId, 'error', t('library.deleteFailed'));
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // 批量下载处理
   const handleBatchDownload = async () => {
     if (selectedIds.size === 0) {
-      setMessage(t('library.selectFirst'));
+      showErrorToast(t('library.selectFirst'));
       return;
     }
 
     setIsDownloading(true);
     setMessage(null);
+
     try {
       const response = await fetch('/api/download', {
         method: 'POST',
@@ -370,7 +370,7 @@ export function MediaLibraryManager({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      
+
       // 从响应头获取文件名，或使用默认名称
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `media_${Date.now()}.zip`;
@@ -380,17 +380,18 @@ export function MediaLibraryManager({
           filename = filenameMatch[1];
         }
       }
-      
+
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       setSelectedIds(new Set());
+      showSuccessToast(t('library.downloadSuccess'));
     } catch (error) {
       console.error('Download error:', error);
-      setMessage(t('library.downloadFailed'));
+      showErrorToast(t('library.downloadFailed'));
     } finally {
       setIsDownloading(false);
     }

@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { CheckCircle2, FileText, UploadCloud, XCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ const formatBytes = (value: number) => {
 
 export function UploadCenter({ storages }: UploadCenterProps) {
   const t = useTranslations('dashboard.upload');
+  const router = useRouter();
   const [selectedStorageId, setSelectedStorageId] = useState<number | null>(
     storages[0]?.id ?? null,
   );
@@ -59,6 +61,139 @@ export function UploadCenter({ storages }: UploadCenterProps) {
     );
   }, []);
 
+  const uploadChunked = useCallback(
+    async (item: UploadItem, file: File): Promise<boolean> => {
+      if (!selectedStorageId) return false;
+
+      try {
+        // Import chunked upload utilities
+        const SparkMD5 = (await import('spark-md5')).default;
+        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+
+        // Calculate file hash
+        updateUpload(item.id, { status: 'uploading', progress: 0 });
+
+        const spark = new SparkMD5.ArrayBuffer();
+        const chunks = Math.ceil(file.size / CHUNK_SIZE);
+        let currentChunk = 0;
+
+        const calculateHash = async (): Promise<string> => {
+          return new Promise((resolve, reject) => {
+            const fileReader = new FileReader();
+
+            fileReader.onload = (e) => {
+              if (e.target?.result) {
+                spark.append(e.target.result as ArrayBuffer);
+                currentChunk++;
+
+                const hashProgress = (currentChunk / chunks) * 10; // 10% for hashing
+                updateUpload(item.id, { progress: hashProgress });
+
+                if (currentChunk < chunks) {
+                  loadNext();
+                } else {
+                  resolve(spark.end());
+                }
+              }
+            };
+
+            fileReader.onerror = () => reject(new Error('Failed to read file'));
+
+            const loadNext = () => {
+              const start = currentChunk * CHUNK_SIZE;
+              const end = Math.min(start + CHUNK_SIZE, file.size);
+              fileReader.readAsArrayBuffer(file.slice(start, end));
+            };
+
+            loadNext();
+          });
+        };
+
+        const fileHash = await calculateHash();
+
+        // Initialize upload
+        const initResponse = await fetch('/api/upload/init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileSize: file.size,
+            fileHash,
+            mimeType: file.type,
+            storageId: selectedStorageId,
+            targetPath: '',
+            chunkSize: CHUNK_SIZE,
+          }),
+        });
+
+        if (!initResponse.ok) {
+          const errorBody = await initResponse.json().catch(() => ({}));
+          throw new Error(errorBody.error || 'Failed to initialize upload');
+        }
+
+        const initData = await initResponse.json();
+
+        // Check for instant upload
+        if (initData.instantUpload) {
+          updateUpload(item.id, { progress: 100, status: 'done' });
+          return true;
+        }
+
+        const { uploadId, totalChunks, uploadedChunks } = initData;
+        const uploadedChunkSet = new Set(uploadedChunks);
+
+        // Upload chunks
+        for (let i = 0; i < totalChunks; i++) {
+          if (uploadedChunkSet.has(i)) continue;
+
+          const start = i * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, file.size);
+          const chunkBlob = file.slice(start, end);
+          const chunkBuffer = await chunkBlob.arrayBuffer();
+          const chunkHash = SparkMD5.ArrayBuffer.hash(chunkBuffer);
+
+          const formData = new FormData();
+          formData.append('uploadId', uploadId);
+          formData.append('chunkIndex', i.toString());
+          formData.append('chunkHash', chunkHash);
+          formData.append('chunk', new Blob([chunkBuffer]));
+
+          const chunkResponse = await fetch('/api/upload/chunk', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!chunkResponse.ok) {
+            const errorBody = await chunkResponse.json().catch(() => ({}));
+            throw new Error(errorBody.error || 'Failed to upload chunk');
+          }
+
+          const uploadProgress = 10 + ((i + 1) / totalChunks) * 85; // 10-95%
+          updateUpload(item.id, { progress: uploadProgress });
+        }
+
+        // Complete upload
+        const completeResponse = await fetch('/api/upload/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uploadId }),
+        });
+
+        if (!completeResponse.ok) {
+          const errorBody = await completeResponse.json().catch(() => ({}));
+          throw new Error(errorBody.error || 'Failed to complete upload');
+        }
+
+        updateUpload(item.id, { progress: 100, status: 'done' });
+        return true;
+      } catch (error) {
+        console.error('Chunked upload error:', error);
+        return false;
+      }
+    },
+    [selectedStorageId, updateUpload],
+  );
+
   const startUpload = useCallback(
     async (item: UploadItem) => {
       if (!selectedStorageId) return;
@@ -66,6 +201,15 @@ export function UploadCenter({ storages }: UploadCenterProps) {
       updateUpload(item.id, { status: 'uploading', progress: 0 });
 
       try {
+        // Use chunked upload for files larger than 100MB
+        const CHUNKED_THRESHOLD = 100 * 1024 * 1024;
+        if (item.file.size > CHUNKED_THRESHOLD) {
+          const chunkedDone = await uploadChunked(item, item.file);
+          if (chunkedDone) {
+            return;
+          }
+        }
+
         // 创建 FormData
         const formData = new FormData();
         formData.append('storageId', selectedStorageId.toString());
@@ -117,7 +261,7 @@ export function UploadCenter({ storages }: UploadCenterProps) {
         updateUpload(item.id, { status: 'error' });
       }
     },
-    [selectedStorageId, updateUpload],
+    [selectedStorageId, updateUpload, uploadChunked],
   );
 
   const enqueueFiles = useCallback(
@@ -145,8 +289,7 @@ export function UploadCenter({ storages }: UploadCenterProps) {
             // 使用 router.refresh() 或其他方式重新验证
             // 这里简单地延迟一下，让用户看到完成状态
             setTimeout(() => {
-              // 可以在这里添加成功提示
-              console.log('All uploads completed');
+              router.refresh();
             }, 500);
           }
           return;
@@ -166,7 +309,7 @@ export function UploadCenter({ storages }: UploadCenterProps) {
 
       uploadNext();
     },
-    [selectedStorageId, startUpload],
+    [selectedStorageId, startUpload, router],
   );
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
