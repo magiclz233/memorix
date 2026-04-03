@@ -25,6 +25,8 @@ type GalleryInfiniteProps = {
   hasNext: boolean;
   initialPage: number;
   pageSize: number;
+  mediaType?: string;
+  sortOrder?: string;
 };
 
 export function GalleryInfinite({
@@ -32,6 +34,8 @@ export function GalleryInfinite({
   hasNext: initialHasNext,
   initialPage,
   pageSize,
+  mediaType = 'all',
+  sortOrder = 'newest',
 }: GalleryInfiniteProps) {
   const t = useTranslations('front.gallery');
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
@@ -40,6 +44,13 @@ export function GalleryInfinite({
   const [isLoading, setIsLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // 筛选变化时重置
+  useEffect(() => {
+    setItems(initialItems);
+    setPage(initialPage);
+    setHasNext(initialHasNext);
+  }, [initialItems, initialPage, initialHasNext, mediaType, sortOrder]);
+
   const loadMore = useCallback(async () => {
     if (isLoading || !hasNext) return;
     setIsLoading(true);
@@ -47,6 +58,8 @@ export function GalleryInfinite({
     const params = new URLSearchParams({
       page: String(nextPage),
       pageSize: String(pageSize),
+      mediaType,
+      sortOrder,
     });
     try {
       const response = await fetch(`/api/gallery?${params.toString()}`, {
@@ -63,7 +76,7 @@ export function GalleryInfinite({
     } finally {
       setIsLoading(false);
     }
-  }, [hasNext, isLoading, page, pageSize]);
+  }, [hasNext, isLoading, page, pageSize, mediaType, sortOrder]);
 
   useEffect(() => {
     if (!hasNext) return;
