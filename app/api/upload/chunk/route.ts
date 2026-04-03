@@ -1,29 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth';
-import { db } from '@/app/lib/db';
-import { uploadTasks, uploadChunks } from '@/app/lib/schema';
-import { eq, and } from 'drizzle-orm';
-import { checkRateLimit } from '@/app/lib/rate-limit';
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
+import { getTranslations } from 'next-intl/server';
+import { and, count, eq, gt, isNull } from 'drizzle-orm';
+import { auth } from '@/auth';
+import { db } from '@/app/lib/drizzle';
+import { uploadTasks, uploadChunks, userStorages } from '@/app/lib/schema';
+import { checkRateLimit } from '@/app/lib/rate-limit';
 
 const UPLOAD_TEMP_DIR = path.resolve(process.cwd(), '.cache', 'memorix', 'upload-chunks');
 
 export async function POST(request: NextRequest) {
+  const t = await getTranslations('api.errors');
+
   try {
     const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id || session.user.role !== 'admin') {
+      return NextResponse.json({ error: t('unauthorized') }, { status: 401 });
     }
 
     const userId = Number(session.user.id);
 
-    // Rate limiting
     const { success, remaining } = await checkRateLimit(`upload-chunk:${userId}`, 100, 60);
     if (!success) {
       return NextResponse.json(
-        { error: 'Too many requests, please try again later' },
+        { error: t('tooManyRequests') },
         {
           status: 429,
           headers: { 'X-RateLimit-Remaining': remaining.toString() },
@@ -32,30 +34,56 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const uploadId = formData.get('uploadId') as string;
-    const chunkIndex = parseInt(formData.get('chunkIndex') as string, 10);
-    const chunkHash = formData.get('chunkHash') as string;
-    const chunkFile = formData.get('chunk') as File;
+    const uploadId = formData.get('uploadId');
+    const chunkIndexValue = formData.get('chunkIndex');
+    const chunkHash = formData.get('chunkHash');
+    const chunkFile = formData.get('chunk');
 
-    // Validate input
-    if (!uploadId || isNaN(chunkIndex) || !chunkHash || !chunkFile) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const chunkIndex = Number.parseInt(String(chunkIndexValue), 10);
+
+    if (
+      typeof uploadId !== 'string' ||
+      !uploadId ||
+      !Number.isInteger(chunkIndex) ||
+      chunkIndex < 0 ||
+      typeof chunkHash !== 'string' ||
+      !chunkHash ||
+      !(chunkFile instanceof File)
+    ) {
+      return NextResponse.json({ error: t('missingRequiredFields') }, { status: 400 });
     }
 
-    // Find upload task
-    const task = await db.query.uploadTasks.findFirst({
-      where: eq(uploadTasks.uploadId, uploadId),
-    });
+    const taskResult = await db
+      .select({ task: uploadTasks })
+      .from(uploadTasks)
+      .innerJoin(userStorages, eq(uploadTasks.userStorageId, userStorages.id))
+      .where(
+        and(
+          eq(uploadTasks.uploadId, uploadId),
+          eq(userStorages.userId, userId),
+          isNull(userStorages.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    const task = taskResult[0]?.task;
 
     if (!task) {
-      return NextResponse.json({ error: 'Upload task not found' }, { status: 404 });
+      return NextResponse.json({ error: t('uploadTaskNotFound') }, { status: 404 });
     }
 
-    if (task.status !== 'uploading') {
-      return NextResponse.json({ error: 'Upload task is not active' }, { status: 400 });
+    if (task.status !== 'uploading' || task.expiresAt <= new Date()) {
+      return NextResponse.json({ error: t('uploadTaskNotActive') }, { status: 400 });
     }
 
-    // Check if chunk already uploaded
+    if (chunkIndex >= task.totalChunks) {
+      return NextResponse.json({ error: t('missingRequiredFields') }, { status: 400 });
+    }
+
+    if (chunkFile.size > task.chunkSize) {
+      return NextResponse.json({ error: t('invalidFileSize') }, { status: 400 });
+    }
+
     const existingChunk = await db.query.uploadChunks.findFirst({
       where: and(
         eq(uploadChunks.uploadTaskId, task.id),
@@ -63,32 +91,27 @@ export async function POST(request: NextRequest) {
       ),
     });
 
-    if (existingChunk && existingChunk.status === 'uploaded') {
+    if (existingChunk?.status === 'uploaded') {
       return NextResponse.json({
         success: true,
         chunkIndex,
-        message: 'Chunk already uploaded',
+        uploadedChunks: task.uploadedChunks,
+        totalChunks: task.totalChunks,
       });
     }
 
-    // Read chunk data
     const chunkBuffer = Buffer.from(await chunkFile.arrayBuffer());
-
-    // Verify chunk hash
     const actualHash = crypto.createHash('md5').update(chunkBuffer).digest('hex');
     if (actualHash !== chunkHash) {
-      return NextResponse.json({ error: 'Chunk hash mismatch' }, { status: 400 });
+      return NextResponse.json({ error: t('chunkHashMismatch') }, { status: 400 });
     }
 
-    // Ensure temp directory exists
     const taskTempDir = path.join(UPLOAD_TEMP_DIR, uploadId);
     await fs.mkdir(taskTempDir, { recursive: true });
 
-    // Save chunk to temp storage
     const chunkPath = path.join(taskTempDir, `chunk_${chunkIndex}`);
     await fs.writeFile(chunkPath, chunkBuffer);
 
-    // Record chunk in database
     if (existingChunk) {
       await db
         .update(uploadChunks)
@@ -111,30 +134,34 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Update task progress
-    const uploadedChunksCount = await db.query.uploadChunks.findMany({
-      where: and(
-        eq(uploadChunks.uploadTaskId, task.id),
-        eq(uploadChunks.status, 'uploaded'),
-      ),
-    });
+    const uploadedCountResult = await db
+      .select({ count: count() })
+      .from(uploadChunks)
+      .where(
+        and(
+          eq(uploadChunks.uploadTaskId, task.id),
+          eq(uploadChunks.status, 'uploaded'),
+        ),
+      );
+
+    const uploadedChunks = Number(uploadedCountResult[0]?.count ?? 0);
 
     await db
       .update(uploadTasks)
       .set({
-        uploadedChunks: uploadedChunksCount.length,
+        uploadedChunks,
         updatedAt: new Date(),
       })
-      .where(eq(uploadTasks.id, task.id));
+      .where(and(eq(uploadTasks.id, task.id), gt(uploadTasks.expiresAt, new Date())));
 
     return NextResponse.json({
       success: true,
       chunkIndex,
-      uploadedChunks: uploadedChunksCount.length,
+      uploadedChunks,
       totalChunks: task.totalChunks,
     });
   } catch (error) {
-    console.error('Upload chunk error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('upload.chunk', error);
+    return NextResponse.json({ error: t('internalServerError') }, { status: 500 });
   }
 }
