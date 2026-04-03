@@ -580,7 +580,9 @@ export function MediaLibraryManager({
               title={t('library.publishSelected')}
             >
               <Eye className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('filters.status.published')}</span>
+              <span className="hidden sm:inline">
+                {selectedCount > 0 ? t('library.publish') : t('filters.status.published')}
+              </span>
             </Button>
             
             <Button
@@ -592,7 +594,9 @@ export function MediaLibraryManager({
               title={t('library.unpublishSelected')}
             >
               <EyeOff className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('filters.status.unpublished')}</span>
+              <span className="hidden sm:inline">
+                {selectedCount > 0 ? t('library.unpublish') : t('filters.status.unpublished')}
+              </span>
             </Button>
 
             <div className="mx-1 h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
@@ -606,7 +610,9 @@ export function MediaLibraryManager({
               title={t('library.setHero')}
             >
               <Star className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('library.hero')}</span>
+              <span className="hidden sm:inline">
+                {selectedCount > 0 ? t('library.setAsHero') : t('library.hero')}
+              </span>
             </Button>
 
             {selectedCount > 0 && (
