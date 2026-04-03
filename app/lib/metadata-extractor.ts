@@ -1,9 +1,19 @@
 import path from 'path';
 import fs from 'fs/promises';
+import pRetry from 'p-retry';
 import { db } from './drizzle';
-import { files, photoMetadata, videoMetadata } from './schema';
-import { eq } from 'drizzle-orm';
-import { getStorageCacheRoot, readPhotoMetadata, detectMotionPhotoInfo } from './storage';
+import {
+  files,
+  photoMetadata,
+  videoMetadata,
+  metadataExtractionFailures,
+  userStorages,
+} from './schema';
+import { eq, lt } from 'drizzle-orm';
+import {
+  getStorageCacheRoot,
+  readPhotoMetadata,
+} from './storage';
 import { generateImageThumbnail } from './image-preview';
 import { generateVideoPoster, probeVideoMetadata } from './video';
 
@@ -16,32 +26,21 @@ import { generateVideoPoster, probeVideoMetadata } from './video';
 export async function extractPhotoMetadata(
   fileId: number,
   absolutePath: string,
-  storageId: number
+  storageId: number,
 ): Promise<void> {
   const thumbRoot = getStorageCacheRoot(storageId);
   const thumbPath = path.join(thumbRoot, `${fileId}.webp`);
 
-  // 确保缩略图目录存在
   await fs.mkdir(thumbRoot, { recursive: true });
 
-  // 删除可能存在的视频元数据
   await db.delete(videoMetadata).where(eq(videoMetadata.fileId, fileId));
 
-  // 提取照片元数据
   const metadata = await readPhotoMetadata(absolutePath);
   const thumbnail = await generateImageThumbnail(absolutePath, thumbPath);
   const fileBlurHash = thumbnail?.blurHash ?? null;
 
-  // 检测实况照片
-  const motionInfo = await detectMotionPhotoInfo(absolutePath);
-  const liveType =
-    motionInfo?.type === 'google'
-      ? 'google'
-      : motionInfo?.type === 'apple'
-        ? 'apple'
-        : 'none';
+  const liveType = metadata?.motionPhoto ? 'google' : 'none';
 
-  // 插入或更新照片元数据
   await db
     .insert(photoMetadata)
     .values({
@@ -61,7 +60,7 @@ export async function extractPhotoMetadata(
       resolutionWidth: metadata?.resolutionWidth ?? null,
       resolutionHeight: metadata?.resolutionHeight ?? null,
       liveType,
-      pairedPath: motionInfo?.videoPath ?? null,
+      pairedPath: null,
     })
     .onConflictDoUpdate({
       target: [photoMetadata.fileId],
@@ -81,16 +80,12 @@ export async function extractPhotoMetadata(
         resolutionWidth: metadata?.resolutionWidth ?? null,
         resolutionHeight: metadata?.resolutionHeight ?? null,
         liveType,
-        pairedPath: motionInfo?.videoPath ?? null,
+        pairedPath: null,
       },
     });
 
-  // 更新文件的 BlurHash
   if (fileBlurHash) {
-    await db
-      .update(files)
-      .set({ blurHash: fileBlurHash })
-      .where(eq(files.id, fileId));
+    await db.update(files).set({ blurHash: fileBlurHash }).where(eq(files.id, fileId));
   }
 }
 
@@ -103,28 +98,20 @@ export async function extractPhotoMetadata(
 export async function extractVideoMetadata(
   fileId: number,
   absolutePath: string,
-  storageId: number
+  storageId: number,
 ): Promise<void> {
   const thumbRoot = getStorageCacheRoot(storageId);
   const thumbPath = path.join(thumbRoot, `${fileId}.webp`);
 
-  // 确保缩略图目录存在
   await fs.mkdir(thumbRoot, { recursive: true });
 
-  // 删除可能存在的照片元数据
   await db.delete(photoMetadata).where(eq(photoMetadata.fileId, fileId));
 
-  // 提取视频信息
   const videoInfo = await probeVideoMetadata(absolutePath);
-  const poster = await generateVideoPoster(
-    absolutePath,
-    thumbPath,
-    videoInfo?.duration ?? null
-  );
+  const poster = await generateVideoPoster(absolutePath, thumbPath, videoInfo?.duration ?? null);
 
   const fileBlurHash = poster?.blurHash ?? null;
 
-  // 插入或更新视频元数据
   if (videoInfo) {
     await db
       .insert(videoMetadata)
@@ -154,13 +141,28 @@ export async function extractVideoMetadata(
       });
   }
 
-  // 更新文件的 BlurHash
   if (fileBlurHash) {
-    await db
-      .update(files)
-      .set({ blurHash: fileBlurHash })
-      .where(eq(files.id, fileId));
+    await db.update(files).set({ blurHash: fileBlurHash }).where(eq(files.id, fileId));
   }
+}
+
+async function recordExtractionFailure(fileId: number, errorMessage: string) {
+  const existing = await db.query.metadataExtractionFailures.findFirst({
+    where: eq(metadataExtractionFailures.fileId, fileId),
+    orderBy: (table, { desc: descFn }) => [descFn(table.lastAttemptAt)],
+  });
+
+  const nextAttemptCount = (existing?.attemptCount ?? 0) + 1;
+
+  // Keep only the latest failure record per file
+  await clearFailedExtraction(fileId);
+
+  await db.insert(metadataExtractionFailures).values({
+    fileId,
+    errorMessage,
+    attemptCount: nextAttemptCount,
+    lastAttemptAt: new Date(),
+  });
 }
 
 /**
@@ -174,16 +176,122 @@ export async function extractMetadataAsync(
   fileId: number,
   absolutePath: string,
   mediaType: string,
-  storageId: number
+  storageId: number,
 ): Promise<void> {
   try {
-    if (mediaType === 'video') {
-      await extractVideoMetadata(fileId, absolutePath, storageId);
-    } else {
-      await extractPhotoMetadata(fileId, absolutePath, storageId);
-    }
+    await pRetry(
+      async () => {
+        if (mediaType === 'video') {
+          await extractVideoMetadata(fileId, absolutePath, storageId);
+        } else {
+          await extractPhotoMetadata(fileId, absolutePath, storageId);
+        }
+      },
+      {
+        retries: 3,
+        minTimeout: 1000,
+        maxTimeout: 5000,
+        onFailedAttempt: (context) => {
+          console.warn(
+            `Metadata extraction attempt ${context.attemptNumber} failed for file ${fileId}:`,
+            context.error instanceof Error ? context.error.message : String(context.error),
+          );
+        },
+      },
+    );
+
+    await clearFailedExtraction(fileId);
   } catch (error) {
-    console.error(`Failed to extract metadata for file ${fileId}:`, error);
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    try {
+      await recordExtractionFailure(fileId, errorMessage);
+    } catch (dbError) {
+      console.error('metadata.recordFailure', dbError, { fileId });
+    }
+
+    console.error('metadata.extract', error, { fileId, storageId, mediaType });
+    throw error instanceof Error ? error : new Error(errorMessage);
   }
+}
+
+/**
+ * 重试失败的元数据提取
+ * @param maxAttempts 最大尝试次数
+ */
+export async function retryFailedExtractions(maxAttempts: number = 5) {
+  const failures = await db.query.metadataExtractionFailures.findMany({
+    where: lt(metadataExtractionFailures.attemptCount, maxAttempts),
+    orderBy: (table, { desc: descFn }) => [descFn(table.lastAttemptAt)],
+  });
+
+  const latestFailuresByFile = new Map<number, (typeof failures)[number]>();
+  for (const failure of failures) {
+    if (!latestFailuresByFile.has(failure.fileId)) {
+      latestFailuresByFile.set(failure.fileId, failure);
+    }
+  }
+
+  const results = {
+    total: latestFailuresByFile.size,
+    succeeded: 0,
+    failed: 0,
+  };
+
+  for (const failure of latestFailuresByFile.values()) {
+    try {
+      const file = await db.query.files.findFirst({
+        where: eq(files.id, failure.fileId),
+      });
+
+      if (!file) {
+        await clearFailedExtraction(failure.fileId);
+        continue;
+      }
+
+      const storage = await db.query.userStorages.findFirst({
+        where: eq(userStorages.id, file.userStorageId),
+      });
+
+      if (!storage) {
+        await recordExtractionFailure(file.id, 'Storage not found');
+        results.failed += 1;
+        continue;
+      }
+
+      if (storage.type !== 'local' && storage.type !== 'nas') {
+        await recordExtractionFailure(file.id, 'S3 metadata retry is not supported yet');
+        results.failed += 1;
+        continue;
+      }
+
+      const storageConfig = storage.config as Record<string, unknown>;
+      const rootPath = storageConfig.rootPath as string;
+      const absolutePath = path.join(rootPath, file.path);
+
+      await extractMetadataAsync(file.id, absolutePath, file.mediaType, file.userStorageId);
+      results.succeeded += 1;
+    } catch (error) {
+      console.error('metadata.retry', error, { fileId: failure.fileId });
+      results.failed += 1;
+    }
+  }
+
+  return results;
+}
+
+/**
+ * 获取所有失败的元数据提取记录
+ */
+export async function getFailedExtractions() {
+  return db.query.metadataExtractionFailures.findMany({
+    orderBy: (table, { desc: descFn }) => [descFn(table.lastAttemptAt)],
+  });
+}
+
+/**
+ * 清除指定文件的失败记录
+ */
+export async function clearFailedExtraction(fileId: number) {
+  await db.delete(metadataExtractionFailures).where(eq(metadataExtractionFailures.fileId, fileId));
 }
