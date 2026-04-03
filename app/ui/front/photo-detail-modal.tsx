@@ -309,6 +309,8 @@ function PhotoDetailContent({
               >
                 {(() => {
                   const hasDimensions = !!(item.width && item.height);
+                  const safeWidth = item.width || 1920;
+                  const safeHeight = item.height || 1080;
                   const isFrame = viewMode === 'frame';
                   const useShrinkWrap = !isFrame && hasDimensions; // Only shrink-wrap in Fit mode
 
@@ -329,8 +331,8 @@ function PhotoDetailContent({
                                 <Image
                                   src={item.animatedUrl ?? ''}
                                   alt={item.title}
-                                  width={item.width || undefined}
-                                  height={item.height || undefined}
+                                  width={safeWidth}
+                                  height={safeHeight}
                                   unoptimized
                                   className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block"
                                   sizes="100vw"
@@ -341,8 +343,8 @@ function PhotoDetailContent({
                                   src={item.src}
                                   alt={item.title}
                                   blurHash={item.blurHash}
-                                  width={item.width || undefined}
-                                  height={item.height || undefined}
+                                  width={safeWidth}
+                                  height={safeHeight}
                                   className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block"
                                   sizes="100vw"
                                   priority
@@ -470,7 +472,7 @@ function PhotoDetailContent({
                         <div
                           className={cn(
                             'relative flex',
-                            useShrinkWrap && 'w-auto h-auto'
+                            useShrinkWrap ? 'w-auto h-auto' : 'w-full h-full'
                           )}
                         >
                           {isAnimated ? (

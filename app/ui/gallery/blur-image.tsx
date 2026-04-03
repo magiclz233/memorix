@@ -1,20 +1,35 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { decode } from 'blurhash';
+import Image, { type ImageProps } from 'next/image';
 import { cn } from '@/lib/utils';
-import Image, { ImageProps } from 'next/image';
 
 interface BlurImageProps extends ImageProps {
   blurHash?: string | null;
 }
 
-export function BlurImage({ src, blurHash, alt, className, onLoadingComplete, ...props }: BlurImageProps) {
+export function BlurImage({
+  src,
+  blurHash,
+  alt,
+  className,
+  onLoadingComplete,
+  width,
+  height,
+  fill,
+  sizes,
+  ...props
+}: BlurImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const shouldBypassOptimization =
     typeof src === 'string' &&
     (src.startsWith('/api/local-files/') || src.startsWith('/api/media/thumb/'));
+
+  const hasExplicitSize = typeof width === 'number' && typeof height === 'number';
+  const useFill = fill === true || !hasExplicitSize;
 
   useEffect(() => {
     if (blurHash && canvasRef.current) {
@@ -26,8 +41,8 @@ export function BlurImage({ src, blurHash, alt, className, onLoadingComplete, ..
           imageData.data.set(pixels);
           ctx.putImageData(imageData, 0, 0);
         }
-      } catch (e) {
-        // console.error('Error decoding blurhash', e);
+      } catch {
+        // Ignore invalid blur hash.
       }
     }
   }, [blurHash]);
@@ -40,8 +55,8 @@ export function BlurImage({ src, blurHash, alt, className, onLoadingComplete, ..
           width={32}
           height={32}
           className={cn(
-            "absolute inset-0 h-full w-full object-cover transition-opacity duration-500",
-            isLoaded ? "opacity-0" : "opacity-100 pointer-events-none"
+            'absolute inset-0 h-full w-full object-cover transition-opacity duration-500',
+            isLoaded ? 'opacity-0' : 'pointer-events-none opacity-100',
           )}
         />
       )}
@@ -49,18 +64,21 @@ export function BlurImage({ src, blurHash, alt, className, onLoadingComplete, ..
         src={src}
         alt={alt}
         className={cn(
-          "transition-opacity duration-500",
-          isLoaded ? "opacity-100" : "opacity-0",
-          className
+          'transition-opacity duration-500',
+          isLoaded ? 'opacity-100' : 'opacity-0',
+          className,
         )}
         unoptimized={shouldBypassOptimization}
         onLoadingComplete={(img) => {
-            setIsLoaded(true);
-            onLoadingComplete?.(img);
+          setIsLoaded(true);
+          onLoadingComplete?.(img);
         }}
         onError={() => {
           setIsLoaded(true);
         }}
+        {...(useFill
+          ? { fill: true, sizes: sizes ?? '100vw' }
+          : { width, height, sizes })}
         {...props}
       />
     </>
