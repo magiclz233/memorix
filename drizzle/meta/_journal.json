@@ -71,6 +71,13 @@
       "when": 1770380974265,
       "tag": "0009_add_files_author",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775119618172,
+      "tag": "0010_add_performance_indexes",
+      "breakpoints": true
     }
   ]
 }
