@@ -1,19 +1,19 @@
 import { FrontHome } from '@/app/ui/front/front-home';
-import { fetchHeroPhotosForHome, fetchCollections } from '@/app/lib/data';
+import { fetchHeroPhotosForHomeCached, fetchCollectionsCached } from '@/app/lib/data';
 
 export default async function Page() {
-  // 获取 Hero 照片数据
-  const heroPhotos = await fetchHeroPhotosForHome({ limit: 12 });
-  
-  // 获取精选集合数据
-  const featuredCollections = await fetchCollections({
+  // 获取 Hero 照片数据（带 5 分钟缓存）
+  const heroPhotos = await fetchHeroPhotosForHomeCached({ limit: 12 });
+
+  // 获取精选集合数据（带 5 分钟缓存）
+  const featuredCollections = await fetchCollectionsCached({
     status: 'published',
     limit: 3,
     orderBy: 'updatedAtDesc',
   });
-  
+
   return (
-    <FrontHome 
+    <FrontHome
       heroPhotos={heroPhotos}
       featuredCollections={featuredCollections}
     />
