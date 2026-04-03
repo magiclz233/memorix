@@ -10,6 +10,7 @@ import { extractMetadataAsync } from '@/app/lib/metadata-extractor';
 import { getTranslations } from 'next-intl/server';
 import { resolveS3Client, normalizeS3Prefix } from '@/app/lib/s3-helper';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { checkRateLimit } from '@/app/lib/rate-limit';
 
 // 文件大小限制：500MB
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
@@ -63,6 +64,23 @@ export async function POST(request: NextRequest) {
 
     const userId = Number(session.user.id);
     const t = await getTranslations('api.upload');
+
+    // 2. 速率限制：每个用户每分钟最多 10 次上传
+    const { success, remaining } = await checkRateLimit(
+      `upload:${userId}`,
+      10,
+      60
+    );
+
+    if (!success) {
+      return NextResponse.json(
+        { error: t('rateLimitExceeded') || 'Too many requests, please try again later' },
+        {
+          status: 429,
+          headers: { 'X-RateLimit-Remaining': remaining.toString() }
+        }
+      );
+    }
 
     // 2. 解析 FormData
     const formData = await request.formData();
