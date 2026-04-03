@@ -475,7 +475,20 @@
       "rootNotConfigured": "根目录未配置。",
       "pathInvalid": "路径非法。",
       "readFailed": "读取文件失败。",
-      "adminCreateFailed": "默认管理员创建失败"
+      "adminCreateFailed": "默认管理员创建失败",
+      "unauthorized": "未授权",
+      "tooManyRequests": "请求过多，请稍后再试",
+      "internalServerError": "服务器内部错误",
+      "missingRequiredFields": "缺少必填字段",
+      "invalidFileSize": "文件大小无效",
+      "uploadTaskNotFound": "上传任务不存在",
+      "uploadTaskNotActive": "上传任务未激活",
+      "chunkHashMismatch": "分片哈希不匹配",
+      "notAllChunksUploaded": "未上传所有分片",
+      "fileHashVerificationFailed": "文件哈希验证失败",
+      "missingUploadId": "缺少上传ID",
+      "failedToReadDirectory": "读取目录失败",
+      "failedToReadFileInfo": "读取文件信息失败"
     }
   },
   "dashboard": {
@@ -660,6 +673,7 @@
         "deleteConfirm": "确定要删除选中的 {count} 个文件吗？此操作无法撤销。",
         "deleteSuccess": "删除成功",
         "deleteFailed": "删除失败",
+        "downloadSuccess": "下载完成",
         "downloadFailed": "下载失败，请稍后重试",
         "columns": {
           "label": "每行",

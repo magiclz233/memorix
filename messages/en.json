@@ -475,7 +475,20 @@
       "rootNotConfigured": "Root path not configured.",
       "pathInvalid": "Invalid path.",
       "readFailed": "Failed to read file.",
-      "adminCreateFailed": "Failed to create default admin"
+      "adminCreateFailed": "Failed to create default admin",
+      "unauthorized": "Unauthorized",
+      "tooManyRequests": "Too many requests, please try again later",
+      "internalServerError": "Internal server error",
+      "missingRequiredFields": "Missing required fields",
+      "invalidFileSize": "Invalid file size",
+      "uploadTaskNotFound": "Upload task not found",
+      "uploadTaskNotActive": "Upload task is not active",
+      "chunkHashMismatch": "Chunk hash mismatch",
+      "notAllChunksUploaded": "Not all chunks uploaded",
+      "fileHashVerificationFailed": "File hash verification failed",
+      "missingUploadId": "Missing uploadId",
+      "failedToReadDirectory": "Failed to read directory",
+      "failedToReadFileInfo": "Failed to read file info"
     }
   },
   "dashboard": {
@@ -660,6 +673,7 @@
         "deleteConfirm": "Are you sure you want to delete {count} selected files? This action cannot be undone.",
         "deleteSuccess": "Deleted successfully",
         "deleteFailed": "Delete failed",
+        "downloadSuccess": "Download completed successfully",
         "downloadFailed": "Download failed, please try again later",
         "columns": {
           "label": "Per row",
