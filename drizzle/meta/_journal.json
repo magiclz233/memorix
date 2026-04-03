@@ -78,6 +78,27 @@
       "when": 1775119618172,
       "tag": "0010_add_performance_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1775206845669,
+      "tag": "0011_add_chunked_upload_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1775206845670,
+      "tag": "0012_add_metadata_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1775206845671,
+      "tag": "0013_add_metadata_extraction_failures",
+      "breakpoints": true
     }
   ]
 }
