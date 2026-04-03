@@ -326,39 +326,42 @@ export async function runStorageScan({
   const thumbRoot = getStorageCacheRoot(storageId);
   await fs.mkdir(thumbRoot, { recursive: true });
 
-  await db.transaction(async (tx) => {
-    // 1. Get all file paths in DB for this storage
-    const existingFiles = await tx
-      .select({
-        id: files.id,
-        path: files.path,
-        size: files.size,
-        mtime: files.mtime,
-        mimeType: files.mimeType,
-        mediaType: files.mediaType,
-        liveType: photoMetadata.liveType,
-        pairedPath: photoMetadata.pairedPath,
-      })
-      .from(files)
-      .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-      .where(eq(files.userStorageId, storageId));
-    
-    const scannedPathSet = new Set(filteredFileList.map((f) => f.relativePath));
-    const existingFileMap = new Map(existingFiles.map((file) => [file.path, file]));
+  // 分批处理，避免长时间锁表
+  const BATCH_SIZE = 100;
 
-    // 2. Find files to delete (in DB but not in scan)
-    const filesToDelete = existingFiles.filter(
-      (f) => !scannedPathSet.has(f.path),
-    );
-    const pathsToDelete = filesToDelete.map((f) => f.path);
-    const idsToDelete = filesToDelete.map((f) => f.id);
+  // 1. 先获取现有文件列表（不在事务中）
+  const existingFiles = await db
+    .select({
+      id: files.id,
+      path: files.path,
+      size: files.size,
+      mtime: files.mtime,
+      mimeType: files.mimeType,
+      mediaType: files.mediaType,
+      liveType: photoMetadata.liveType,
+      pairedPath: photoMetadata.pairedPath,
+    })
+    .from(files)
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .where(eq(files.userStorageId, storageId));
 
-    if (pathsToDelete.length > 0) {
-      // Batch delete
-      const batchSize = 1000;
-      for (let i = 0; i < pathsToDelete.length; i += batchSize) {
-        const batch = pathsToDelete.slice(i, i + batchSize);
-        const idBatch = idsToDelete.slice(i, i + batchSize);
+  const scannedPathSet = new Set(filteredFileList.map((f) => f.relativePath));
+  const existingFileMap = new Map(existingFiles.map((file) => [file.path, file]));
+
+  // 2. 删除不存在的文件（分批处理）
+  const filesToDelete = existingFiles.filter(
+    (f) => !scannedPathSet.has(f.path),
+  );
+  const pathsToDelete = filesToDelete.map((f) => f.path);
+  const idsToDelete = filesToDelete.map((f) => f.id);
+
+  if (pathsToDelete.length > 0) {
+    const deleteBatchSize = 1000;
+    for (let i = 0; i < pathsToDelete.length; i += deleteBatchSize) {
+      const batch = pathsToDelete.slice(i, i + deleteBatchSize);
+      const idBatch = idsToDelete.slice(i, i + deleteBatchSize);
+
+      await db.transaction(async (tx) => {
         if (idBatch.length > 0) {
           await tx
             .delete(photoMetadata)
@@ -371,102 +374,107 @@ export async function runStorageScan({
         await tx
           .delete(files)
           .where(and(eq(files.userStorageId, storageId), inArray(files.path, batch)));
-      }
-      log('info', t('clearedMissing', { count: pathsToDelete.length }));
+      });
     }
+    log('info', t('clearedMissing', { count: pathsToDelete.length }));
+  }
 
-    // 3. Update or insert files
-    for (const file of filteredFileList) {
-      const existing = existingFileMap.get(file.relativePath);
-      const currentFileName = path.basename(file.relativePath);
-      const existingFileName = existing ? path.basename(existing.path) : null;
-      let resolvedMediaType = file.mediaType;
-      const pairedPath = pairedVideoByImage.get(file.relativePath) ?? null;
-      const expectsPaired = Boolean(pairedPath);
+  // 3. 更新或插入文件（分批处理）
+  for (let i = 0; i < filteredFileList.length; i += BATCH_SIZE) {
+    const batch = filteredFileList.slice(i, i + BATCH_SIZE);
 
-      if (file.mimeType === 'image/webp' && file.mediaType === 'image') {
-        const isAnimated = await detectAnimatedImage(file.absolutePath);
-        if (isAnimated) {
-          resolvedMediaType = 'animated';
+    await db.transaction(async (tx) => {
+      for (const file of batch) {
+        const existing = existingFileMap.get(file.relativePath);
+        const currentFileName = path.basename(file.relativePath);
+        const existingFileName = existing ? path.basename(existing.path) : null;
+        let resolvedMediaType = file.mediaType;
+        const pairedPath = pairedVideoByImage.get(file.relativePath) ?? null;
+        const expectsPaired = Boolean(pairedPath);
+
+        if (file.mimeType === 'image/webp' && file.mediaType === 'image') {
+          const isAnimated = await detectAnimatedImage(file.absolutePath);
+          if (isAnimated) {
+            resolvedMediaType = 'animated';
+          }
         }
-      }
-      const hasCurrentMtime = file.mtime instanceof Date;
-      const hasExistingMtime = existing?.mtime instanceof Date;
-      const pairedStateMatches =
-        resolvedMediaType === 'video'
-          ? true
-          : expectsPaired
-            ? existing?.liveType === 'paired' && existing?.pairedPath === pairedPath
-            : existing?.liveType !== 'paired';
-      const isSameFile =
-        Boolean(existing) &&
-        existing?.path === file.relativePath &&
-        existingFileName === currentFileName &&
-        existing?.mimeType === file.mimeType &&
-        existing?.mediaType === resolvedMediaType &&
-        pairedStateMatches &&
-        typeof existing?.size === 'number' &&
-        existing.size === file.size &&
-        hasCurrentMtime &&
-        hasExistingMtime &&
-        existing?.mtime?.getTime() === file.mtime.getTime();
+        const hasCurrentMtime = file.mtime instanceof Date;
+        const hasExistingMtime = existing?.mtime instanceof Date;
+        const pairedStateMatches =
+          resolvedMediaType === 'video'
+            ? true
+            : expectsPaired
+              ? existing?.liveType === 'paired' && existing?.pairedPath === pairedPath
+              : existing?.liveType !== 'paired';
+        const isSameFile =
+          Boolean(existing) &&
+          existing?.path === file.relativePath &&
+          existingFileName === currentFileName &&
+          existing?.mimeType === file.mimeType &&
+          existing?.mediaType === resolvedMediaType &&
+          pairedStateMatches &&
+          typeof existing?.size === 'number' &&
+          existing.size === file.size &&
+          hasCurrentMtime &&
+          hasExistingMtime &&
+          existing?.mtime?.getTime() === file.mtime.getTime();
 
-      if (mode === 'incremental' && isSameFile) {
-        processed += 1;
-        if (processed % 50 === 0 || processed === filteredFileList.length) {
-          onProgress?.({ stage: 'save', processed, total: filteredFileList.length });
-          log('info', t('processed', { processed, total: filteredFileList.length }));
+        if (mode === 'incremental' && isSameFile) {
+          processed += 1;
+          if (processed % 50 === 0 || processed === filteredFileList.length) {
+            onProgress?.({ stage: 'save', processed, total: filteredFileList.length });
+            log('info', t('processed', { processed, total: filteredFileList.length }));
+          }
+          continue;
         }
-        continue;
-      }
 
-      const [saved] = await tx
-        .insert(files)
-        .values({
-          title: file.title,
-          path: file.relativePath,
-          sourceType: storageType,
-          size: file.size,
-          mimeType: file.mimeType,
-          mtime: file.mtime,
-          userStorageId: storageId,
-          mediaType: resolvedMediaType,
-          blurHash: null,
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: [files.userStorageId, files.path],
-          set: {
+        const [saved] = await tx
+          .insert(files)
+          .values({
             title: file.title,
+            path: file.relativePath,
+            sourceType: storageType,
             size: file.size,
             mimeType: file.mimeType,
             mtime: file.mtime,
-            sourceType: storageType,
+            userStorageId: storageId,
             mediaType: resolvedMediaType,
+            blurHash: null,
             updatedAt: new Date(),
-          },
-        })
-        .returning({ id: files.id });
+          })
+          .onConflictDoUpdate({
+            target: [files.userStorageId, files.path],
+            set: {
+              title: file.title,
+              size: file.size,
+              mimeType: file.mimeType,
+              mtime: file.mtime,
+              sourceType: storageType,
+              mediaType: resolvedMediaType,
+              updatedAt: new Date(),
+            },
+          })
+          .returning({ id: files.id });
 
-      if (saved?.id) {
-        const thumbPath = path.join(thumbRoot, `${saved.id}.webp`);
-        let fileBlurHash: string | null = null;
+        if (saved?.id) {
+          const thumbPath = path.join(thumbRoot, `${saved.id}.webp`);
+          let fileBlurHash: string | null = null;
 
-        if (resolvedMediaType === 'video') {
-          await tx
-            .delete(photoMetadata)
-            .where(eq(photoMetadata.fileId, saved.id));
+          if (resolvedMediaType === 'video') {
+            await tx
+              .delete(photoMetadata)
+              .where(eq(photoMetadata.fileId, saved.id));
 
-          const videoInfo = await probeVideoMetadata(file.absolutePath);
-          const poster = await generateVideoPoster(
-            file.absolutePath,
-            thumbPath,
-            videoInfo?.duration ?? null,
-          );
+            const videoInfo = await probeVideoMetadata(file.absolutePath);
+            const poster = await generateVideoPoster(
+              file.absolutePath,
+              thumbPath,
+              videoInfo?.duration ?? null,
+            );
 
-          fileBlurHash = poster?.blurHash ?? null;
+            fileBlurHash = poster?.blurHash ?? null;
 
-          if (videoInfo) {
+            if (videoInfo) {
             await tx
               .insert(videoMetadata)
               .values({
@@ -616,15 +624,17 @@ export async function runStorageScan({
         log('info', t('processed', { processed, total: filteredFileList.length }));
       }
     }
-
-    await tx
-      .update(files)
-      .set({
-        url: sql<string>`CASE WHEN ${files.mediaType} = 'video' THEN '/api/media/stream/' || ${files.id} ELSE '/api/local-files/' || ${files.id} END`,
-        thumbUrl: sql<string>`'/api/media/thumb/' || ${files.id}`,
-      })
-      .where(eq(files.userStorageId, storageId));
   });
+  }
+
+  // 4. 最后更新 URL（单独事务）
+  await db
+    .update(files)
+    .set({
+      url: sql<string>`CASE WHEN ${files.mediaType} = 'video' THEN '/api/media/stream/' || ${files.id} ELSE '/api/local-files/' || ${files.id} END`,
+      thumbUrl: sql<string>`'/api/media/thumb/' || ${files.id}`,
+    })
+    .where(eq(files.userStorageId, storageId));
 
   return { processed, total: filteredFileList.length };
 }
@@ -690,36 +700,42 @@ export async function runS3StorageScan({
   await fs.mkdir(thumbRoot, { recursive: true });
 
   try {
-    await db.transaction(async (tx) => {
-      const existingFiles = await tx
-        .select({
-          id: files.id,
-          path: files.path,
-          size: files.size,
-          mtime: files.mtime,
-          mimeType: files.mimeType,
-          mediaType: files.mediaType,
-          liveType: photoMetadata.liveType,
-          pairedPath: photoMetadata.pairedPath,
-        })
-        .from(files)
-        .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-        .where(eq(files.userStorageId, storageId));
+    // 分批处理，避免长时间锁表
+    const BATCH_SIZE = 100;
 
-      const scannedPathSet = new Set(filteredFileList.map((f) => f.key));
-      const existingFileMap = new Map(existingFiles.map((file) => [file.path, file]));
+    // 1. 先获取现有文件列表（不在事务中）
+    const existingFiles = await db
+      .select({
+        id: files.id,
+        path: files.path,
+        size: files.size,
+        mtime: files.mtime,
+        mimeType: files.mimeType,
+        mediaType: files.mediaType,
+        liveType: photoMetadata.liveType,
+        pairedPath: photoMetadata.pairedPath,
+      })
+      .from(files)
+      .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+      .where(eq(files.userStorageId, storageId));
 
-      const filesToDelete = existingFiles.filter(
-        (f) => !scannedPathSet.has(f.path),
-      );
-      const pathsToDelete = filesToDelete.map((f) => f.path);
-      const idsToDelete = filesToDelete.map((f) => f.id);
+    const scannedPathSet = new Set(filteredFileList.map((f) => f.key));
+    const existingFileMap = new Map(existingFiles.map((file) => [file.path, file]));
 
-      if (pathsToDelete.length > 0) {
-        const batchSize = 1000;
-        for (let i = 0; i < pathsToDelete.length; i += batchSize) {
-          const batch = pathsToDelete.slice(i, i + batchSize);
-          const idBatch = idsToDelete.slice(i, i + batchSize);
+    // 2. 删除不存在的文件（分批处理）
+    const filesToDelete = existingFiles.filter(
+      (f) => !scannedPathSet.has(f.path),
+    );
+    const pathsToDelete = filesToDelete.map((f) => f.path);
+    const idsToDelete = filesToDelete.map((f) => f.id);
+
+    if (pathsToDelete.length > 0) {
+      const deleteBatchSize = 1000;
+      for (let i = 0; i < pathsToDelete.length; i += deleteBatchSize) {
+        const batch = pathsToDelete.slice(i, i + deleteBatchSize);
+        const idBatch = idsToDelete.slice(i, i + deleteBatchSize);
+
+        await db.transaction(async (tx) => {
           if (idBatch.length > 0) {
             await tx
               .delete(photoMetadata)
@@ -732,51 +748,57 @@ export async function runS3StorageScan({
           await tx
             .delete(files)
             .where(and(eq(files.userStorageId, storageId), inArray(files.path, batch)));
-        }
-        log('info', t('clearedMissing', { count: pathsToDelete.length }));
+        });
       }
+      log('info', t('clearedMissing', { count: pathsToDelete.length }));
+    }
 
-      const advance = () => {
-        processed += 1;
-        if (processed % 50 === 0 || processed === filteredFileList.length) {
-          onProgress?.({ stage: 'save', processed, total: filteredFileList.length });
-          log('info', t('processed', { processed, total: filteredFileList.length }));
-        }
-      };
+    const advance = () => {
+      processed += 1;
+      if (processed % 50 === 0 || processed === filteredFileList.length) {
+        onProgress?.({ stage: 'save', processed, total: filteredFileList.length });
+        log('info', t('processed', { processed, total: filteredFileList.length }));
+      }
+    };
 
-      for (const file of filteredFileList) {
-        const existing = existingFileMap.get(file.key);
-        const currentFileName = path.basename(file.key);
-        const existingFileName = existing ? path.basename(existing.path) : null;
-        let resolvedMediaType = file.mediaType;
-        const pairedPath = pairedVideoByImage.get(file.key) ?? null;
-        const expectsPaired = Boolean(pairedPath);
+    // 3. 更新或插入文件（分批处理）
+    for (let i = 0; i < filteredFileList.length; i += BATCH_SIZE) {
+      const batch = filteredFileList.slice(i, i + BATCH_SIZE);
 
-        if (file.mimeType === 'image/webp' && file.mediaType === 'image') {
-          const tempPath = path.join(
-            tempRoot,
-            `${crypto.randomUUID()}${path.extname(file.key)}`,
-          );
-          try {
-            await downloadS3Object(client, bucket, file.key, tempPath);
-            const isAnimated = await detectAnimatedImage(tempPath);
-            if (isAnimated) {
-              resolvedMediaType = 'animated';
+      await db.transaction(async (tx) => {
+        for (const file of batch) {
+          const existing = existingFileMap.get(file.key);
+          const currentFileName = path.basename(file.key);
+          const existingFileName = existing ? path.basename(existing.path) : null;
+          let resolvedMediaType = file.mediaType;
+          const pairedPath = pairedVideoByImage.get(file.key) ?? null;
+          const expectsPaired = Boolean(pairedPath);
+
+          if (file.mimeType === 'image/webp' && file.mediaType === 'image') {
+            const tempPath = path.join(
+              tempRoot,
+              `${crypto.randomUUID()}${path.extname(file.key)}`,
+            );
+            try {
+              await downloadS3Object(client, bucket, file.key, tempPath);
+              const isAnimated = await detectAnimatedImage(tempPath);
+              if (isAnimated) {
+                resolvedMediaType = 'animated';
+              }
+            } catch (error) {
+              const detail = isNoSuchKeyError(error)
+                ? 'S3 object not found'
+                : 'S3 download failed';
+              log('warn', `${detail}, skip: s3://${bucket}/${file.key}`);
+              advance();
+              continue;
+            } finally {
+              await safeRm(tempPath, { force: true });
             }
-          } catch (error) {
-            const detail = isNoSuchKeyError(error)
-              ? 'S3 object not found'
-              : 'S3 download failed';
-            log('warn', `${detail}, skip: s3://${bucket}/${file.key}`);
-            advance();
-            continue;
-          } finally {
-            await safeRm(tempPath, { force: true });
           }
-        }
 
-        const hasCurrentMtime = file.mtime instanceof Date;
-        const hasExistingMtime = existing?.mtime instanceof Date;
+          const hasCurrentMtime = file.mtime instanceof Date;
+          const hasExistingMtime = existing?.mtime instanceof Date;
         const pairedStateMatches =
           resolvedMediaType === 'video'
             ? true
@@ -1009,15 +1031,17 @@ export async function runS3StorageScan({
 
         advance();
       }
-
-      await tx
-        .update(files)
-        .set({
-          url: sql<string>`CASE WHEN ${files.mediaType} = 'video' THEN '/api/media/stream/' || ${files.id} ELSE '/api/local-files/' || ${files.id} END`,
-          thumbUrl: sql<string>`'/api/media/thumb/' || ${files.id}`,
-        })
-        .where(eq(files.userStorageId, storageId));
     });
+    }
+
+    // 4. 最后更新 URL（单独事务）
+    await db
+      .update(files)
+      .set({
+        url: sql<string>`CASE WHEN ${files.mediaType} = 'video' THEN '/api/media/stream/' || ${files.id} ELSE '/api/local-files/' || ${files.id} END`,
+        thumbUrl: sql<string>`'/api/media/thumb/' || ${files.id}`,
+      })
+      .where(eq(files.userStorageId, storageId));
   } finally {
     await safeRm(tempRoot, { recursive: true, force: true });
   }
