@@ -38,6 +38,18 @@ const MP4_HEADER_SCAN_BYTES = 64;
 const MP4_FTYP = Buffer.from('ftyp');
 const MP4_BRANDS = new Set(['isom', 'iso2', 'mp41', 'mp42', 'mp4v', 'avc1', 'av01']);
 
+const normalizeForComparison = (value: string) =>
+  process.platform === 'win32' ? value.toLowerCase() : value;
+
+function isPathInsideRoot(rootPath: string, targetPath: string) {
+  const normalizedRoot = normalizeForComparison(path.resolve(rootPath));
+  const normalizedTarget = normalizeForComparison(path.resolve(targetPath));
+  return (
+    normalizedTarget === normalizedRoot ||
+    normalizedTarget.startsWith(`${normalizedRoot}${path.sep}`)
+  );
+}
+
 export type MediaFileInfo = {
   absolutePath: string;
   relativePath: string;
@@ -108,6 +120,13 @@ export async function scanMediaFiles(
     const current = stack.pop();
     if (!current) break;
 
+    // 安全检查：确保当前目录在根目录内
+    const normalizedCurrent = path.resolve(current);
+    if (!isPathInsideRoot(normalizedRoot, normalizedCurrent)) {
+      console.error('Path traversal detected:', normalizedCurrent);
+      throw new Error('Path traversal detected');
+    }
+
     let entries: Dirent[];
     try {
       entries = await fs.readdir(current, { withFileTypes: true });
@@ -119,6 +138,14 @@ export async function scanMediaFiles(
 
     for (const entry of entries) {
       const fullPath = path.join(current, entry.name);
+
+      // 安全检查：确保文件路径在根目录内
+      const normalizedFullPath = path.resolve(fullPath);
+      if (!isPathInsideRoot(normalizedRoot, normalizedFullPath)) {
+        console.error('Path traversal detected:', normalizedFullPath);
+        continue;
+      }
+
       if (entry.isDirectory()) {
         if (entry.name === '.memorix') {
           continue;

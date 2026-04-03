@@ -1,6 +1,18 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
+const normalizeForComparison = (value: string) =>
+  process.platform === 'win32' ? value.toLowerCase() : value;
+
+function isPathInsideRoot(rootPath: string, targetPath: string) {
+  const normalizedRoot = normalizeForComparison(path.resolve(rootPath));
+  const normalizedTarget = normalizeForComparison(path.resolve(targetPath));
+  return (
+    normalizedTarget === normalizedRoot ||
+    normalizedTarget.startsWith(`${normalizedRoot}${path.sep}`)
+  );
+}
+
 export interface StorageAdapter {
   read(filePath: string): Promise<Buffer>;
   write(filePath: string, data: Buffer): Promise<void>;
@@ -21,7 +33,7 @@ export class LocalStorageAdapter implements StorageAdapter {
     const normalizedRoot = path.resolve(this.rootPath);
 
     // Security check: ensure path is within root
-    if (!resolved.startsWith(normalizedRoot)) {
+    if (!isPathInsideRoot(normalizedRoot, resolved)) {
       throw new Error('Path traversal detected');
     }
 
@@ -66,7 +78,7 @@ export class LocalStorageAdapter implements StorageAdapter {
         const normalizedPath = path.resolve(fullPath);
 
         // Security check
-        if (!normalizedPath.startsWith(normalizedRoot)) {
+        if (!isPathInsideRoot(normalizedRoot, normalizedPath)) {
           continue;
         }
 

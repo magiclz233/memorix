@@ -25,8 +25,8 @@ export const revalidatePathForAllLocales = (path: string) => {
 
 /** 失效首页相关缓存（Hero 照片 + 集合） */
 export const revalidateHomeCache = () => {
-  revalidateTag('hero-photos');
-  revalidateTag('collections');
+  revalidateTag('hero-photos', 'max');
+  revalidateTag('collections', 'max');
 
   // 同时清除 Redis 缓存
   deleteCached('hero-photos:*');

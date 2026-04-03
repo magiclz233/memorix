@@ -239,6 +239,194 @@ const downloadS3Object = async (
   await pipeline(readable, createWriteStream(targetPath));
 };
 
+/**
+ * 处理单个文件的元数据提取（供上传流程使用）
+ */
+export async function processSingleFileMetadata(
+  fileId: number,
+  absolutePath: string,
+  fileName: string,
+  mimeType: string,
+  storageId: number,
+): Promise<void> {
+  const thumbRoot = getStorageCacheRoot(storageId);
+  await fs.mkdir(thumbRoot, { recursive: true });
+
+  const thumbPath = path.join(thumbRoot, `${fileId}.webp`);
+  let fileBlurHash: string | null = null;
+
+  // 判断媒体类型
+  const ext = path.extname(fileName).toLowerCase();
+  const videoMimeType = getVideoMimeType(fileName);
+  let mediaType: 'image' | 'video' | 'animated' = videoMimeType
+    ? 'video'
+    : ext === '.gif'
+      ? 'animated'
+      : 'image';
+
+  // 检测 webp 是否为动图
+  if (mimeType === 'image/webp' && mediaType === 'image') {
+    const isAnimated = await detectAnimatedImage(absolutePath);
+    if (isAnimated) {
+      mediaType = 'animated';
+    }
+  }
+
+  // 更新媒体类型
+  await db.update(files).set({ mediaType }).where(eq(files.id, fileId));
+
+  if (mediaType === 'video') {
+    // 删除可能存在的照片元数据
+    await db.delete(photoMetadata).where(eq(photoMetadata.fileId, fileId));
+
+    // 提取视频元数据
+    const videoInfo = await probeVideoMetadata(absolutePath);
+    const poster = await generateVideoPoster(
+      absolutePath,
+      thumbPath,
+      videoInfo?.duration ?? null,
+    );
+
+    fileBlurHash = poster?.blurHash ?? null;
+
+    if (videoInfo) {
+      await db
+        .insert(videoMetadata)
+        .values({
+          fileId,
+          duration: videoInfo.duration ?? null,
+          width: videoInfo.width ?? null,
+          height: videoInfo.height ?? null,
+          bitrate: videoInfo.bitrate ?? null,
+          fps: videoInfo.fps ?? null,
+          frameCount: videoInfo.frameCount ?? null,
+          codecVideo: videoInfo.codecVideo ?? null,
+          codecVideoProfile: videoInfo.codecVideoProfile ?? null,
+          pixelFormat: videoInfo.pixelFormat ?? null,
+          colorSpace: videoInfo.colorSpace ?? null,
+          colorRange: videoInfo.colorRange ?? null,
+          colorPrimaries: videoInfo.colorPrimaries ?? null,
+          colorTransfer: videoInfo.colorTransfer ?? null,
+          bitDepth: videoInfo.bitDepth ?? null,
+          codecAudio: videoInfo.codecAudio ?? null,
+          audioChannels: videoInfo.audioChannels ?? null,
+          audioSampleRate: videoInfo.audioSampleRate ?? null,
+          audioBitrate: videoInfo.audioBitrate ?? null,
+          hasAudio: videoInfo.hasAudio ?? false,
+          rotation: videoInfo.rotation ?? null,
+          containerFormat: videoInfo.containerFormat ?? null,
+          containerLong: videoInfo.containerLong ?? null,
+          posterTime: poster?.posterTime ?? null,
+          raw: videoInfo.raw ?? null,
+        })
+        .onConflictDoUpdate({
+          target: [videoMetadata.fileId],
+          set: {
+            duration: videoInfo.duration ?? null,
+            width: videoInfo.width ?? null,
+            height: videoInfo.height ?? null,
+            bitrate: videoInfo.bitrate ?? null,
+            fps: videoInfo.fps ?? null,
+            frameCount: videoInfo.frameCount ?? null,
+            codecVideo: videoInfo.codecVideo ?? null,
+            codecVideoProfile: videoInfo.codecVideoProfile ?? null,
+            pixelFormat: videoInfo.pixelFormat ?? null,
+            colorSpace: videoInfo.colorSpace ?? null,
+            colorRange: videoInfo.colorRange ?? null,
+            colorPrimaries: videoInfo.colorPrimaries ?? null,
+            colorTransfer: videoInfo.colorTransfer ?? null,
+            bitDepth: videoInfo.bitDepth ?? null,
+            codecAudio: videoInfo.codecAudio ?? null,
+            audioChannels: videoInfo.audioChannels ?? null,
+            audioSampleRate: videoInfo.audioSampleRate ?? null,
+            audioBitrate: videoInfo.audioBitrate ?? null,
+            hasAudio: videoInfo.hasAudio ?? false,
+            rotation: videoInfo.rotation ?? null,
+            containerFormat: videoInfo.containerFormat ?? null,
+            containerLong: videoInfo.containerLong ?? null,
+            posterTime: poster?.posterTime ?? null,
+            raw: videoInfo.raw ?? null,
+          },
+        });
+    }
+  } else {
+    // 删除可能存在的视频元数据
+    await db.delete(videoMetadata).where(eq(videoMetadata.fileId, fileId));
+
+    // 提取照片元数据
+    const metadata = await readPhotoMetadata(absolutePath);
+    const thumbnail = await generateImageThumbnail(absolutePath, thumbPath);
+    fileBlurHash = thumbnail?.blurHash ?? null;
+
+    if (metadata) {
+      const hasEmbedded =
+        metadata.motionPhoto &&
+        typeof metadata.videoOffset === 'number' &&
+        metadata.videoOffset > 0;
+      const liveType = hasEmbedded ? 'embedded' : 'none';
+
+      await db
+        .insert(photoMetadata)
+        .values({
+          fileId,
+          description: metadata.description ?? null,
+          camera: metadata.camera ?? null,
+          maker: metadata.maker ?? null,
+          lens: metadata.lens ?? null,
+          dateShot: metadata.dateShot ?? null,
+          exposure: metadata.exposure ?? null,
+          aperture: metadata.aperture ?? null,
+          iso: metadata.iso ?? null,
+          focalLength: metadata.focalLength ?? null,
+          flash: metadata.flash ?? null,
+          orientation: metadata.orientation ?? null,
+          exposureProgram: metadata.exposureProgram ?? null,
+          gpsLatitude: metadata.gpsLatitude ?? null,
+          gpsLongitude: metadata.gpsLongitude ?? null,
+          resolutionWidth: metadata.resolutionWidth ?? null,
+          resolutionHeight: metadata.resolutionHeight ?? null,
+          whiteBalance: metadata.whiteBalance ?? null,
+          liveType,
+          videoOffset: hasEmbedded ? metadata.videoOffset ?? null : null,
+          pairedPath: null,
+        })
+        .onConflictDoUpdate({
+          target: [photoMetadata.fileId],
+          set: {
+            description: metadata.description ?? null,
+            camera: metadata.camera ?? null,
+            maker: metadata.maker ?? null,
+            lens: metadata.lens ?? null,
+            dateShot: metadata.dateShot ?? null,
+            exposure: metadata.exposure ?? null,
+            aperture: metadata.aperture ?? null,
+            iso: metadata.iso ?? null,
+            focalLength: metadata.focalLength ?? null,
+            flash: metadata.flash ?? null,
+            orientation: metadata.orientation ?? null,
+            exposureProgram: metadata.exposureProgram ?? null,
+            gpsLatitude: metadata.gpsLatitude ?? null,
+            gpsLongitude: metadata.gpsLongitude ?? null,
+            resolutionWidth: metadata.resolutionWidth ?? null,
+            resolutionHeight: metadata.resolutionHeight ?? null,
+            whiteBalance: metadata.whiteBalance ?? null,
+            liveType,
+            videoOffset: hasEmbedded ? metadata.videoOffset ?? null : null,
+            pairedPath: null,
+          },
+        });
+    }
+  }
+
+  // 更新 blurHash
+  if (fileBlurHash !== null) {
+    await db
+      .update(files)
+      .set({ blurHash: fileBlurHash, updatedAt: new Date() })
+      .where(eq(files.id, fileId));
+  }
+}
+
 export async function runStorageScan({
   storageId,
   storageType,
