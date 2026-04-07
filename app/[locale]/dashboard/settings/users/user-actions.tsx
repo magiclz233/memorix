@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Trash2, Ban, CheckCircle, ShieldCheck, UserCircle } from 'lucide-react';
 import { toggleUserBan, deleteUser, setUserRole } from '@/app/lib/actions';
+import { showError } from '@/app/lib/toast-utils';
 import {
   Dialog,
   DialogContent,
@@ -41,7 +42,7 @@ export function ToggleBanButton({ userId, isBanned, disabled }: ToggleBanProps) 
       
       const result = await toggleUserBan(formData);
       if (!result.success) {
-        alert(result.message);
+        showError(result.message);
       }
       setOpen(false);
     });
@@ -92,7 +93,7 @@ export function DeleteUserButton({ userId, disabled }: UserActionProps) {
       
       const result = await deleteUser(formData);
       if (!result.success) {
-        alert(result.message);
+        showError(result.message);
       }
       setOpen(false);
     });
@@ -143,7 +144,7 @@ export function SetRoleButton({ userId, currentRole, disabled }: SetRoleProps) {
       
       const result = await setUserRole(formData);
       if (!result.success) {
-        alert(result.message);
+        showError(result.message);
       }
       setOpen(false);
     });
