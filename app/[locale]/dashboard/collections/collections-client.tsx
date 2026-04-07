@@ -132,7 +132,8 @@ export function CollectionsClient({
   };
 
   const handleDelete = (id: number) => {
-    if (!confirm(t('deleteConfirm'))) return;
+    if (!window.confirm(t('deleteConfirm'))) return;
+
 
     startTransition(async () => {
       await deleteCollection(id);
