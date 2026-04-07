@@ -61,6 +61,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { showError, showSuccess, showWarning } from '@/app/lib/toast-utils';
 
 type StorageItem = {
   id: number;
@@ -137,7 +138,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
 
   const handleOpenCache = () => {
     if (storages.length === 0) {
-      alert(t('view.cache.noStorage'));
+      showWarning(t('view.cache.noStorage'));
       return;
     }
     if (!cacheStorageId) {
@@ -149,12 +150,12 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
   const handleClearCache = () => {
     const storageId = Number(cacheStorageId);
     if (!Number.isFinite(storageId) || storageId <= 0) {
-      alert(t('view.cache.selectStorage'));
+      showWarning(t('view.cache.selectStorage'));
       return;
     }
     const days = Number(cacheDays);
     if (cacheMode === 'lru' && (!Number.isFinite(days) || days <= 0)) {
-      alert(t('view.cache.invalidDays'));
+      showWarning(t('view.cache.invalidDays'));
       return;
     }
     startClearing(async () => {
@@ -163,7 +164,11 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
         cacheMode,
         cacheMode === 'lru' ? days : undefined,
       );
-      alert(result.message);
+      if (result.success) {
+        showSuccess(result.message);
+      } else {
+        showError(result.message);
+      }
       if (result.success) {
         setCacheOpen(false);
       }
@@ -172,7 +177,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
 
   const handleScan = (storageId: number, mode: ScanMode = 'incremental') => {
     if (scanningId) return;
-    if (mode === 'full' && !confirm(t('view.alerts.confirmScanFull'))) {
+    if (mode === 'full' && !window.confirm(t('view.alerts.confirmScanFull'))) {
       return;
     }
     setScanningId(storageId);
@@ -180,7 +185,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
       try {
         const result = await scanStorage(storageId, mode);
         if (!result.success) {
-          alert(result.message);
+          showError(result.message);
         }
       } catch (error) {
         console.error(error);
@@ -193,7 +198,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
 
   const handleSetPublish = (storageId: number, publish: boolean) => {
     if (
-      !confirm(
+      !window.confirm(
         publish
           ? t('view.alerts.confirmPublish')
           : t('view.alerts.confirmHide'),
