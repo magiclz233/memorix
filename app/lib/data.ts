@@ -22,6 +22,7 @@ import {
   isNull,
   lte,
   or,
+  not,
   sql,
 } from 'drizzle-orm';
 import { unstable_cache } from 'next/cache';
@@ -239,6 +240,7 @@ export type MediaLibraryFilters = {
   maker?: string;
   lens?: string;
   hasGps?: 'all' | 'yes' | 'no';
+  hero?: 'all' | 'yes' | 'no';
   sort?: MediaLibrarySort;
 };
 
@@ -317,6 +319,7 @@ export async function fetchMediaLibraryPage({
   const lens = filters.lens?.trim();
   const orientation = filters.orientation ?? 'all';
   const hasGps = filters.hasGps ?? 'all';
+  const hero = filters.hero ?? 'all';
   const sort = filters.sort ?? 'dateShotDesc';
 
   const dateExpr = sql<Date>`coalesce(${photoMetadata.dateShot}, ${files.mtime}, ${files.createdAt})`;
@@ -325,6 +328,7 @@ export async function fetchMediaLibraryPage({
   const heightExpr = sql<number>`coalesce(${photoMetadata.resolutionHeight}, ${videoMetadata.height})`;
 
   const conditions = [eq(userStorages.userId, userId)];
+  const heroIds = await fetchHeroPhotoIdsByUser(userId);
 
   if (storageIds.length > 0) {
     conditions.push(inArray(files.userStorageId, storageIds));
@@ -455,6 +459,16 @@ export async function fetchMediaLibraryPage({
     }
   }
 
+
+  if (hero === 'yes') {
+    if (heroIds.length === 0) {
+      conditions.push(eq(files.id, -1));
+    } else {
+      conditions.push(inArray(files.id, heroIds));
+    }
+  } else if (hero === 'no' && heroIds.length > 0) {
+    conditions.push(not(inArray(files.id, heroIds)));
+  }
   const orderBy =
     sort === 'dateShotAsc'
       ? [asc(dateExpr), asc(files.id)]
@@ -989,7 +1003,7 @@ export async function fetchHeroPhotoIdsByUser(userId: number) {
       .limit(1);
     return normalizeIdList(record[0]?.value);
   } catch (error) {
-    // 兼容未执行迁移或库权限不足导致读取失败的情况
+    // 鍏煎鏈墽琛岃縼绉绘垨搴撴潈闄愪笉瓒冲鑷磋鍙栧け璐ョ殑鎯呭喌
     if (shouldIgnoreHeroSettingsError(error)) {
       warnHeroSettingsFallback(error);
       return [];
@@ -1011,7 +1025,7 @@ const fetchHeroPhotoIdsForHome = async (userId?: number) => {
       .limit(1);
     return normalizeIdList(record[0]?.value);
   } catch (error) {
-    // 兼容未执行迁移或库权限不足导致读取失败的情况
+    // 鍏煎鏈墽琛岃縼绉绘垨搴撴潈闄愪笉瓒冲鑷磋鍙栧け璐ョ殑鎯呭喌
     if (shouldIgnoreHeroSettingsError(error)) {
       warnHeroSettingsFallback(error);
       return [];
@@ -1160,29 +1174,29 @@ export async function fetchPublishedPhotosForHome(limit = 12) {
 }
 
 
-// ─── 缓存版本的查询函数 ───────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ 缂撳瓨鐗堟湰鐨勬煡璇㈠嚱鏁?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 /**
- * 带 Redis 缓存的 Hero 照片查询（5 分钟）
- * Redis 不可用时自动降级到 Next.js unstable_cache
+ * 甯?Redis 缂撳瓨鐨?Hero 鐓х墖鏌ヨ锛? 鍒嗛挓锛?
+ * Redis 涓嶅彲鐢ㄦ椂鑷姩闄嶇骇鍒?Next.js unstable_cache
  */
 export async function fetchHeroPhotosForHomeCached(options?: { userId?: number; limit?: number }) {
   return getCached(
     `hero-photos:${options?.userId || 'default'}:${options?.limit || 12}`,
     () => fetchHeroPhotosForHome(options),
-    300 // 5 分钟
+    300 // 5 鍒嗛挓
   );
 }
 
 /**
- * 带 Redis 缓存的精选集合查询（5 分钟）
- * Redis 不可用时自动降级到 Next.js unstable_cache
+ * 甯?Redis 缂撳瓨鐨勭簿閫夐泦鍚堟煡璇紙5 鍒嗛挓锛?
+ * Redis 涓嶅彲鐢ㄦ椂鑷姩闄嶇骇鍒?Next.js unstable_cache
  */
 export async function fetchCollectionsCached(options?: FetchCollectionsOptions) {
   const cacheKey = `collections:${options?.status || 'published'}:${options?.limit || 'all'}`;
   return getCached(
     cacheKey,
     () => fetchCollections(options),
-    300 // 5 分钟
+    300 // 5 鍒嗛挓
   );
 }
