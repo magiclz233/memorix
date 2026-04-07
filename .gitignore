@@ -38,6 +38,6 @@ next-env.d.ts
 
 .vscode/
 
-.kiro/
+# .kiro/
 
 .claude/
