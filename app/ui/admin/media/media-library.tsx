@@ -68,7 +68,7 @@ const formatResolution = (
   unknownLabel: string,
 ) => {
   if (!width || !height) return unknownLabel;
-  return `${width}¡Á${height}`;
+  return `${width}ï¿½ï¿½${height}`;
 };
 
 const resolveMediaSrc = (item: MediaLibraryItem) =>
@@ -114,7 +114,7 @@ export function MediaLibraryManager({
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  // ÅúÁ¿Ñ¡Ôñ×´Ì¬
+  // ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½×´Ì¬
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -268,7 +268,7 @@ export function MediaLibraryManager({
   );
 
   useEffect(() => {
-    // ÇåÀí²»ÔÙ´æÔÚµÄÑ¡ÖÐÏî
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù´ï¿½ï¿½Úµï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½
     queueMicrotask(() => {
       setSelectedIds((prev) => {
         const next = new Set<number>();
@@ -386,7 +386,7 @@ export function MediaLibraryManager({
     return storages?.some((s) => (s.config as any)?.isDisabled);
   }, [storages]);
 
-  // ÅúÁ¿É¾³ý´¦Àí
+  // ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   const handleBatchDelete = async () => {
     if (selectedIds.size === 0) {
       showErrorToast(t('library.selectFirst'));
@@ -445,13 +445,13 @@ export function MediaLibraryManager({
         throw new Error('Download failed');
       }
 
-      // ´¥·¢ä¯ÀÀÆ÷ÏÂÔØ
+      // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
 
-      // ´ÓÏìÓ¦Í·»ñÈ¡ÎÄ¼þÃû£¬»òÊ¹ÓÃÄ¬ÈÏÃû³Æ
+      // ï¿½ï¿½ï¿½ï¿½Ó¦Í·ï¿½ï¿½È¡ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½Ä¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `media_${Date.now()}.zip`;
       if (contentDisposition) {
@@ -477,7 +477,7 @@ export function MediaLibraryManager({
     }
   };
 
-  // È«Ñ¡/È¡ÏûÈ«Ñ¡
+  // È«Ñ¡/È¡ï¿½ï¿½È«Ñ¡
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableIds.length && selectableIds.length > 0) {
       setSelectedIds(new Set());
