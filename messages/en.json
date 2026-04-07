@@ -2,6 +2,13 @@
   "common": {
     "theme": {
       "toggle": "Toggle Theme"
+    },
+    "toasts": {
+      "success": "Operation completed successfully",
+      "error": "Operation failed, please try again",
+      "warning": "Please confirm this action",
+      "info": "Information updated",
+      "loading": "Processing..."
     }
   },
   "nav": {
@@ -584,6 +591,15 @@
         "source": "Source Filter",
         "advanced": "Advanced Filter",
         "allInstances": "All Instances",
+        "storageInstance": "Storage Instance",
+        "current": "Current Filters",
+        "remove": "Remove filter",
+        "hero": {
+          "label": "Hero Tag",
+          "all": "All",
+          "yes": "Hero only",
+          "no": "Exclude Hero"
+        },
         "type": {
           "label": "Type",
           "all": "All Types",
@@ -995,6 +1011,110 @@
       "noPath": "Path not configured",
       "noConnection": "Connection info not configured",
       "defaultLabel": "Storage",
+      "createTask": "New Upload Task",
+      "taskName": "Task Name",
+      "taskNamePlaceholder": "e.g. 2024 Spring Collection",
+      "targetStorage": "Target Storage",
+      "targetStoragePlaceholder": "Select storage",
+      "fileCategory": "File Category",
+      "fileCategoryPlaceholder": "Select category",
+      "categoryPhoto": "Photo",
+      "categoryVideo": "Video",
+      "categoryDocument": "Document",
+      "dragHere": "Drag files or folders here",
+      "dragDescription": "Supports JPG, PNG, GIF, MP4, MOV, etc.",
+      "selectFiles": "Select Files",
+      "selectFolder": "Select Folder",
+      "selectedFiles": "Selected: {count} files ({size})",
+      "advancedConfig": "Advanced Config",
+      "concurrency": "Concurrent Uploads",
+      "duplicateHandling": "Duplicate Handling",
+      "duplicateSkip": "Skip",
+      "duplicateRename": "Rename",
+      "duplicateOverwrite": "Overwrite",
+      "postProcessing": "Post Processing",
+      "autoTag": "AI Auto Tag",
+      "videoTranscode": "Video Transcode (H.264)",
+      "imageCompress": "Image Compress (80% quality)",
+      "startUpload": "Start Upload",
+      "cancel": "Cancel",
+      "backToList": "Back to Upload Center",
+      "backToTasks": "Back to Task List",
+      "stats": {
+        "uploading": "Uploading",
+        "queued": "Queued",
+        "speed": "Speed",
+        "completed": "Completed"
+      },
+      "status": {
+        "uploading": "Uploading",
+        "queued": "Queued",
+        "completed": "Completed",
+        "paused": "Paused",
+        "failed": "Failed"
+      },
+      "actions": {
+        "pause": "Pause",
+        "resume": "Resume",
+        "cancel": "Cancel",
+        "retry": "Retry",
+        "view": "View",
+        "viewDetails": "View Details",
+        "pauseAll": "Pause All",
+        "resumeAll": "Resume All",
+        "cancelTask": "Cancel Task",
+        "retryFailed": "Retry Failed",
+        "clearCompleted": "Clear Completed",
+        "manageFiles": "Manage Files",
+        "remove": "Remove"
+      },
+      "phase": {
+        "hashing": "Hashing",
+        "uploading": "Uploading",
+        "completing": "Completing"
+      },
+      "taskCard": {
+        "files": "{count} files",
+        "size": "{size}",
+        "progress": "{percent}% ({uploaded}/{total})",
+        "remaining": "{time} remaining",
+        "completedAt": "Completed 路 {time}"
+      },
+      "taskDetail": {
+        "title": "Task Details",
+        "info": "{files} files 路 {size} 路 Target: {storage}",
+        "searchPlaceholder": "Search files...",
+        "filterAll": "All",
+        "filterUploading": "Uploading",
+        "filterFailed": "Failed"
+      },
+      "fileItem": {
+        "waiting": "Waiting",
+        "speed": "{speed}/s",
+        "remaining": "鈴?{time}",
+        "error": "鈿?{message}",
+        "completed": "鉁?Completed"
+      },
+      "messages": {
+        "taskCreated": "Task created successfully",
+        "uploadComplete": "Upload complete",
+        "uploadFailed": "Upload failed",
+        "taskPaused": "Task paused",
+        "taskResumed": "Task resumed",
+        "taskCancelled": "Task cancelled",
+        "filePaused": "File paused",
+        "fileResumed": "File resumed",
+        "fileRetrying": "Retrying ({current}/{max})",
+        "networkOffline": "Network offline, uploads paused",
+        "networkOnline": "Network online",
+        "networkOnlineAction": "Resume uploads?",
+        "networkOnlineConfirm": "Resume",
+        "noStorage": "No storage available",
+        "selectStorageFirst": "Please select storage first",
+        "taskNameRequired": "Please enter task name",
+        "storageRequired": "Please select target storage",
+        "filesRequired": "Please select files to upload"
+      },
       "queue": {
         "title": "Upload Queue",
         "description": "Select target and drag files here. Real-time progress will be shown.",

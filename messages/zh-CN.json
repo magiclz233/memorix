@@ -2,6 +2,13 @@
   "common": {
     "theme": {
       "toggle": "切换主题"
+    },
+    "toasts": {
+      "success": "??",
+      "error": "??????",
+      "warning": "????",
+      "info": "????",
+      "loading": "???..."
     }
   },
   "nav": {
@@ -627,7 +634,16 @@
         "iso": "ISO",
         "focalLength": "焦距",
         "example": "例如: {value}",
-        "sortLabel": "排序"
+        "sortLabel": "排序",
+        "storageInstance": "????",
+        "current": "????",
+        "remove": "????",
+        "hero": {
+          "label": "Hero ??",
+          "all": "??",
+          "yes": "? Hero",
+          "no": "?? Hero"
+        }
       },
       "sort": {
         "dateShotDesc": "拍摄时间（最新）",
