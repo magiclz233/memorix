@@ -10,9 +10,7 @@ import {
 } from '@/app/lib/data';
 import { generatePagination } from '@/app/lib/utils';
 import { MediaLibraryManager } from '@/app/ui/admin/media/media-library';
-import { MediaFilterBar } from '@/app/ui/admin/media/media-filter-bar';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { getTranslations } from 'next-intl/server';
 
 type PageProps = {
@@ -21,6 +19,7 @@ type PageProps = {
     storageId?: string | string[];
     type?: string;
     status?: string;
+    hero?: string;
     q?: string;
     dateFrom?: string;
     dateTo?: string;
@@ -134,6 +133,10 @@ export default async function Page({ searchParams }: PageProps) {
     resolvedSearchParams?.status === 'unpublished'
       ? resolvedSearchParams.status
       : 'all';
+  const hero =
+    resolvedSearchParams?.hero === 'yes' || resolvedSearchParams?.hero === 'no'
+      ? resolvedSearchParams.hero
+      : 'all';
   const orientation =
     resolvedSearchParams?.orientation === 'landscape' ||
     resolvedSearchParams?.orientation === 'portrait' ||
@@ -178,6 +181,7 @@ export default async function Page({ searchParams }: PageProps) {
       storageIds: finalStorageIds,
       mediaType,
       publishStatus,
+      hero,
       keyword: resolvedSearchParams?.q,
       dateFrom: resolvedSearchParams?.dateFrom,
       dateTo: resolvedSearchParams?.dateTo,
@@ -211,6 +215,7 @@ export default async function Page({ searchParams }: PageProps) {
       category !== 'all' ||
       mediaType !== 'all' ||
       publishStatus !== 'all' ||
+      hero !== 'all' ||
       resolvedSearchParams?.q ||
       resolvedSearchParams?.dateFrom ||
       resolvedSearchParams?.dateTo ||
@@ -242,6 +247,7 @@ export default async function Page({ searchParams }: PageProps) {
     if (category !== 'all') params.set('category', category);
     if (mediaType !== 'all') params.set('type', mediaType);
     if (publishStatus !== 'all') params.set('status', publishStatus);
+    if (hero !== 'all') params.set('hero', hero);
     if (resolvedSearchParams?.q) params.set('q', resolvedSearchParams.q);
     if (resolvedSearchParams?.dateFrom) params.set('dateFrom', resolvedSearchParams.dateFrom);
     if (resolvedSearchParams?.dateTo) params.set('dateTo', resolvedSearchParams.dateTo);
@@ -280,9 +286,7 @@ export default async function Page({ searchParams }: PageProps) {
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           {t('description')}
         </p>
-      </header>
-
-      <MediaFilterBar />
+      </header>
 
       {totalCount === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-10 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
