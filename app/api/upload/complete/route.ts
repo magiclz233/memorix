@@ -25,8 +25,8 @@ function isSafePath(rootPath: string, targetPath: string) {
   );
 }
 
-async function calculateFileHash(filePath: string) {
-  const hash = crypto.createHash('md5');
+async function calculateFileHash(filePath: string, algorithm: 'md5' | 'sha256') {
+  const hash = crypto.createHash(algorithm);
   const stream = createReadStream(filePath);
   for await (const chunk of stream) {
     hash.update(chunk as Buffer);
@@ -147,7 +147,8 @@ export async function POST(request: NextRequest) {
       await writeHandle.close();
     }
 
-    const mergedFileHash = await calculateFileHash(mergedFilePath);
+    const hashAlgorithm: 'md5' | 'sha256' = task.fileHash.length >= 64 ? 'sha256' : 'md5';
+    const mergedFileHash = await calculateFileHash(mergedFilePath, hashAlgorithm);
     if (mergedFileHash !== task.fileHash) {
       await db
         .update(uploadTasks)
