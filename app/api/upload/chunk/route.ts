@@ -11,6 +11,10 @@ import { checkRateLimit } from '@/app/lib/rate-limit';
 
 const UPLOAD_TEMP_DIR = path.resolve(process.cwd(), '.cache', 'memorix', 'upload-chunks');
 
+function resolveHashAlgorithm(hash: string): 'md5' | 'sha256' {
+  return hash.length >= 64 ? 'sha256' : 'md5';
+}
+
 export async function POST(request: NextRequest) {
   const t = await getTranslations('api.errors');
 
@@ -101,7 +105,8 @@ export async function POST(request: NextRequest) {
     }
 
     const chunkBuffer = Buffer.from(await chunkFile.arrayBuffer());
-    const actualHash = crypto.createHash('md5').update(chunkBuffer).digest('hex');
+    const algorithm = resolveHashAlgorithm(chunkHash);
+    const actualHash = crypto.createHash(algorithm).update(chunkBuffer).digest('hex');
     if (actualHash !== chunkHash) {
       return NextResponse.json({ error: t('chunkHashMismatch') }, { status: 400 });
     }
