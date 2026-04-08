@@ -1013,7 +1013,7 @@
       "defaultLabel": "Storage",
       "createTask": "New Upload Task",
       "taskName": "Task Name",
-      "taskNamePlaceholder": "e.g. 2024 Spring Collection",
+      "taskNamePlaceholder": "e.g. 2026 Spring Assets",
       "targetStorage": "Target Storage",
       "targetStoragePlaceholder": "Select storage",
       "fileCategory": "File Category",
@@ -1022,7 +1022,7 @@
       "categoryVideo": "Video",
       "categoryDocument": "Document",
       "dragHere": "Drag files or folders here",
-      "dragDescription": "Supports JPG, PNG, GIF, MP4, MOV, etc.",
+      "dragDescription": "Supports JPG, PNG, GIF, MP4, MOV and more",
       "selectFiles": "Select Files",
       "selectFolder": "Select Folder",
       "selectedFiles": "Selected: {count} files ({size})",
@@ -1041,10 +1041,10 @@
       "backToList": "Back to Upload Center",
       "backToTasks": "Back to Task List",
       "stats": {
-        "uploading": "Uploading",
-        "queued": "Queued",
-        "speed": "Speed",
-        "completed": "Completed"
+        "uploading": "Uploading Tasks",
+        "queued": "Queued Tasks",
+        "speed": "Current Speed",
+        "completed": "Completed Files"
       },
       "status": {
         "uploading": "Uploading",
@@ -1078,11 +1078,11 @@
         "size": "{size}",
         "progress": "{percent}% ({uploaded}/{total})",
         "remaining": "{time} remaining",
-        "completedAt": "Completed 路 {time}"
+        "completedAt": "Completed at {time}"
       },
       "taskDetail": {
         "title": "Task Details",
-        "info": "{files} files 路 {size} 路 Target: {storage}",
+        "info": "{files} files | {size} | Target: {storage}",
         "searchPlaceholder": "Search files...",
         "filterAll": "All",
         "filterUploading": "Uploading",
@@ -1090,10 +1090,10 @@
       },
       "fileItem": {
         "waiting": "Waiting",
-        "speed": "{speed}/s",
-        "remaining": "鈴?{time}",
-        "error": "鈿?{message}",
-        "completed": "鉁?Completed"
+        "speed": "{speed}",
+        "remaining": "{time} remaining",
+        "error": "Error: {message}",
+        "completed": "Completed"
       },
       "messages": {
         "taskCreated": "Task created successfully",
@@ -1116,11 +1116,11 @@
         "filesRequired": "Please select files to upload"
       },
       "queue": {
-        "title": "Upload Queue",
-        "description": "Select target and drag files here. Real-time progress will be shown.",
+        "title": "Task Queue",
+        "description": "Supports multi-task uploads with task-level scheduling.",
         "uploadTo": "Upload to",
         "noStorage": "No storage available",
-        "empty": "No uploads yet. Drag files from right or click to select.",
+        "empty": "No upload tasks yet. Click New Upload Task to start.",
         "status": {
           "waiting": "Waiting",
           "uploading": "Uploading",
@@ -1133,7 +1133,7 @@
         "description": "Batch upload photos and videos. Please confirm target storage first.",
         "dropHere": "Drop files here",
         "selectStorageFirst": "Please select storage first",
-        "formats": "Supports JPG, PNG, MP4 etc.",
+        "formats": "Supports JPG, PNG, MP4 and more",
         "selectFile": "Select Files"
       }
     },
