@@ -1,53 +1,20 @@
-import { Link } from '@/i18n/navigation';
-import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
+
 import { auth } from '@/auth';
 import { fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
+import { buildUploadStorageOption } from '@/app/lib/upload-storage-option';
 import { UploadCenter } from '@/app/ui/admin/upload-center';
 import { Button } from '@/components/ui/button';
-
-type StorageConfig = {
-  rootPath?: string | null;
-  alias?: string | null;
-  endpoint?: string | null;
-  bucket?: string | null;
-  region?: string | null;
-};
-
-const buildStorageOption = (
-  storage: {
-    id: number;
-    type: string;
-    config: unknown;
-  },
-  t: (key: string) => string
-) => {
-  const config = (storage.config ?? {}) as StorageConfig;
-  const label = t(`storage.view.types.${storage.type}`);
-  const name =
-    config.alias ||
-    config.bucket ||
-    config.rootPath ||
-    config.endpoint ||
-    t('upload.unnamed');
-  const description =
-    storage.type === 'local' || storage.type === 'nas'
-      ? config.rootPath ?? t('upload.noPath')
-      : config.endpoint ?? config.region ?? t('upload.noConnection');
-  return {
-    id: storage.id,
-    label: `${label} · ${name}`,
-    description,
-  };
-};
+import { Link } from '@/i18n/navigation';
 
 export default async function Page() {
   const t = await getTranslations('dashboard');
   const session = await auth.api.getSession({
     headers: await headers(),
   });
-  const email = session?.user?.email ?? null;
 
+  const email = session?.user?.email ?? null;
   if (!email) {
     return (
       <div className="space-y-4">
@@ -79,7 +46,7 @@ export default async function Page() {
   }
 
   const storages = await fetchUserStorages(user.id);
-  const options = storages.map((s) => buildStorageOption(s, t));
+  const options = storages.map((storage) => buildUploadStorageOption(storage, t));
 
   return (
     <div className="space-y-6">
@@ -91,6 +58,7 @@ export default async function Page() {
           {t('upload.description')}
         </p>
       </header>
+
       <UploadCenter storages={options} />
     </div>
   );
