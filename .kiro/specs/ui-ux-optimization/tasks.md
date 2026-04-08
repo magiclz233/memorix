@@ -225,7 +225,7 @@
 
 ### 11. 任务机制数据结构
 
-- [ ] 11.1 创建任务相关数据类型定义
+- [x] 11.1 创建任务相关数据类型定义
   - 在 `app/lib/definitions.ts` 添加任务机制相关类型
   - 定义 `TaskStatus` 类型（uploading / queued / completed / paused / failed）
   - 定义 `FileStatus` 类型（uploading / waiting / done / paused / error）
@@ -238,7 +238,7 @@
 
 ### 12. 统计卡片组件
 
-- [ ] 12.1 创建统计卡片组件
+- [x] 12.1 创建统计卡片组件
   - 在 `app/ui/admin/upload/upload-stats-cards.tsx` 创建 `UploadStatsCards` 组件
   - 显示 4 个统计卡片：正在上传任务数、等待中任务数、当前传输速度、已完成文件数
   - 使用 Shadcn UI 的 `Card` 组件
@@ -250,7 +250,7 @@
 
 ### 13. 任务卡片组件
 
-- [ ] 13.1 创建任务卡片组件
+- [x] 13.1 创建任务卡片组件
   - 在 `app/ui/admin/upload/task-card.tsx` 创建 `TaskCard` 组件
   - 显示任务名称、文件数量、总大小、整体进度条、状态标签
   - 添加任务操作按钮（暂停/恢复/查看详情）
@@ -263,7 +263,7 @@
 
 ### 14. 任务列表组件
 
-- [ ] 14.1 创建任务列表组件
+- [x] 14.1 创建任务列表组件
   - 在 `app/ui/admin/upload/task-list.tsx` 创建 `TaskList` 组件
   - 显示所有任务卡片
   - 支持搜索任务（按任务名称）
@@ -274,7 +274,7 @@
 
 ### 15. 创建任务页面
 
-- [ ] 15.1 创建任务表单组件
+- [x] 15.1 创建任务表单组件
   - 在 `app/ui/admin/upload/create-task-form.tsx` 创建 `CreateTaskForm` 组件
   - 任务名称输入框（必填）
   - 目标存储选择下拉菜单（必填，使用 Shadcn UI 的 `Select`）
@@ -285,7 +285,7 @@
   - 底部操作按钮（取消/开始上传）
   - _需求: FR-2.1_
 
-- [ ] 15.2 创建高级配置组件
+- [x] 15.2 创建高级配置组件
   - 在 `app/ui/admin/upload/advanced-config.tsx` 创建 `AdvancedConfig` 组件
   - 并发上传数滑块（1-10，默认 3，使用 Shadcn UI 的 `Slider`）
   - 重复文件处理单选（跳过/重命名/覆盖，使用 `RadioGroup`）
@@ -293,7 +293,7 @@
   - 配置项说明文本
   - _需求: FR-2.1_
 
-- [ ] 15.3 创建拖拽上传区组件
+- [x] 15.3 创建拖拽上传区组件
   - 在 `app/ui/admin/upload/drop-zone.tsx` 创建 `DropZone` 组件
   - 支持拖拽文件和文件夹
   - 实现 `traverseFileTree` 递归遍历文件夹
@@ -304,7 +304,7 @@
   - 支持的文件类型：image/*, video/*
   - _需求: FR-2.1_
 
-- [ ] 15.4 创建任务页面路由
+- [x] 15.4 创建任务页面路由
   - 创建 `app/[locale]/dashboard/upload/create/page.tsx`
   - 集成 `CreateTaskForm` 组件
   - 实现任务创建逻辑（调用 Server Action 或 API）
@@ -314,7 +314,7 @@
 
 ### 16. 任务详情面板
 
-- [ ] 16.1 创建文件项组件
+- [x] 16.1 创建文件项组件
   - 在 `app/ui/admin/upload/file-item.tsx` 创建 `FileItem` 组件
   - 显示文件名、大小、进度条、上传速度、剩余时间
   - 显示当前阶段文本（计算哈希中/上传中/完成中）
@@ -325,7 +325,7 @@
   - 完成状态显示绿色勾选图标
   - _需求: FR-2.1_
 
-- [ ] 16.2 创建任务详情组件
+- [x] 16.2 创建任务详情组件
   - 在 `app/ui/admin/upload/task-detail.tsx` 创建 `TaskDetail` 组件
   - 显示任务头部信息（名称、文件数、总大小、目标存储、整体进度）
   - 显示任务操作按钮（暂停全部/取消任务/重试失败）
@@ -335,7 +335,7 @@
   - 底部显示"管理本组文件"按钮
   - _需求: FR-2.1_
 
-- [ ] 16.3 创建任务详情页面路由
+- [x] 16.3 创建任务详情页面路由
   - 创建 `app/[locale]/dashboard/upload/[taskId]/page.tsx`
   - 集成 `TaskDetail` 组件
   - 从 URL 参数获取 taskId
@@ -345,7 +345,7 @@
 
 ### 17. 任务队列管理逻辑
 
-- [ ] 17.1 实现任务队列管理类
+- [x] 17.1 实现任务队列管理类
   - 在 `app/lib/task-queue-manager.ts` 创建 `TaskQueueManager` 类
   - 实现任务添加方法（addTask）
   - 实现队列处理逻辑（processQueue，一次只处理一个任务）
@@ -356,7 +356,7 @@
   - 使用 Map 存储任务
   - _需求: FR-2.2_
 
-- [ ] 17.2 实现文件并发上传类
+- [x] 17.2 实现文件并发上传类
   - 在 `app/lib/file-upload-queue.ts` 创建 `FileUploadQueue` 类
   - 实现并发控制逻辑（maxConcurrent，默认 3）
   - 实现文件入队方法（enqueue）
@@ -368,14 +368,14 @@
   - 实现等待完成方法（waitForCompletion）
   - _需求: FR-2.2_
 
-- [ ] 17.3 创建 Web Worker 哈希计算
+- [x] 17.3 创建 Web Worker 哈希计算
   - 创建 `public/workers/hash-worker.js`
   - 使用 Web Crypto API 计算 SHA-256 哈希
   - 支持进度回调
   - 分块读取文件（2MB 每块）
   - _需求: FR-2.3_
 
-- [ ] 17.4 实现断点续传功能
+- [x] 17.4 实现断点续传功能
   - 在 `app/lib/upload-resume.ts` 实现断点续传逻辑
   - 使用 IndexedDB 保存上传进度（idb 库）
   - 创建 upload-progress 数据库和 files 对象存储
@@ -385,7 +385,7 @@
   - 网络恢复时显示 Toast 提示，询问是否继续上传
   - _需求: FR-2.2_
 
-- [ ] 17.5 实现错误重试机制
+- [x] 17.5 实现错误重试机制
   - 在 `app/lib/upload-retry.ts` 实现重试逻辑
   - 实现 `uploadWithRetry` 方法（最多重试 3 次）
   - 指数退避策略（2^n * 1000ms）
@@ -393,7 +393,7 @@
   - 失败后标记文件状态为 error
   - _需求: FR-2.2_
 
-- [ ] 17.6 实现网络状态监听 Hook
+- [x] 17.6 实现网络状态监听 Hook
   - 在 `app/ui/hooks/use-network-status.ts` 创建 `useNetworkStatus` hook
   - 监听 online 和 offline 事件
   - 网络断开时暂停所有任务并显示 Toast
@@ -402,7 +402,7 @@
 
 ### 18. 上传中心主页面集成
 
-- [ ] 18.1 重构上传中心主页面
+- [x] 18.1 重构上传中心主页面
   - 修改 `app/ui/admin/upload-center.tsx`
   - 顶部显示"新建上传任务"按钮（跳转到创建页面）
   - 显示统计卡片区（`UploadStatsCards`）
@@ -411,7 +411,7 @@
   - 响应式布局适配
   - _需求: FR-2.1_
 
-- [ ] 18.2 实现任务状态管理 Hook
+- [x] 18.2 实现任务状态管理 Hook
   - 在 `app/ui/hooks/use-upload-tasks.ts` 创建 `useUploadTasks` hook
   - 管理所有任务的状态（使用 useState 或 Zustand）
   - 实现任务创建、更新、删除方法
@@ -420,7 +420,7 @@
   - 集成 TaskQueueManager
   - _需求: FR-2.1, FR-2.2_
 
-- [ ] 18.3 实现任务持久化存储
+- [x] 18.3 实现任务持久化存储
   - 在 `app/lib/task-storage.ts` 实现任务存储逻辑
   - 使用 IndexedDB 存储任务和文件信息（idb 库）
   - 创建 upload-center 数据库
@@ -431,20 +431,20 @@
 
 ### 19. 上传性能优化
 
-- [ ] 19.1 实现进度更新节流
+- [x] 19.1 实现进度更新节流
   - 在任务和文件进度更新中使用节流（100ms）
   - 使用 `useThrottle` hook
   - 避免频繁渲染
   - _需求: FR-2.3, NFR-4.1_
 
-- [ ] 19.2 实现任务列表虚拟滚动
+- [x] 19.2 实现任务列表虚拟滚动
   - 在 `TaskList` 组件中集成 `@tanstack/react-virtual`
   - 只渲染可见区域的任务卡片
   - 设置 estimateSize 为 120px（任务卡片高度）
   - 设置 overscan 为 3
   - _需求: NFR-4.1_
 
-- [ ] 19.3 实现文件列表虚拟滚动
+- [x] 19.3 实现文件列表虚拟滚动
   - 在 `TaskDetail` 组件中集成 `@tanstack/react-virtual`
   - 只渲染可见区域的文件项
   - 支持大量文件（1000+）
@@ -458,14 +458,14 @@
 
 ### 20. 上传中心国际化
 
-- [ ] 20.1 添加上传中心国际化文案
+- [x] 20.1 添加上传中心国际化文案
   - 在 `messages/zh-CN.json` 添加上传中心相关中文文案
   - 在 `messages/en.json` 添加上传中心相关英文文案
   - 包含：任务状态、文件状态、阶段文本、操作按钮、提示信息等
   - 保持 key 结构一致（dashboard.upload.*）
   - _需求: FR-2.1, FR-2.2_
 
-- [ ] 20.2 集成国际化到所有上传组件
+- [x] 20.2 集成国际化到所有上传组件
   - 在所有上传相关组件中使用 `useTranslations` hook
   - 替换所有硬编码文案为国际化 key
   - 测试中英文切换
