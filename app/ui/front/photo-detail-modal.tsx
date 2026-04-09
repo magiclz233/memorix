@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSwipeable } from 'react-swipeable';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
@@ -29,12 +30,23 @@ import {
   Loader2,
   Sparkles
 } from 'lucide-react';
+import { Pencil, Save, Undo2 } from 'lucide-react';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { Histogram } from './histogram';
 import type { GalleryItem } from '@/app/lib/gallery';
 import { updatePhotoDetails } from '@/app/lib/actions';
+import { showError, showSuccess } from '@/app/lib/toast-utils';
+import { authClient } from '@/lib/auth-client';
 
 type PhotoDetailModalProps = {
   selectedItem: GalleryItem | null;
@@ -47,6 +59,27 @@ type PhotoDetailModalProps = {
   hasNext: boolean;
   locale: string;
 };
+
+type PendingAction =
+  | { type: 'close' }
+  | { type: 'prev' }
+  | { type: 'next' }
+  | { type: 'select'; id: string }
+  | { type: 'cancel-edit' };
+
+function toDateInputValue(dateShot?: string | null) {
+  if (!dateShot) return '';
+  const parsed = new Date(dateShot);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+}
+
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
 
 export function PhotoDetailModal({
   selectedItem,
@@ -72,18 +105,6 @@ export function PhotoDetailModal({
       document.body.style.overflow = '';
     };
   }, [selectedItem]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    if (!selectedItem) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key === 'ArrowLeft') onPrev();
-      if (event.key === 'ArrowRight') onNext();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedItem, onClose, onPrev, onNext]);
 
   if (!selectedItem) return null;
 
@@ -133,66 +154,392 @@ function PhotoDetailContent({
   t: ReturnType<typeof useTranslations>;
 }) {
   const tMedia = useTranslations('front.media');
+  const { data: session } = authClient.useSession();
+  const isAdmin =
+    (session?.user as { role?: string } | null | undefined)?.role === 'admin';
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [isLivePreviewing, setIsLivePreviewing] = useState(false);
   const [viewMode, setViewMode] = useState<'fit' | 'frame'>('fit');
   const [footTitle, setFootTitle] = useState(item.title ?? '');
   const [footAuthor, setFootAuthor] = useState(item.author ?? '');
-  const [footDate, setFootDate] = useState(item.dateShot ? new Date(item.dateShot).toISOString().slice(0, 10) : '');
+  const [footDate, setFootDate] = useState(toDateInputValue(item.dateShot));
   const [isSaving, startSaving] = useTransition();
-  
-  // Track direction for animation
+  const [isEditing, setIsEditing] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+
   const [direction, setDirection] = useState(0);
-  const [lastItemId, setLastItemId] = useState(item.id);
+  const previousItemIdRef = useRef(item.id);
+  const modalRootRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const filmstripRef = useRef<HTMLDivElement | null>(null);
+  const thumbRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [isDraggingFilmstrip, setIsDraggingFilmstrip] = useState(false);
+  const dragPointerIdRef = useRef<number | null>(null);
+  const dragStartXRef = useRef(0);
+  const dragStartScrollLeftRef = useRef(0);
 
   const isFrame = viewMode === 'frame';
-  
-  if (item.id !== lastItemId) {
-    const prevIdx = items.findIndex((i) => i.id === lastItemId);
-    const currIdx = items.findIndex((i) => i.id === item.id);
-    // Handle edge case where index might not be found or wrap around logic if needed
-    // Simple logic: if moving forward (curr > prev) or wrapping from end to start (prev is last, curr is 0)
-    // For now, simple index comparison is sufficient for linear navigation
-    const dir = currIdx > prevIdx ? 1 : -1;
-    setDirection(dir);
-    
-    // Reset states
-    setIsPlaying(false);
-    setIsBuffering(false);
-    setIsLivePreviewing(false);
-    setFootTitle(item.title ?? '');
-    setFootAuthor(item.author ?? '');
-    setFootDate(item.dateShot ? new Date(item.dateShot).toISOString().slice(0, 10) : '');
-    
-    setLastItemId(item.id);
-  }
-
-  // Reset states on item change
-  // Removed useEffect to avoid cascading renders, handled in render phase above
-  
   const isVideo = item.type === 'video';
   const isLive = item.liveType && item.liveType !== 'none';
   const isAnimated = Boolean(item.isAnimated && item.animatedUrl);
   const canPlayVideo = isVideo;
   const videoSrc = item.videoUrl ?? `/api/media/stream/${item.id}`;
   const liveLabel =
-    item.liveType === 'embedded'
-      ? tMedia('motionPhoto')
-      : tMedia('livePhoto');
+    item.liveType === 'embedded' ? tMedia('motionPhoto') : tMedia('livePhoto');
+
+  const originalTitle = item.title ?? '';
+  const originalAuthor = item.author ?? '';
+  const originalDate = toDateInputValue(item.dateShot);
+  const hasChanges =
+    isEditing &&
+    (footTitle !== originalTitle ||
+      footAuthor !== originalAuthor ||
+      footDate !== originalDate);
+
+  const resetEditFields = useCallback(() => {
+    setFootTitle(item.title ?? '');
+    setFootAuthor(item.author ?? '');
+    setFootDate(toDateInputValue(item.dateShot));
+  }, [item.author, item.dateShot, item.title]);
+  useEffect(() => {
+    const previousId = previousItemIdRef.current;
+    if (previousId === item.id) return;
+
+    const prevIndex = items.findIndex((i) => i.id === previousId);
+    const currentIndex = items.findIndex((i) => i.id === item.id);
+
+    if (prevIndex !== -1 && currentIndex !== -1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDirection(currentIndex >= prevIndex ? 1 : -1);
+    }
+
+    previousItemIdRef.current = item.id;
+    setIsPlaying(false);
+    setIsBuffering(false);
+    setIsLivePreviewing(false);
+    setIsEditing(false);
+    setConfirmOpen(false);
+    setPendingAction(null);
+    resetEditFields();
+  }, [item.id, items, resetEditFields]);
+
+  const updateFilmstripEdgeState = useCallback(() => {
+    const node = filmstripRef.current;
+    if (!node) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    setCanScrollLeft(node.scrollLeft > 0);
+    setCanScrollRight(node.scrollLeft + node.clientWidth < node.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const node = filmstripRef.current;
+    if (!node) return;
+
+    const onScroll = () => updateFilmstripEdgeState();
+    node.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+
+    return () => {
+      node.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [updateFilmstripEdgeState]);
+
+  useEffect(() => {
+    const active = thumbRefs.current[String(item.id)];
+    if (!active) return;
+
+    active.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'center',
+      block: 'nearest',
+    });
+  }, [item.id]);
+
+  const executePendingAction = useCallback(
+    (action: PendingAction | null) => {
+      if (!action) return;
+
+      if (action.type === 'close') {
+        onClose();
+        return;
+      }
+
+      if (action.type === 'prev') {
+        onPrev();
+        return;
+      }
+
+      if (action.type === 'next') {
+        onNext();
+        return;
+      }
+
+      if (action.type === 'select') {
+        onSelect?.(action.id);
+        return;
+      }
+
+      if (action.type === 'cancel-edit') {
+        resetEditFields();
+        setIsEditing(false);
+      }
+    },
+    [onClose, onNext, onPrev, onSelect, resetEditFields],
+  );
+
+  const persistChanges = useCallback(async () => {
+    if (!isAdmin || !hasChanges || isSaving) return true;
+
+    return new Promise<boolean>((resolve) => {
+      startSaving(async () => {
+        try {
+          const fd = new FormData();
+          fd.set('fileId', String(item.id));
+          fd.set('title', footTitle.trim());
+          fd.set('author', footAuthor.trim());
+          fd.set('dateShot', footDate.trim());
+
+          const res = await updatePhotoDetails(fd);
+
+          if (!res?.success) {
+            showError(res?.message || t('modal.saveFailed'));
+            resolve(false);
+            return;
+          }
+
+          item.title = footTitle.trim();
+          item.author = footAuthor.trim() || null;
+          item.dateShot = footDate.trim() ? new Date(footDate).toISOString() : null;
+
+          showSuccess(res.message || t('modal.saved'));
+          setIsEditing(false);
+          resolve(true);
+        } catch {
+          showError(t('modal.saveFailed'));
+          resolve(false);
+        }
+      });
+    });
+  }, [footAuthor, footDate, footTitle, hasChanges, isAdmin, isSaving, item, t]);
+
+  const requestAction = useCallback(
+    (action: PendingAction) => {
+      if (isAdmin && hasChanges) {
+        setPendingAction(action);
+        setConfirmOpen(true);
+        return;
+      }
+
+      executePendingAction(action);
+    },
+    [executePendingAction, hasChanges, isAdmin],
+  );
+
+  const handleSaveAndContinue = async () => {
+    const ok = await persistChanges();
+    if (!ok) return;
+
+    const action = pendingAction;
+    setPendingAction(null);
+    setConfirmOpen(false);
+    executePendingAction(action);
+  };
+
+  const handleDiscardAndContinue = () => {
+    resetEditFields();
+    setIsEditing(false);
+    const action = pendingAction;
+    setPendingAction(null);
+    setConfirmOpen(false);
+    executePendingAction(action);
+  };
+
+  const handleDirectSave = useCallback(async () => {
+    await persistChanges();
+  }, [persistChanges]);
+
+  const toggleFullscreen = useCallback(async () => {
+    if (typeof document === 'undefined') return;
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await modalRootRef.current?.requestFullscreen();
+      }
+    } catch {
+      showError(t('modal.fullscreenFailed'));
+    }
+  }, [t]);
+
+  const togglePlayStateByShortcut = useCallback(() => {
+    if (isLive) {
+      setIsLivePreviewing((prev) => !prev);
+      return;
+    }
+
+    if (!canPlayVideo) return;
+
+    if (!isPlaying) {
+      setIsPlaying(true);
+      return;
+    }
+
+    const node = videoRef.current;
+    if (!node) {
+      setIsPlaying(false);
+      return;
+    }
+
+    if (node.paused) {
+      void node.play();
+    } else {
+      node.pause();
+    }
+  }, [canPlayVideo, isLive, isPlaying]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const key = event.key;
+      const lowered = key.toLowerCase();
+      const typing = isTypingTarget(event.target);
+
+      if ((event.ctrlKey || event.metaKey) && lowered === 's') {
+        if (!isAdmin || !isEditing) return;
+        event.preventDefault();
+        if (hasChanges) {
+          void handleDirectSave();
+        }
+        return;
+      }
+
+      if (key === 'Escape') {
+        event.preventDefault();
+        if (isEditing) {
+          if (hasChanges) {
+            requestAction({ type: 'cancel-edit' });
+          } else {
+            setIsEditing(false);
+          }
+          return;
+        }
+
+        requestAction({ type: 'close' });
+        return;
+      }
+
+      if (typing) return;
+
+      if (key === 'ArrowLeft' && hasPrev) {
+        event.preventDefault();
+        requestAction({ type: 'prev' });
+        return;
+      }
+
+      if (key === 'ArrowRight' && hasNext) {
+        event.preventDefault();
+        requestAction({ type: 'next' });
+        return;
+      }
+
+      if (key === 'Home' && items.length > 0 && onSelect) {
+        event.preventDefault();
+        requestAction({ type: 'select', id: String(items[0].id) });
+        return;
+      }
+
+      if (key === 'End' && items.length > 0 && onSelect) {
+        event.preventDefault();
+        requestAction({
+          type: 'select',
+          id: String(items[items.length - 1].id),
+        });
+        return;
+      }
+
+      if (key === ' ' || key === 'Spacebar') {
+        event.preventDefault();
+        togglePlayStateByShortcut();
+        return;
+      }
+
+      if (lowered === 'f') {
+        event.preventDefault();
+        void toggleFullscreen();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    handleDirectSave,
+    hasChanges,
+    hasNext,
+    hasPrev,
+    isAdmin,
+    isEditing,
+    items,
+    onSelect,
+    requestAction,
+    toggleFullscreen,
+    togglePlayStateByShortcut,
+  ]);
+
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (hasNext) requestAction({ type: 'next' });
+    },
+    onSwipedRight: () => {
+      if (hasPrev) requestAction({ type: 'prev' });
+    },
+    onSwipedDown: () => {
+      requestAction({ type: 'close' });
+    },
+    delta: 40,
+    preventScrollOnSwipe: true,
+    trackTouch: true,
+  });
+
+  const handleToggleEdit = () => {
+    if (!isAdmin) return;
+
+    if (isEditing) {
+      if (hasChanges) {
+        requestAction({ type: 'cancel-edit' });
+      } else {
+        setIsEditing(false);
+      }
+      return;
+    }
+
+    setIsEditing(true);
+  };
 
   const startVideo = () => {
     setIsPlaying(true);
     setIsLivePreviewing(false);
   };
 
-  const formatNumber = (val?: number | null, digits = 1) => 
-    typeof val === 'number' && !Number.isNaN(val) ? val.toFixed(digits).replace(/\.0+$/, '') : null;
+  const formatNumber = (val?: number | null, digits = 1) =>
+    typeof val === 'number' && !Number.isNaN(val)
+      ? val.toFixed(digits).replace(/\.0+$/, '')
+      : null;
 
   const formatExposure = (val?: number | null) => {
     if (typeof val !== 'number' || Number.isNaN(val)) return null;
     if (val >= 1) return `${formatNumber(val, 2)}s`;
-    return `1/${Math.round(1 / val)}s`;
+    return `1/${Math.round(1 / val)}`;
   };
 
   const formatFileSize = (bytes?: number | null) => {
@@ -214,7 +561,7 @@ function PhotoDetailContent({
 
   const getExposureProgram = (prog: number | null) => {
     if (prog === null) return null;
-    return t(`values.exposureProgram.${prog}` as any);
+    return t(`values.exposureProgram.${prog}` as never);
   };
 
   const getFlashState = (flash: number | null) => {
@@ -223,10 +570,11 @@ function PhotoDetailContent({
     return fired ? t('values.flash.fired') : t('values.flash.off');
   };
 
-  const resolution = item.width && item.height 
-    ? `${item.width} × ${item.height}`
-    : '-';
-  const mp = item.width && item.height ? (item.width * item.height / 1000000).toFixed(2) + ' MP' : null;
+  const resolution = item.width && item.height ? `${item.width} x ${item.height}` : '-';
+  const mp =
+    item.width && item.height
+      ? (item.width * item.height / 1000000).toFixed(2) + ' MP'
+      : null;
   const focalLength = formatNumber(item.focalLength);
   const apertureValue = formatNumber(item.aperture);
   const exposureValue = formatExposure(item.exposure);
@@ -243,12 +591,15 @@ function PhotoDetailContent({
     Boolean(flashValue);
   const showFilmstrip = items.length > 1 && typeof onSelect === 'function';
 
-  const locationParts = item.locationName ? item.locationName.split(',').map(s => s.trim()) : [];
+  const locationParts = item.locationName
+    ? item.locationName.split(',').map((s) => s.trim())
+    : [];
   const city = locationParts[0];
   const country = locationParts.length > 1 ? locationParts[locationParts.length - 1] : null;
 
   return (
     <motion.div
+      ref={modalRootRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -257,11 +608,28 @@ function PhotoDetailContent({
       <div className="flex-grow flex flex-col relative group h-full overflow-hidden bg-zinc-50 dark:bg-zinc-950">
         <div className="absolute top-0 left-0 right-0 z-50 p-4 flex justify-between items-start pointer-events-none">
           <div className="pointer-events-auto flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => requestAction({ type: 'close' })}
+              className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80"
+              aria-label={t('modal.closeAria')}
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
           <div className="pointer-events-auto flex items-center gap-2">
+            {isAdmin ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleEdit}
+                className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80"
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                {isEditing ? t('modal.viewMode') : t('modal.editMode')}
+              </Button>
+            ) : null}
             <Button
               variant="ghost"
               size="sm"
@@ -272,11 +640,10 @@ function PhotoDetailContent({
             </Button>
           </div>
         </div>
-
         <div className="flex-grow flex items-center justify-center relative h-full">
           {hasPrev && (
             <button 
-              onClick={(e) => { e.stopPropagation(); onPrev(); }}
+              onClick={(e) => { e.stopPropagation(); requestAction({ type: 'prev' }); }}
               className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white/80 dark:bg-black/40 hover:bg-white dark:hover:bg-black/60 shadow-sm backdrop-blur transition-all"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -284,24 +651,34 @@ function PhotoDetailContent({
           )}
           
           <div
+            {...swipeHandlers}
             className={cn(
               "relative w-full h-full flex items-center justify-center overflow-hidden transition-colors duration-500",
               isFrame && "bg-[#f0f0f0] dark:bg-zinc-950"
             )}
           >
-            <AnimatePresence initial={false} custom={direction} mode="popLayout">
+            <AnimatePresence initial={false} custom={direction} mode="wait">
               <motion.div
                 key={item.id}
                 custom={direction}
                 variants={{
-                  enter: (dir: number) => ({ x: dir * 50, opacity: 0 }),
-                  center: { x: 0, opacity: 1 },
-                  exit: (dir: number) => ({ x: dir * -50, opacity: 0 }),
+                  enter: (dir: number) => ({ x: dir >= 0 ? 80 : -80, opacity: 0, scale: 0.98 }),
+                  center: {
+                    x: 0,
+                    opacity: 1,
+                    scale: 1,
+                    transition: {
+                      x: { type: 'spring', stiffness: 300, damping: 30 },
+                      opacity: { duration: 0.2 },
+                      scale: { duration: 0.2 },
+                    },
+                  },
+                  exit: (dir: number) => ({ x: dir >= 0 ? -80 : 80, opacity: 0, scale: 0.98, transition: { duration: 0.2 } }),
                 }}
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
+
                 className={cn(
                   "absolute inset-0 flex items-center justify-center w-full h-full",
                   isFrame ? "p-4 md:p-8" : "p-0"
@@ -330,7 +707,7 @@ function PhotoDetailContent({
                               {isAnimated ? (
                                 <Image
                                   src={item.animatedUrl ?? ''}
-                                  alt={item.title}
+                                  alt={isEditing ? footTitle || item.title : item.title}
                                   width={safeWidth}
                                   height={safeHeight}
                                   unoptimized
@@ -341,7 +718,7 @@ function PhotoDetailContent({
                               ) : (
                                 <BlurImage
                                   src={item.src}
-                                  alt={item.title}
+                                  alt={isEditing ? footTitle || item.title : item.title}
                                   blurHash={item.blurHash}
                                   width={safeWidth}
                                   height={safeHeight}
@@ -354,6 +731,7 @@ function PhotoDetailContent({
                               {/* Video/Live Elements layered on top */}
                               {canPlayVideo && isPlaying && (
                                 <video
+                                  ref={videoRef}
                                   src={videoSrc}
                                   autoPlay
                                   controls
@@ -371,6 +749,7 @@ function PhotoDetailContent({
 
                               {isLive && isLivePreviewing && (
                                 <video
+                                  ref={videoRef}
                                   src={videoSrc}
                                   autoPlay
                                   muted
@@ -409,62 +788,90 @@ function PhotoDetailContent({
 
                             {/* Metadata Panel inside Mat */}
                             <div className="mt-8 md:mt-12 text-center w-full">
-                               {/* Title */}
-                               <input
+                              {isAdmin && isEditing ? (
+                                <input
                                   value={footTitle}
                                   onChange={(e) => setFootTitle(e.target.value)}
                                   placeholder={item.title || 'Untitled'}
-                                  className="w-full bg-transparent border-none p-0 text-center font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 focus:ring-0 focus:outline-none placeholder:text-slate-300/50"
-                               />
-                               
-                               {/* Subtitle (Date/Author) */}
-                               <div className="flex items-center justify-center gap-1 mt-1 opacity-40 hover:opacity-100 transition-opacity duration-300 group/meta">
-                                  <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">Captured by</span>
+                                  className="w-full rounded-md border border-zinc-300 bg-zinc-50/90 px-2 py-1 text-center font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 focus:ring-2 ring-indigo-500/50 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900/70"
+                                />
+                              ) : (
+                                <p className="w-full break-words text-center font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300">
+                                  {footTitle || item.title || t('modal.untitled')}
+                                </p>
+                              )}
+
+                              <div className="flex items-center justify-center gap-1 mt-1 opacity-60 hover:opacity-100 transition-opacity duration-300">
+                                <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
+                                  {t('modal.authorPrefix')}
+                                </span>
+                                {isAdmin && isEditing ? (
                                   <input
                                     value={footAuthor}
                                     onChange={(e) => setFootAuthor(e.target.value)}
                                     placeholder={footAuthor || 'Lumina'}
-                                    className="bg-transparent border-none p-0 text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 focus:ring-0 focus:outline-none w-[60px]"
+                                    className="w-[72px] rounded-md border border-zinc-300 bg-zinc-50/90 px-1 py-0.5 text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 focus:ring-2 ring-indigo-500/50 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900/70"
                                   />
-                                  <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">•</span>
+                                ) : (
+                                  <span className="min-w-[72px] text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
+                                    {footAuthor || t('modal.authorFallback')}
+                                  </span>
+                                )}
+                                <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">?</span>
+                                {isAdmin && isEditing ? (
                                   <input
                                     value={footDate}
                                     onChange={(e) => setFootDate(e.target.value)}
                                     placeholder="YYYY-MM-DD"
-                                    className="bg-transparent border-none p-0 text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 focus:ring-0 focus:outline-none w-[80px]"
+                                    className="w-[92px] rounded-md border border-zinc-300 bg-zinc-50/90 px-1 py-0.5 text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 focus:ring-2 ring-indigo-500/50 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900/70"
                                   />
-                                  
-                                  {/* Save Button */}
-                                   <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      disabled={isSaving}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        startSaving(async () => {
-                                          const fd = new FormData();
-                                          fd.set('fileId', String(item.id));
-                                          fd.set('title', footTitle ?? '');
-                                          fd.set('author', footAuthor ?? '');
-                                          fd.set('dateShot', footDate ?? '');
-                                          const res = await updatePhotoDetails(fd);
-                                          if (res?.success) {
-                                            item.title = footTitle;
-                                            item.author = footAuthor || null;
-                                            item.dateShot = footDate ? new Date(footDate).toISOString() : null;
-                                          }
-                                        })
-                                      }}
-                                      className={cn(
-                                        "h-4 w-4 rounded-full p-0 ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 transition-opacity",
-                                        (footTitle !== (item.title ?? '') || footAuthor !== (item.author ?? '') || footDate !== (item.dateShot ? new Date(item.dateShot).toISOString().slice(0, 10) : '')) 
-                                          ? "opacity-100" 
-                                          : "opacity-0 group-hover/meta:opacity-50"
-                                      )}
-                                    >
-                                      {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
-                                    </Button>
-                               </div>
+                                ) : (
+                                  <span className="min-w-[92px] text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
+                                    {footDate || t('modal.dateFallback')}
+                                  </span>
+                                )}
+                              </div>
+
+                              {isAdmin && isEditing ? (
+                                <div className="mt-3 flex items-center justify-center gap-2">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => void handleDirectSave()}
+                                    disabled={!hasChanges || isSaving}
+                                    className="h-7 rounded-full px-3 text-xs"
+                                  >
+                                    {isSaving ? (
+                                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                      <Save className="mr-1.5 h-3.5 w-3.5" />
+                                    )}
+                                    {isSaving ? t('modal.saving') : t('modal.save')}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 rounded-full px-3 text-xs"
+                                    onClick={() => {
+                                      if (hasChanges) {
+                                        requestAction({ type: 'cancel-edit' });
+                                        return;
+                                      }
+                                      setIsEditing(false);
+                                    }}
+                                  >
+                                    <Undo2 className="mr-1.5 h-3.5 w-3.5" />
+                                    {t('modal.cancelEdit')}
+                                  </Button>
+                                </div>
+                              ) : null}
+
+                              {isAdmin ? (
+                                <p className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-400">
+                                  {t('modal.shortcutSave')}
+                                </p>
+                              ) : null}
                             </div>
                          </div>
                       ) : (
@@ -510,6 +917,7 @@ function PhotoDetailContent({
                           )}
                            {canPlayVideo && isPlaying && (
                             <video
+                              ref={videoRef}
                               src={videoSrc}
                               autoPlay
                               controls
@@ -526,6 +934,7 @@ function PhotoDetailContent({
                           )}
                           {isLive && isLivePreviewing && (
                             <video
+                              ref={videoRef}
                               src={videoSrc}
                               autoPlay
                               muted
@@ -590,7 +999,7 @@ function PhotoDetailContent({
 
           {hasNext && (
             <button 
-              onClick={(e) => { e.stopPropagation(); onNext(); }}
+              onClick={(e) => { e.stopPropagation(); requestAction({ type: 'next' }); }}
               className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white/80 dark:bg-black/40 hover:bg-white dark:hover:bg-black/60 shadow-sm backdrop-blur transition-all"
             >
               <ChevronRight className="w-6 h-6" />
@@ -598,32 +1007,76 @@ function PhotoDetailContent({
           )}
         </div>
         {showFilmstrip && (
-          <div className="h-24 px-6 md:px-8 flex items-center justify-center gap-3 overflow-x-auto custom-scrollbar">
-            {items.map((thumb) => {
-              const isActive = thumb.id === item.id;
-              return (
-                <button
-                  key={thumb.id}
-                  type="button"
-                  onClick={() => onSelect?.(thumb.id)}
-                  className={cn(
-                    'flex-shrink-0 w-14 h-14 rounded-sm overflow-hidden transition-opacity',
-                    isActive
-                      ? 'border-2 border-primary dark:border-white shadow-lg ring-2 ring-white/20'
-                      : 'opacity-50 hover:opacity-100'
-                  )}
-                >
-                  <Image
-                    src={thumb.src}
-                    alt={thumb.title}
-                    width={56}
-                    height={56}
-                    unoptimized={thumb.src.startsWith('/api/')}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              );
-            })}
+          <div className="relative h-24 px-6 md:px-8">
+            {canScrollLeft ? (
+              <div className="pointer-events-none absolute left-0 top-0 z-20 h-full w-10 bg-gradient-to-r from-zinc-50 to-transparent dark:from-zinc-950" />
+            ) : null}
+            {canScrollRight ? (
+              <div className="pointer-events-none absolute right-0 top-0 z-20 h-full w-10 bg-gradient-to-l from-zinc-50 to-transparent dark:from-zinc-950" />
+            ) : null}
+
+            <div
+              ref={filmstripRef}
+              className={cn(
+                'h-full flex items-center gap-3 overflow-x-auto custom-scrollbar pb-1',
+                isDraggingFilmstrip ? 'cursor-grabbing select-none' : 'cursor-grab',
+              )}
+              onPointerDown={(event) => {
+                if (!filmstripRef.current) return;
+                setIsDraggingFilmstrip(true);
+                dragPointerIdRef.current = event.pointerId;
+                dragStartXRef.current = event.clientX;
+                dragStartScrollLeftRef.current = filmstripRef.current.scrollLeft;
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }}
+              onPointerMove={(event) => {
+                if (!isDraggingFilmstrip || !filmstripRef.current) return;
+                if (dragPointerIdRef.current !== event.pointerId) return;
+                const delta = event.clientX - dragStartXRef.current;
+                filmstripRef.current.scrollLeft = dragStartScrollLeftRef.current - delta;
+              }}
+              onPointerUp={(event) => {
+                if (dragPointerIdRef.current !== event.pointerId) return;
+                setIsDraggingFilmstrip(false);
+                dragPointerIdRef.current = null;
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }}
+              onPointerCancel={(event) => {
+                if (dragPointerIdRef.current !== event.pointerId) return;
+                setIsDraggingFilmstrip(false);
+                dragPointerIdRef.current = null;
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }}
+            >
+              {items.map((thumb) => {
+                const isActive = thumb.id === item.id;
+                return (
+                  <button
+                    key={thumb.id}
+                    type="button"
+                    ref={(node) => {
+                      thumbRefs.current[String(thumb.id)] = node;
+                    }}
+                    onClick={() => requestAction({ type: 'select', id: String(thumb.id) })}
+                    className={cn(
+                      'flex-shrink-0 w-14 h-14 rounded-sm overflow-hidden transition-opacity',
+                      isActive
+                        ? 'border-2 border-primary dark:border-white shadow-lg ring-2 ring-white/20'
+                        : 'opacity-50 hover:opacity-100',
+                    )}
+                  >
+                    <Image
+                      src={thumb.src}
+                      alt={thumb.title}
+                      width={56}
+                      height={56}
+                      unoptimized={thumb.src.startsWith('/api/')}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -632,7 +1085,7 @@ function PhotoDetailContent({
         <div className="p-6 space-y-8">
           <section className="flex justify-between items-start">
             <h2 className="text-lg font-bold tracking-tight text-primary dark:text-white leading-tight pr-4 break-words">
-              {item.title}
+              {isEditing ? footTitle || item.title : item.title}
             </h2>
             <div className="flex items-center space-x-3 mt-1 flex-shrink-0">
               <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Like">
@@ -782,6 +1235,34 @@ function PhotoDetailContent({
 
         </div>
       </aside>
+
+      <Dialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) {
+            setPendingAction(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('modal.unsavedTitle')}</DialogTitle>
+            <DialogDescription>{t('modal.unsavedDescription')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
+              {t('modal.continueEditing')}
+            </Button>
+            <Button variant="outline" onClick={handleDiscardAndContinue}>
+              {t('modal.discardAndContinue')}
+            </Button>
+            <Button onClick={() => void handleSaveAndContinue()} disabled={isSaving}>
+              {isSaving ? t('modal.saving') : t('modal.saveAndContinue')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
