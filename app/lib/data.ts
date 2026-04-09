@@ -1174,22 +1174,22 @@ export async function fetchPublishedPhotosForHome(limit = 12) {
 }
 
 
-// 鈹€鈹€鈹€ 缂撳瓨鐗堟湰鐨勬煡璇㈠嚱鏁?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ─── 缓存版本的查询函数 ──────────────────────────────────────────────────────────
 
 /**
- * 甯?Redis 缂撳瓨鐨?Hero 鐓х墖鏌ヨ锛? 鍒嗛挓锛?
+ * 带 Redis 缓存的 Hero 照片查询（5 分钟）
  * Redis 涓嶅彲鐢ㄦ椂鑷姩闄嶇骇鍒?Next.js unstable_cache
  */
 export async function fetchHeroPhotosForHomeCached(options?: { userId?: number; limit?: number }) {
   return getCached(
     `hero-photos:${options?.userId || 'default'}:${options?.limit || 12}`,
     () => fetchHeroPhotosForHome(options),
-    300 // 5 鍒嗛挓
+    300 // 5 分钟
   );
 }
 
 /**
- * 甯?Redis 缂撳瓨鐨勭簿閫夐泦鍚堟煡璇紙5 鍒嗛挓锛?
+ * 带 Redis 缓存的精选集合查询（5 分钟）
  * Redis 涓嶅彲鐢ㄦ椂鑷姩闄嶇骇鍒?Next.js unstable_cache
  */
 export async function fetchCollectionsCached(options?: FetchCollectionsOptions) {
@@ -1197,6 +1197,6 @@ export async function fetchCollectionsCached(options?: FetchCollectionsOptions) 
   return getCached(
     cacheKey,
     () => fetchCollections(options),
-    300 // 5 鍒嗛挓
+    300 // 5 分钟
   );
 }
