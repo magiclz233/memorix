@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useMessages, useTranslations } from 'next-intl';
@@ -68,7 +68,7 @@ const formatResolution = (
   unknownLabel: string,
 ) => {
   if (!width || !height) return unknownLabel;
-  return `${width}��${height}`;
+  return `${width} 脳 ${height}`;
 };
 
 const resolveMediaSrc = (item: MediaLibraryItem) =>
@@ -114,7 +114,7 @@ export function MediaLibraryManager({
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  // ����ѡ��״̬
+  // 澶勭悊閫変腑鐘舵€?
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -167,23 +167,14 @@ export function MediaLibraryManager({
     return groups;
   }, [storages]);
 
-  const categoryCounts = useMemo(() => {
-    return {
-      all: totalCount,
-      local: items.filter((item) => item.storage.type === 'local').length,
-      nas: items.filter((item) => item.storage.type === 'nas').length,
-      s3: items.filter((item) => item.storage.type === 's3').length,
-    };
-  }, [items, totalCount]);
-
   const categories = useMemo(
     () => [
-      { id: 'all', label: t('filters.type.all'), icon: Database, count: categoryCounts.all },
-      { id: 'local', label: t('storageLabels.local'), icon: HardDrive, count: categoryCounts.local },
-      { id: 'nas', label: t('storageLabels.nas'), icon: Server, count: categoryCounts.nas },
-      { id: 's3', label: t('storageLabels.s3'), icon: Cloud, count: categoryCounts.s3 },
+      { id: 'all', label: t('filters.type.all'), icon: Database },
+      { id: 'local', label: t('storageLabels.local'), icon: HardDrive },
+      { id: 'nas', label: t('storageLabels.nas'), icon: Server },
+      { id: 's3', label: t('storageLabels.s3'), icon: Cloud },
     ],
-    [categoryCounts.all, categoryCounts.local, categoryCounts.nas, categoryCounts.s3, t],
+    [t],
   );
 
   const handleCategoryChange = (category: string) => {
@@ -268,7 +259,7 @@ export function MediaLibraryManager({
   );
 
   useEffect(() => {
-    // �������ٴ��ڵ�ѡ����
+    // 纭繚鍙繚鐣欏綋鍓嶅彲鍕鹃€夌殑ID
     queueMicrotask(() => {
       setSelectedIds((prev) => {
         const next = new Set<number>();
@@ -386,7 +377,7 @@ export function MediaLibraryManager({
     return storages?.some((s) => (s.config as any)?.isDisabled);
   }, [storages]);
 
-  // ����ɾ������
+  // 鎵归噺鍒犻櫎鎿嶄綔
   const handleBatchDelete = async () => {
     if (selectedIds.size === 0) {
       showErrorToast(t('library.selectFirst'));
@@ -445,13 +436,13 @@ export function MediaLibraryManager({
         throw new Error('Download failed');
       }
 
-      // �������������
+      // 澶勭悊鏂囦欢娴佸璞?
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
 
-      // ����Ӧͷ��ȡ�ļ�������ʹ��Ĭ������
+      // 灏濊瘯浠庡搷搴斿ご鎻愬彇鏂囦欢鍚嶏紝鍚﹀垯浣跨敤榛樿鍚嶇О
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `media_${Date.now()}.zip`;
       if (contentDisposition) {
@@ -477,7 +468,7 @@ export function MediaLibraryManager({
     }
   };
 
-  // ȫѡ/ȡ��ȫѡ
+  // 鍏ㄩ€?鍙栨秷鍏ㄩ€?
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableIds.length && selectableIds.length > 0) {
       setSelectedIds(new Set());
@@ -787,7 +778,7 @@ export function MediaLibraryManager({
                   onClick={() => setSelectedIds(new Set())}
                   title={t('library.clearSelection')}
                 >
-                  <span className="text-xs">?</span>
+                  <span className="text-xs">{t('filters.clear')}</span>
                 </Button>
               </>
             )}
@@ -819,16 +810,19 @@ export function MediaLibraryManager({
               return (
                 <div
                   key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
                   style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100%',
                     transform: `translateY(${virtualRow.start}px)`,
+                    paddingBottom: `${gap}px`,
                   }}
                 >
                   <div
-                    className="grid gap-2"
+                    className="grid gap-2 h-full"
                     style={{ gridTemplateColumns: `repeat(${effectiveColumns}, minmax(0, 1fr))` }}
                   >
                     {rowItems.map((item) => {
