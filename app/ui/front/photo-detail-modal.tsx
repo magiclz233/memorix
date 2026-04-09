@@ -415,14 +415,7 @@ function PhotoDetailContent({
       const lowered = key.toLowerCase();
       const typing = isTypingTarget(event.target);
 
-      if ((event.ctrlKey || event.metaKey) && lowered === 's') {
-        if (!isAdmin || !isEditing) return;
-        event.preventDefault();
-        if (hasChanges) {
-          void handleDirectSave();
-        }
-        return;
-      }
+
 
       if (key === 'Escape') {
         event.preventDefault();
@@ -474,10 +467,7 @@ function PhotoDetailContent({
         return;
       }
 
-      if (lowered === 'f') {
-        event.preventDefault();
-        void toggleFullscreen();
-      }
+
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -619,17 +609,7 @@ function PhotoDetailContent({
             </Button>
           </div>
           <div className="pointer-events-auto flex items-center gap-2">
-            {isAdmin ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleToggleEdit}
-                className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80"
-              >
-                <Pencil className="mr-2 h-4 w-4" />
-                {isEditing ? t('modal.viewMode') : t('modal.editMode')}
-              </Button>
-            ) : null}
+
             <Button
               variant="ghost"
               size="sm"
@@ -788,90 +768,22 @@ function PhotoDetailContent({
 
                             {/* Metadata Panel inside Mat */}
                             <div className="mt-8 md:mt-12 text-center w-full">
-                              {isAdmin && isEditing ? (
-                                <input
-                                  value={footTitle}
-                                  onChange={(e) => setFootTitle(e.target.value)}
-                                  placeholder={item.title || 'Untitled'}
-                                  className="w-full rounded-md border border-zinc-300 bg-zinc-50/90 px-2 py-1 text-center font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 focus:ring-2 ring-indigo-500/50 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900/70"
-                                />
-                              ) : (
                                 <p className="w-full break-words text-center font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300">
                                   {footTitle || item.title || t('modal.untitled')}
                                 </p>
-                              )}
 
                               <div className="flex items-center justify-center gap-1 mt-1 opacity-60 hover:opacity-100 transition-opacity duration-300">
                                 <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
                                   {t('modal.authorPrefix')}
                                 </span>
-                                {isAdmin && isEditing ? (
-                                  <input
-                                    value={footAuthor}
-                                    onChange={(e) => setFootAuthor(e.target.value)}
-                                    placeholder={footAuthor || 'Lumina'}
-                                    className="w-[72px] rounded-md border border-zinc-300 bg-zinc-50/90 px-1 py-0.5 text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 focus:ring-2 ring-indigo-500/50 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900/70"
-                                  />
-                                ) : (
                                   <span className="min-w-[72px] text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
                                     {footAuthor || t('modal.authorFallback')}
                                   </span>
-                                )}
-                                <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">?</span>
-                                {isAdmin && isEditing ? (
-                                  <input
-                                    value={footDate}
-                                    onChange={(e) => setFootDate(e.target.value)}
-                                    placeholder="YYYY-MM-DD"
-                                    className="w-[92px] rounded-md border border-zinc-300 bg-zinc-50/90 px-1 py-0.5 text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 focus:ring-2 ring-indigo-500/50 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900/70"
-                                  />
-                                ) : (
+                                <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">·</span>
                                   <span className="min-w-[92px] text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
                                     {footDate || t('modal.dateFallback')}
                                   </span>
-                                )}
                               </div>
-
-                              {isAdmin && isEditing ? (
-                                <div className="mt-3 flex items-center justify-center gap-2">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={() => void handleDirectSave()}
-                                    disabled={!hasChanges || isSaving}
-                                    className="h-7 rounded-full px-3 text-xs"
-                                  >
-                                    {isSaving ? (
-                                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                      <Save className="mr-1.5 h-3.5 w-3.5" />
-                                    )}
-                                    {isSaving ? t('modal.saving') : t('modal.save')}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 rounded-full px-3 text-xs"
-                                    onClick={() => {
-                                      if (hasChanges) {
-                                        requestAction({ type: 'cancel-edit' });
-                                        return;
-                                      }
-                                      setIsEditing(false);
-                                    }}
-                                  >
-                                    <Undo2 className="mr-1.5 h-3.5 w-3.5" />
-                                    {t('modal.cancelEdit')}
-                                  </Button>
-                                </div>
-                              ) : null}
-
-                              {isAdmin ? (
-                                <p className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-400">
-                                  {t('modal.shortcutSave')}
-                                </p>
-                              ) : null}
                             </div>
                          </div>
                       ) : (
