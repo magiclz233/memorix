@@ -4,11 +4,11 @@
       "toggle": "切换主题"
     },
     "toasts": {
-      "success": "??",
-      "error": "??????",
-      "warning": "????",
-      "info": "????",
-      "loading": "???..."
+      "success": "成功",
+      "error": "发生错误，请重试",
+      "warning": "警告",
+      "info": "提示",
+      "loading": "加载中..."
     }
   },
   "nav": {
@@ -662,14 +662,14 @@
         "focalLength": "焦距",
         "example": "例如: {value}",
         "sortLabel": "排序",
-        "storageInstance": "????",
-        "current": "????",
-        "remove": "????",
+        "storageInstance": "存储配置",
+        "current": "当前",
+        "remove": "移除",
         "hero": {
-          "label": "Hero ??",
-          "all": "??",
-          "yes": "? Hero",
-          "no": "?? Hero"
+          "label": "主页画廊",
+          "all": "全部",
+          "yes": "是",
+          "no": "否"
         }
       },
       "sort": {
