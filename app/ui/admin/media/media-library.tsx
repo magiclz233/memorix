@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useMessages, useTranslations } from 'next-intl';
@@ -114,7 +114,7 @@ export function MediaLibraryManager({
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  // 澶勭悊閫変腑鐘舵€?
+  // 处理选中状态
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -436,13 +436,13 @@ export function MediaLibraryManager({
         throw new Error('Download failed');
       }
 
-      // 澶勭悊鏂囦欢娴佸璞?
+      // 处理文件流对象
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
 
-      // 灏濊瘯浠庡搷搴斿ご鎻愬彇鏂囦欢鍚嶏紝鍚﹀垯浣跨敤榛樿鍚嶇О
+      // 尝试从响应头提取文件名，否则使用默认名称
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `media_${Date.now()}.zip`;
       if (contentDisposition) {
@@ -468,7 +468,7 @@ export function MediaLibraryManager({
     }
   };
 
-  // 鍏ㄩ€?鍙栨秷鍏ㄩ€?
+  // 全选/取消全选
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableIds.length && selectableIds.length > 0) {
       setSelectedIds(new Set());
