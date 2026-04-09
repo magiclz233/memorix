@@ -5,6 +5,9 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import type { GalleryItem } from '@/app/lib/gallery';
 import { GallerySkeleton } from '@/app/ui/front/gallery-skeleton';
+import { Spinner } from '@/app/ui/components/spinner';
+import { BackToTop } from '@/app/ui/front/back-to-top';
+import { Button } from '@/components/ui/button';
 
 const Gallery25 = dynamic(
   () => import('@/components/gallery25').then((mod) => mod.Gallery25),
@@ -42,6 +45,7 @@ export function GalleryInfinite({
   const [page, setPage] = useState(initialPage);
   const [hasNext, setHasNext] = useState(initialHasNext);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // 筛选变化时重置
@@ -49,11 +53,14 @@ export function GalleryInfinite({
     setItems(initialItems);
     setPage(initialPage);
     setHasNext(initialHasNext);
+    setLoadError(false);
   }, [initialItems, initialPage, initialHasNext, mediaType, sortOrder]);
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasNext) return;
     setIsLoading(true);
+    setLoadError(false);
+
     const nextPage = page + 1;
     const params = new URLSearchParams({
       page: String(nextPage),
@@ -61,27 +68,32 @@ export function GalleryInfinite({
       mediaType,
       sortOrder,
     });
+
     try {
       const response = await fetch(`/api/gallery?${params.toString()}`, {
         cache: 'no-store',
       });
+
       if (!response.ok) {
-        setHasNext(false);
-        return;
+        throw new Error('Failed to load next page');
       }
+
       const data = (await response.json()) as GalleryResponse;
       setItems((prev) => [...prev, ...data.items]);
       setPage(data.page);
       setHasNext(data.hasNext);
+    } catch {
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
   }, [hasNext, isLoading, page, pageSize, mediaType, sortOrder]);
 
   useEffect(() => {
-    if (!hasNext) return;
+    if (!hasNext || loadError) return;
     const node = sentinelRef.current;
     if (!node) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
@@ -90,21 +102,35 @@ export function GalleryInfinite({
       },
       { rootMargin: '200px' },
     );
+
     observer.observe(node);
     return () => observer.disconnect();
-  }, [hasNext, loadMore]);
+  }, [hasNext, loadError, loadMore]);
 
   return (
     <>
       <Gallery25 items={items} />
-      <div className='mt-10 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground'>
-        {hasNext ? (
-          <span>{isLoading ? t('loading') : t('scrollMore')}</span>
+
+      <div className='mt-10 flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground'>
+        {loadError ? (
+          <>
+            <p className='text-rose-600 dark:text-rose-400'>{t('loadError')}</p>
+            <Button type='button' variant='outline' size='sm' onClick={loadMore}>
+              {t('retryLoad')}
+            </Button>
+          </>
+        ) : hasNext ? (
+          <div className='inline-flex items-center gap-2'>
+            {isLoading ? <Spinner size='sm' /> : null}
+            <span>{isLoading ? t('loadingMore') : t('scrollMore')}</span>
+          </div>
         ) : (
-          <span>{t('end')}</span>
+          <span>{t('allLoaded')}</span>
         )}
       </div>
+
       <div ref={sentinelRef} className='h-6' />
+      <BackToTop label={t('backToTop')} />
     </>
   );
 }
