@@ -81,6 +81,78 @@ function isTypingTarget(target: EventTarget | null) {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 }
 
+function InlineEditableText({
+  value,
+  onChange,
+  onSave,
+  editable,
+  className,
+  inputClassName,
+  placeholder,
+  type = 'text',
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  onSave: () => void;
+  editable: boolean;
+  className?: string;
+  inputClassName?: string;
+  placeholder?: string;
+  type?: string;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    onSave();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      inputRef.current?.blur();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <input
+        ref={inputRef}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        className={cn("bg-transparent border-b border-indigo-400 outline-none", inputClassName)}
+        placeholder={placeholder}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={cn(
+        className,
+        editable ? 'cursor-text hover:underline decoration-dashed decoration-zinc-400/70 underline-offset-[6px]' : ''
+      )}
+      onClick={() => {
+        if (editable) setIsEditing(true);
+      }}
+      title={editable ? "点击修改" : undefined}
+    >
+      {value || placeholder}
+    </span>
+  );
+}
+
 export function PhotoDetailModal({
   selectedItem,
   items = [],
@@ -170,7 +242,17 @@ function PhotoDetailContent({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
-  const [direction, setDirection] = useState(0);
+  const [[page, direction], setPage] = useState([item.id, 0]);
+
+  if (page !== item.id) {
+    const prevIndex = items.findIndex((i) => i.id === page);
+    const currentIndex = items.findIndex((i) => i.id === item.id);
+    let newDir = currentIndex > prevIndex ? 1 : -1;
+    if (prevIndex === items.length - 1 && currentIndex === 0) newDir = 1;
+    if (prevIndex === 0 && currentIndex === items.length - 1) newDir = -1;
+    setPage([item.id, newDir]);
+  }
+
   const previousItemIdRef = useRef(item.id);
   const modalRootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -211,23 +293,22 @@ function PhotoDetailContent({
     const previousId = previousItemIdRef.current;
     if (previousId === item.id) return;
 
-    const prevIndex = items.findIndex((i) => i.id === previousId);
-    const currentIndex = items.findIndex((i) => i.id === item.id);
-
-    if (prevIndex !== -1 && currentIndex !== -1) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDirection(currentIndex >= prevIndex ? 1 : -1);
-    }
-
     previousItemIdRef.current = item.id;
-    setIsPlaying(false);
-    setIsBuffering(false);
-    setIsLivePreviewing(false);
-    setIsEditing(false);
-    setConfirmOpen(false);
-    setPendingAction(null);
-    resetEditFields();
-  }, [item.id, items, resetEditFields]);
+    
+    // Defer state updates to avoid "cascading renders" warning
+    // This happens when combined with synchronous setPage in render
+    const timer = setTimeout(() => {
+      setIsPlaying(false);
+      setIsBuffering(false);
+      setIsLivePreviewing(false);
+      setIsEditing(false);
+      setConfirmOpen(false);
+      setPendingAction(null);
+      resetEditFields();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [item.id, resetEditFields]);
 
   const updateFilmstripEdgeState = useCallback(() => {
     const node = filmstripRef.current;
@@ -332,6 +413,46 @@ function PhotoDetailContent({
       });
     });
   }, [footAuthor, footDate, footTitle, hasChanges, isAdmin, isSaving, item, t]);
+
+  const handleInlineSave = async () => {
+    if (!isAdmin || isSaving) return;
+    
+    // Only check if changed compared to what is already on 'item'
+    const oTitle = item.title ?? '';
+    const oAuthor = item.author ?? '';
+    const oDate = toDateInputValue(item.dateShot);
+
+    if (footTitle === oTitle && footAuthor === oAuthor && footDate === oDate) {
+      return;
+    }
+
+    startSaving(async () => {
+      try {
+        const fd = new FormData();
+        fd.set('fileId', String(item.id));
+        fd.set('title', footTitle.trim());
+        fd.set('author', footAuthor.trim());
+        fd.set('dateShot', footDate.trim());
+
+        const res = await updatePhotoDetails(fd);
+
+        if (!res?.success) {
+          showError(res?.message || t('modal.saveFailed'));
+          // Revert optionally: resetEditFields()
+          return;
+        }
+
+        // Update local object
+        item.title = footTitle.trim();
+        item.author = footAuthor.trim() || null;
+        item.dateShot = footDate.trim() ? new Date(footDate).toISOString() : null;
+
+        showSuccess(res.message || t('modal.saved'));
+      } catch {
+        showError(t('modal.saveFailed'));
+      }
+    });
+  };
 
   const requestAction = useCallback(
     (action: PendingAction) => {
@@ -768,21 +889,46 @@ function PhotoDetailContent({
 
                             {/* Metadata Panel inside Mat */}
                             <div className="mt-8 md:mt-12 text-center w-full">
-                                <p className="w-full break-words text-center font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300">
-                                  {footTitle || item.title || t('modal.untitled')}
-                                </p>
+                                <div className="w-full text-center">
+                                  <InlineEditableText
+                                    value={footTitle}
+                                    onChange={setFootTitle}
+                                    onSave={handleInlineSave}
+                                    editable={isAdmin}
+                                    className="font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 break-words"
+                                    inputClassName="text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 w-full max-w-[300px]"
+                                    placeholder={t('modal.untitled')}
+                                  />
+                                </div>
 
-                              <div className="flex items-center justify-center gap-1 mt-1 opacity-60 hover:opacity-100 transition-opacity duration-300">
+                              <div className="flex items-center justify-center gap-2 mt-2 opacity-60 hover:opacity-100 transition-opacity duration-300">
                                 <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
                                   {t('modal.authorPrefix')}
                                 </span>
-                                  <span className="min-w-[72px] text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
-                                    {footAuthor || t('modal.authorFallback')}
-                                  </span>
+                                  <div className="min-w-[72px] text-center">
+                                    <InlineEditableText
+                                      value={footAuthor}
+                                      onChange={setFootAuthor}
+                                      onSave={handleInlineSave}
+                                      editable={isAdmin}
+                                      className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 block w-full"
+                                      inputClassName="text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 w-24"
+                                      placeholder={t('modal.authorFallback')}
+                                    />
+                                  </div>
                                 <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">·</span>
-                                  <span className="min-w-[92px] text-center font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
-                                    {footDate || t('modal.dateFallback')}
-                                  </span>
+                                  <div className="min-w-[92px] text-center">
+                                    <InlineEditableText
+                                      value={footDate}
+                                      onChange={setFootDate}
+                                      onSave={handleInlineSave}
+                                      editable={isAdmin}
+                                      type="date"
+                                      className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 block w-full"
+                                      inputClassName="text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 w-32"
+                                      placeholder={t('modal.dateFallback')}
+                                    />
+                                  </div>
                               </div>
                             </div>
                          </div>
