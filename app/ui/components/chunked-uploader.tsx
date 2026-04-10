@@ -120,7 +120,7 @@ export function ChunkedUploader({
 
         {/* Selected File Info */}
         {selectedFile && (
-          <div className="p-4 bg-gray-50 rounded-md">
+          <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 rounded-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
@@ -144,17 +144,17 @@ export function ChunkedUploader({
         {uploadProgress && uploadProgress.status !== 'idle' && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-700">{getStatusText()}</span>
-              <span className="text-gray-500">{uploadProgress.progress.toFixed(1)}%</span>
+              <span className="text-zinc-700 dark:text-zinc-300">{getStatusText()}</span>
+              <span className="text-zinc-500 dark:text-zinc-400">{uploadProgress.progress.toFixed(1)}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2.5">
               <div
                 className={`h-2.5 rounded-full transition-all duration-300 ${
                   uploadProgress.status === 'error'
                     ? 'bg-red-600'
                     : uploadProgress.status === 'completed'
                       ? 'bg-green-600'
-                      : 'bg-blue-600'
+                      : 'bg-indigo-600'
                 }`}
                 style={{ width: `${uploadProgress.progress}%` }}
               />
@@ -167,8 +167,9 @@ export function ChunkedUploader({
           <button
             onClick={handleUpload}
             disabled={isUploading}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md
-              hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500
+            className="w-full py-2 px-4 bg-indigo-600 text-white rounded-md
+              hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500
+              dark:bg-indigo-600 dark:hover:bg-indigo-700
               disabled:opacity-50 disabled:cursor-not-allowed
               transition-colors duration-200"
           >
@@ -180,8 +181,9 @@ export function ChunkedUploader({
         {isUploading && (
           <button
             onClick={handleCancel}
-            className="w-full py-2 px-4 bg-gray-600 text-white rounded-md
-              hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500
+            className="w-full py-2 px-4 bg-zinc-600 text-white rounded-md
+              hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500
+              dark:bg-zinc-700 dark:hover:bg-zinc-600
               transition-colors duration-200"
           >
             Cancel Upload
