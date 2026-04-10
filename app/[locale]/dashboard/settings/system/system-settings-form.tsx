@@ -249,13 +249,13 @@ export function SystemSettingsForm({ settings }: SystemSettingsFormProps) {
                             <Input 
                                 value={contact.label}
                                 onChange={(e) => updateContact(contact.id, 'label', e.target.value)}
-                                className="h-9 border-transparent bg-transparent px-2 font-medium focus-visible:border-zinc-200 focus-visible:bg-white dark:focus-visible:border-zinc-800 dark:focus-visible:bg-black"
+                                className="h-9 border-transparent bg-transparent px-2 font-medium focus-visible:border-zinc-200 focus-visible:bg-white dark:focus-visible:border-zinc-800 dark:focus-visible:bg-zinc-950"
                                 placeholder="Label"
                             />
                             <Input 
                                 value={contact.value}
                                 onChange={(e) => updateContact(contact.id, 'value', e.target.value)}
-                                className="h-9 border-transparent bg-transparent px-2 text-zinc-500 focus-visible:border-zinc-200 focus-visible:bg-white focus-visible:text-zinc-900 dark:focus-visible:border-zinc-800 dark:focus-visible:bg-black dark:focus-visible:text-zinc-100"
+                                className="h-9 border-transparent bg-transparent px-2 text-zinc-500 focus-visible:border-zinc-200 focus-visible:bg-white focus-visible:text-zinc-900 dark:focus-visible:border-zinc-800 dark:focus-visible:bg-zinc-950 dark:focus-visible:text-zinc-100"
                                 placeholder="Value"
                             />
                         </div>
