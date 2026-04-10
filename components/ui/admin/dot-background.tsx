@@ -12,7 +12,7 @@ export function DotBackground({ className }: DotBackgroundProps) {
       className={cn('pointer-events-none absolute inset-0 overflow-hidden', className)}
       aria-hidden
     >
-      <div className="absolute inset-0 bg-white dark:bg-black" />
+      <div className="absolute inset-0 bg-white dark:bg-zinc-950" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.06)_1px,transparent_0)] [background-size:22px_22px] dark:bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.12)_1px,transparent_0)]" />
       <div className="absolute -left-24 top-[-10rem] h-[22rem] w-[22rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.16),transparent_70%)] blur-3xl opacity-80 dark:bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.28),transparent_70%)]" />
       <div className="absolute right-[-6rem] top-24 h-[24rem] w-[24rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(14,116,144,0.14),transparent_70%)] blur-3xl opacity-70 dark:bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.22),transparent_70%)]" />
