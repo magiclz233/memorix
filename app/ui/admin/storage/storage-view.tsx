@@ -177,14 +177,14 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
     
     const eventSource = new EventSource(`/api/storage/scan?storageId=${storageId}&mode=${mode}`);
 
-    eventSource.addEventListener('log', (e) => {
+    eventSource.addEventListener('log', (e: any) => {
         try {
             const data = JSON.parse(e.data);
             addLog(storageId, data.level, data.message);
         } catch (err) {}
     });
 
-    eventSource.addEventListener('progress', (e) => {
+    eventSource.addEventListener('progress', (e: any) => {
         try {
             const data = JSON.parse(e.data);
             const progress = data.total > 0 ? Math.round((data.processed / data.total) * 100) : 0;
@@ -196,7 +196,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
         } catch (err) {}
     });
 
-    eventSource.addEventListener('done', (e) => {
+    eventSource.addEventListener('done', (e: any) => {
         try {
             const data = JSON.parse(e.data);
             updateScanState(storageId, { active: false, done: true, progress: 100 });
@@ -208,7 +208,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
         }
     });
 
-    eventSource.addEventListener('error', (e) => {
+    eventSource.addEventListener('error', (e: any) => {
         try {
             const data = JSON.parse(e.data);
             updateScanState(storageId, { active: false, error: data.message });
