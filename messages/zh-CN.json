@@ -807,7 +807,13 @@
         "cancel": "取消",
         "confirm": "添加所选",
         "confirming": "添加中...",
-        "loadMore": "加载更多"
+        "loadMore": "加载更多",
+        "searchPlaceholder": "搜索媒体...",
+        "filterAll": "全部类型",
+        "filterPhoto": "图片",
+        "filterVideo": "视频",
+        "selectAll": "全选当前",
+        "clearSelection": "清空选择"
       },
       "form": {
         "create": "创建",
@@ -848,6 +854,13 @@
       "userNotFound": "未找到用户信息。",
       "add": "添加存储",
       "view": {
+        "modes": {
+          "grid": "网格视图",
+          "list": "列表视图"
+        },
+        "labels": {
+          "path": "路径"
+        },
         "headers": {
           "name": "名称/别名",
           "type": "类型",
@@ -936,6 +949,7 @@
         "dependency": {
           "title": "存在依赖项",
           "description": "以下集合正在使用该数据源中的图片。继续操作将导致这些集合中的相关图片无法显示（停用）或被永久删除（删除）。",
+          "impactWarning": "此操作无法撤销，数据将永久移除",
           "cancel": "取消",
           "confirm": "确认继续",
           "processing": "处理中..."
@@ -1109,6 +1123,7 @@
       },
       "taskDetail": {
         "title": "任务详情",
+        "description": "查看并管理此上传任务中的各个文件。",
         "info": "共 {files} 个文件 | {size} | 目标：{storage}",
         "searchPlaceholder": "搜索文件名...",
         "filterAll": "全部",
@@ -1152,8 +1167,10 @@
           "waiting": "等待中",
           "uploading": "上传中",
           "done": "完成",
-          "error": "失败"
-        }
+          "error": "失败",
+          "items": "{count} 个任务"
+        },
+        "fileHead": "个文件"
       },
       "drag": {
         "title": "拖拽上传",
