@@ -28,7 +28,8 @@ import {
   X,
   Play,
   Loader2,
-  Sparkles
+  Sparkles,
+  Keyboard,
 } from 'lucide-react';
 import { Pencil, Save, Undo2 } from 'lucide-react';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
@@ -41,6 +42,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Histogram } from './histogram';
 import type { GalleryItem } from '@/app/lib/gallery';
@@ -326,7 +333,17 @@ function PhotoDetailContent({
     const node = filmstripRef.current;
     if (!node) return;
 
-    const onScroll = () => updateFilmstripEdgeState();
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          updateFilmstripEdgeState();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    
     node.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
 
@@ -730,6 +747,40 @@ function PhotoDetailContent({
             </Button>
           </div>
           <div className="pointer-events-auto flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80"
+                    aria-label={t('modal.keyboardShortcuts')}
+                  >
+                    <Keyboard className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-zinc-500 dark:text-zinc-400">←/→</span>
+                      <span>{t('modal.shortcuts.prevNext')}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-zinc-500 dark:text-zinc-400">ESC</span>
+                      <span>{t('modal.shortcuts.close')}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-zinc-500 dark:text-zinc-400">Space</span>
+                      <span>{t('modal.shortcuts.playPause')}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-zinc-500 dark:text-zinc-400">Home/End</span>
+                      <span>{t('modal.shortcuts.firstLast')}</span>
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             <Button
               variant="ghost"
@@ -823,6 +874,7 @@ function PhotoDetailContent({
                                   blurHash={item.blurHash}
                                   width={safeWidth}
                                   height={safeHeight}
+                                  quality={90}
                                   className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block"
                                   sizes="100vw"
                                   priority
@@ -1128,6 +1180,7 @@ function PhotoDetailContent({
                       alt={thumb.title}
                       width={56}
                       height={56}
+                      quality={70}
                       unoptimized={thumb.src.startsWith('/api/')}
                       className="w-full h-full object-cover"
                     />
@@ -1162,8 +1215,8 @@ function PhotoDetailContent({
 
           {(item.gpsLatitude || item.locationName) && (
             <section>
-              <div className="relative h-40 w-full bg-gray-50 dark:bg-zinc-900/60 rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800 mb-2">
-                 <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-zinc-900/70 text-gray-400">
+              <div className="relative h-40 w-full bg-zinc-50 dark:bg-zinc-900/60 rounded-xl overflow-hidden border border-zinc-100 dark:border-zinc-800 mb-2">
+                 <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-900/70 text-zinc-400">
                     <MapPin className="w-10 h-10 opacity-20" />
                  </div>
                  {item.gpsLatitude && item.gpsLongitude && (
@@ -1185,10 +1238,10 @@ function PhotoDetailContent({
           )}
 
           <section>
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-3">{t('details.camera')}</h3>
-            <div className="grid grid-cols-2 gap-px bg-gray-100 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-400 mb-3">{t('details.camera')}</h3>
+            <div className="grid grid-cols-2 gap-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden">
               <div className="bg-white dark:bg-zinc-900/70 p-4 flex flex-col">
-                <div className="flex items-center space-x-2 text-gray-400 mb-1">
+                <div className="flex items-center space-x-2 text-zinc-400 mb-1">
                   <Ruler className="w-4 h-4" />
                   <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.focalLength')}</span>
                 </div>
@@ -1227,7 +1280,7 @@ function PhotoDetailContent({
                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400/80"></div>
                </div>
              </div>
-             <div className="h-24 w-full bg-gray-50/50 dark:bg-zinc-900/50 rounded-lg overflow-hidden border border-gray-100 dark:border-zinc-800 p-2">
+             <div className="h-24 w-full bg-zinc-50/50 dark:bg-zinc-900/50 rounded-lg overflow-hidden border border-zinc-100 dark:border-zinc-800 p-2">
                 <Histogram src={item.src} className="w-full h-full" />
              </div>
           </section>

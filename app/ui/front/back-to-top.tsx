@@ -13,8 +13,16 @@ export function BackToTop({ label }: BackToTopProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    let ticking = false;
+    
     const onScroll = () => {
-      setVisible(window.scrollY > window.innerHeight);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setVisible(window.scrollY > window.innerHeight);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
     onScroll();

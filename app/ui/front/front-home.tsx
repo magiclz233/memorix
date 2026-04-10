@@ -226,7 +226,7 @@ export function FrontHome({ heroPhotos, featuredCollections }: FrontHomeProps) {
     <div className='space-y-20 lg:space-y-24'>
       <section
         ref={heroRef}
-        className='front-fade-up group relative -mt-24 min-h-[calc(100svh+6rem)] w-screen -ml-[calc(50vw-50%)] overflow-hidden bg-black'
+        className='front-fade-up group relative -mt-24 min-h-[calc(100svh+6rem)] w-screen -ml-[calc(50vw-50%)] overflow-hidden bg-zinc-950'
       >
         {heroImages.map((src, index) => (
           <div

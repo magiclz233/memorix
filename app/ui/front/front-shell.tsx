@@ -16,7 +16,7 @@ type FrontShellProps = {
 
 export function FrontShell({ children }: FrontShellProps) {
   return (
-    <div className='relative min-h-screen overflow-hidden bg-zinc-50 text-zinc-900 dark:bg-black dark:text-white'>
+    <div className='relative min-h-screen overflow-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-white'>
       <FrontBackground />
       <div className='relative z-10 flex min-h-screen flex-col'>
         <FloatingNav />

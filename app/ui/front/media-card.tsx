@@ -55,6 +55,7 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
           alt={titleText}
           fill
           sizes='(max-width: 768px) 100vw, 33vw'
+          quality={80}
           className='object-cover'
         />
       ) : (
