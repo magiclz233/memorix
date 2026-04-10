@@ -11,6 +11,7 @@ import {
   type TranslationValues,
 } from 'next-intl';
 import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -23,7 +24,19 @@ import type { GalleryItem as BaseGalleryItem } from '@/app/lib/gallery';
 import { resolveMessage } from '@/app/lib/i18n';
 import { cn } from '@/lib/utils';
 import { GalleryHeader } from '@/app/ui/front/gallery-header';
-import { PhotoDetailModal } from '@/app/ui/front/photo-detail-modal';
+
+// Dynamic import for PhotoDetailModal to reduce initial bundle size
+const PhotoDetailModal = dynamic(
+  () => import('@/app/ui/front/photo-detail-modal').then((mod) => ({ default: mod.PhotoDetailModal })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-300 border-t-indigo-500" />
+      </div>
+    )
+  }
+);
 
 type GalleryId = string | number;
 
@@ -458,6 +471,8 @@ const Gallery25 = ({
                           <BlurImage
                             fill
                             sizes={gridSizes}
+                            quality={85}
+                            priority={itemIndex < 4 && columnIndex < 2}
                             className='object-cover transition duration-300 group-hover:scale-105'
                             src={item.src}
                             alt={itemTitle}
