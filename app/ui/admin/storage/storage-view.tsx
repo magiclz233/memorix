@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
+import dynamic from 'next/dynamic';
 import {
   deleteUserStorage,
   setUserStorageDisabled,
@@ -11,7 +12,6 @@ import {
   clearStorageCache
 } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
-import { StorageModal } from './storage-modal';
 import { DependencyAlert } from './dependency-alert';
 import { StatusIndicator } from '@/app/ui/dashboard/status-indicator';
 import { Progress } from '@/components/ui/progress';
@@ -65,6 +65,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { showError, showSuccess, showWarning } from '@/app/lib/toast-utils';
+
+// Dynamic import for StorageModal to reduce initial bundle size
+const StorageModal = dynamic(
+  () => import('./storage-modal').then((mod) => ({ default: mod.StorageModal })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-indigo-500" />
+      </div>
+    )
+  }
+);
 
 type StorageItem = {
   id: number;
@@ -670,7 +683,10 @@ function StorageRow({ storage, onEdit, onScan, onDelete, onToggleDisable, onSetP
                 </span>
                 {isScanning && (
                     <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-indigo-100 dark:bg-indigo-900/30">
-                        <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${scanState.progress}%` }} />
+                        <div 
+                          className="h-full w-full origin-left bg-indigo-500 transition-transform duration-500 will-change-transform" 
+                          style={{ transform: `scaleX(${scanState.progress / 100})` }} 
+                        />
                     </div>
                 )}
             </div>
