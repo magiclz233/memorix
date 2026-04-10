@@ -43,6 +43,10 @@ export class FileUploadQueue {
   private activeCount = 0;
   private controllers = new Map<string, AbortController>();
   private waiters: Array<(result: QueueResult) => void> = [];
+  
+  // Throttle progress updates to avoid excessive re-renders
+  private lastProgressUpdate = new Map<string, number>();
+  private readonly PROGRESS_THROTTLE_MS = 100;
 
   constructor(options: FileUploadQueueOptions) {
     this.storageId = options.storageId;
@@ -551,6 +555,27 @@ export class FileUploadQueue {
   }
 
   private patch(fileId: string, patch: Partial<UploadFile>) {
+    // Throttle progress updates to avoid excessive re-renders
+    // Only throttle if this is a progress-only update
+    const isProgressUpdate = 
+      'progress' in patch && 
+      Object.keys(patch).length <= 3 && // progress, uploadedSize, speed
+      !('status' in patch) && 
+      !('error' in patch) &&
+      !('phase' in patch);
+    
+    if (isProgressUpdate) {
+      const now = Date.now();
+      const lastUpdate = this.lastProgressUpdate.get(fileId) || 0;
+      
+      // Skip update if within throttle window, unless it's 100% complete
+      if (now - lastUpdate < this.PROGRESS_THROTTLE_MS && patch.progress !== 100) {
+        return;
+      }
+      
+      this.lastProgressUpdate.set(fileId, now);
+    }
+    
     this.onFilePatch?.(fileId, patch);
   }
 
