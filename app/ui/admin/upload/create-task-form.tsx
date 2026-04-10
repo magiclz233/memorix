@@ -94,80 +94,99 @@ export function CreateTaskForm({ storages }: CreateTaskFormProps) {
   };
 
   return (
-    <div className="space-y-6 rounded-xl border border-zinc-200 bg-white/90 p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-            {t('taskName')}
+    <div className="grid gap-6 lg:grid-cols-3 xl:gap-8">
+      <div className="space-y-6 lg:col-span-2">
+        <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                {t('taskName')}
+              </label>
+              <Input
+                value={taskName}
+                onChange={(event) => setTaskName(event.target.value)}
+                placeholder={t('taskNamePlaceholder')}
+                className="border-zinc-200 bg-zinc-50/50 focus-visible:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-900/50"
+                maxLength={100}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                {t('targetStorage')}
+              </label>
+              <Select value={storageId} onValueChange={setStorageId}>
+                <SelectTrigger className="border-zinc-200 bg-zinc-50/50 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-900/50">
+                  <SelectValue placeholder={t('targetStoragePlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {storages.map((storage) => (
+                    <SelectItem key={storage.id} value={String(storage.id)}>
+                      {storage.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                {t('fileCategory')}
+              </label>
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value as UploadTaskCategory)}
+              >
+                <SelectTrigger className="border-zinc-200 bg-zinc-50/50 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-900/50 md:max-w-xs">
+                  <SelectValue placeholder={t('fileCategoryPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="photo">{t('categoryPhoto')}</SelectItem>
+                  <SelectItem value="video">{t('categoryVideo')}</SelectItem>
+                  <SelectItem value="document">{t('categoryDocument')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+          <label className="mb-3 block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            任务文件
           </label>
-          <Input
-            value={taskName}
-            onChange={(event) => setTaskName(event.target.value)}
-            placeholder={t('taskNamePlaceholder')}
-            className="border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-zinc-900/70"
-            maxLength={100}
+          <DropZone
+            files={files}
+            onChange={setFiles}
+            disabled={submitting}
+            accept={categoryAccept(category)}
           />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-            {t('targetStorage')}
-          </label>
-          <Select value={storageId} onValueChange={setStorageId}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('targetStoragePlaceholder')} />
-            </SelectTrigger>
-            <SelectContent>
-              {storages.map((storage) => (
-                <SelectItem key={storage.id} value={String(storage.id)}>
-                  {storage.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2 md:col-span-2">
-          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-            {t('fileCategory')}
-          </label>
-          <Select
-            value={category}
-            onValueChange={(value) => setCategory(value as UploadTaskCategory)}
-          >
-            <SelectTrigger className="md:max-w-[320px]">
-              <SelectValue placeholder={t('fileCategoryPlaceholder')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="photo">{t('categoryPhoto')}</SelectItem>
-              <SelectItem value="video">{t('categoryVideo')}</SelectItem>
-              <SelectItem value="document">{t('categoryDocument')}</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
-      <DropZone
-        files={files}
-        onChange={setFiles}
-        disabled={submitting}
-        accept={categoryAccept(category)}
-      />
+      <div className="space-y-6 lg:col-span-1">
+        <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+          <AdvancedConfig value={config} onChange={setConfig} />
+        </div>
 
-      <AdvancedConfig value={config} onChange={setConfig} />
-
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => router.push('/dashboard/upload')}
-          disabled={submitting}
-        >
-          {t('cancel')}
-        </Button>
-        <Button type="button" onClick={submit} disabled={submitting}>
-          {t('startUpload')}
-        </Button>
+        <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/30">
+          <Button
+            type="button"
+            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 font-bold tracking-wide"
+            onClick={submit}
+            disabled={submitting}
+          >
+            {t('startUpload')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => router.push('/dashboard/upload')}
+            disabled={submitting}
+          >
+            {t('cancel')}
+          </Button>
+        </div>
       </div>
     </div>
   );
