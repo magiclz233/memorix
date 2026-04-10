@@ -7,6 +7,7 @@ import type { UploadTask } from '@/app/lib/definitions';
 import {
   formatBytes,
   formatDuration,
+  formatSpeed,
 } from '@/app/lib/upload-task-utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
