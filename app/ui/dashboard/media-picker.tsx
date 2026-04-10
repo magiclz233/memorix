@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -26,6 +28,12 @@ import { cn } from '@/lib/utils';
 import { useDebounce } from '@/app/ui/hooks/use-debounce';
 import { useIsMobile } from '@/app/ui/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type MediaItem = {
   id: number;
