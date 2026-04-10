@@ -36,10 +36,45 @@ let hydratePromise: Promise<void> | null = null;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 const listeners = new Set<Listener>();
 
-function recomputeTask(task: UploadTask): UploadTask {
+function recomputeTask(task: UploadTask, filePatch?: { old: UploadFile; next: UploadFile }): UploadTask {
+  if (!filePatch) {
+    return {
+      ...task,
+      metadata: calculateTaskMetadata(task.files),
+    };
+  }
+
+  const { old, next } = filePatch;
+  const metadata = { ...task.metadata };
+
+  // 1. 统计完成和失败状态变更
+  if (old.status !== next.status) {
+    if (old.status === 'done') metadata.uploadedFiles--;
+    if (next.status === 'done') metadata.uploadedFiles++;
+    if (old.status === 'error') metadata.failedFiles--;
+    if (next.status === 'error') metadata.failedFiles++;
+  }
+
+  // 2. 统计上传大小变更
+  const oldUploadedSize = old.uploadedSize || 0;
+  const nextUploadedSize = next.uploadedSize || 0;
+  metadata.uploadedSize = metadata.uploadedSize - oldUploadedSize + nextUploadedSize;
+
+  // 3. 更新进度百分比
+  if (metadata.totalSize > 0) {
+    metadata.progress = Math.min(100, Math.round((metadata.uploadedSize / metadata.totalSize) * 100));
+  }
+
+  // 4. 更新总体速度 (仅累加正在上传的文件速度)
+  metadata.speed = metadata.speed - (old.speed || 0) + (next.speed || 0);
+
+  // 5. 更新剩余时间
+  const remainingBytes = Math.max(metadata.totalSize - metadata.uploadedSize, 0);
+  metadata.remainingTime = metadata.speed > 0 ? Math.ceil(remainingBytes / metadata.speed) : null;
+
   return {
     ...task,
-    metadata: calculateTaskMetadata(task.files),
+    metadata,
   };
 }
 
@@ -85,12 +120,18 @@ function patchFile(
       return task;
     }
 
-    return recomputeTask({
-      ...task,
-      files: task.files.map((file) =>
-        file.id === fileId ? { ...file, ...patch } : file,
-      ),
+    let patchedFilePair: { old: UploadFile; next: UploadFile } | undefined;
+
+    const nextFiles = task.files.map((file) => {
+      if (file.id === fileId) {
+        const nextFile = { ...file, ...patch };
+        patchedFilePair = { old: file, next: nextFile };
+        return nextFile;
+      }
+      return file;
     });
+
+    return recomputeTask({ ...task, files: nextFiles }, patchedFilePair);
   });
 
   setTaskStore(nextTasks);
