@@ -97,7 +97,7 @@ function schedulePersist() {
 }
 
 function setTaskStore(nextTasks: UploadTask[]) {
-  taskStore = nextTasks.map(recomputeTask);
+  taskStore = nextTasks.map((task) => recomputeTask(task));
   manager.syncTasks(taskStore);
   schedulePersist();
   emit();
