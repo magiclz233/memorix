@@ -11,6 +11,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 type AdvancedConfigProps = {
   value: TaskConfig;
@@ -21,10 +25,10 @@ export function AdvancedConfig({ value, onChange }: AdvancedConfigProps) {
   const t = useTranslations('dashboard.upload');
   const [open, setOpen] = useState(false);
 
-  const updateDuplicateHandling = (next: DuplicateHandling) => {
+  const updateDuplicateHandling = (next: string) => {
     onChange({
       ...value,
-      duplicateHandling: next,
+      duplicateHandling: next as DuplicateHandling,
     });
   };
 
@@ -41,131 +45,93 @@ export function AdvancedConfig({ value, onChange }: AdvancedConfigProps) {
         </Button>
       </CollapsibleTrigger>
 
-      <CollapsibleContent className="space-y-5 pt-4 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-        <section className="space-y-2">
-          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-            {t('concurrency')}
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              type="range"
-              min={1}
-              max={10}
-              value={value.concurrency}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  concurrency: Number(event.target.value),
-                })
-              }
-              className="h-2 w-full accent-indigo-500"
-            />
-            <span className="w-8 text-right text-sm font-mono text-zinc-600 dark:text-zinc-300">
+      <CollapsibleContent className="space-y-6 pt-5 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              {t('concurrency')}
+            </Label>
+            <span className="text-sm font-mono font-medium text-indigo-600 dark:text-indigo-400">
               {value.concurrency}
             </span>
           </div>
+          <Slider
+            min={1}
+            max={10}
+            step={1}
+            value={[value.concurrency]}
+            onValueChange={([val]) =>
+              onChange({
+                ...value,
+                concurrency: val,
+              })
+            }
+            className="w-full"
+          />
         </section>
 
-        <section className="space-y-2">
-          <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+        <section className="space-y-3">
+          <Label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             {t('duplicateHandling')}
-          </p>
+          </Label>
 
-          <div className="grid gap-2 sm:grid-cols-3">
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-800">
-              <input
-                type="radio"
-                name="duplicateHandling"
-                checked={value.duplicateHandling === 'skip'}
-                onChange={() => updateDuplicateHandling('skip')}
-                className="accent-indigo-500"
-              />
-              {t('duplicateSkip')}
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-800">
-              <input
-                type="radio"
-                name="duplicateHandling"
-                checked={value.duplicateHandling === 'rename'}
-                onChange={() => updateDuplicateHandling('rename')}
-                className="accent-indigo-500"
-              />
-              {t('duplicateRename')}
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-800">
-              <input
-                type="radio"
-                name="duplicateHandling"
-                checked={value.duplicateHandling === 'overwrite'}
-                onChange={() => updateDuplicateHandling('overwrite')}
-                className="accent-indigo-500"
-              />
-              {t('duplicateOverwrite')}
-            </label>
-          </div>
+          <RadioGroup 
+            value={value.duplicateHandling} 
+            onValueChange={updateDuplicateHandling}
+            className="grid gap-2 sm:grid-cols-3"
+          >
+            {[
+              { id: 'skip', label: t('duplicateSkip') },
+              { id: 'rename', label: t('duplicateRename') },
+              { id: 'overwrite', label: t('duplicateOverwrite') },
+            ].map((option) => (
+              <div key={option.id}>
+                <RadioGroupItem
+                  value={option.id}
+                  id={option.id}
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor={option.id}
+                  className="flex cursor-pointer items-center justify-center rounded-lg border-2 border-zinc-200 bg-white p-3 text-sm font-medium hover:bg-zinc-50 peer-data-[state=checked]:border-indigo-600 peer-data-[state=checked]:text-indigo-600 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:peer-data-[state=checked]:border-indigo-500 dark:peer-data-[state=checked]:text-indigo-400"
+                >
+                  {option.label}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
         </section>
 
-        <section className="space-y-2">
-          <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+        <section className="space-y-4 pt-2">
+          <Label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             {t('postProcessing')}
-          </p>
+          </Label>
 
-          <div className="grid gap-2 sm:grid-cols-3">
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-800">
-              <input
-                type="checkbox"
-                checked={value.postProcessing.autoTag}
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    postProcessing: {
-                      ...value.postProcessing,
-                      autoTag: event.target.checked,
-                    },
-                  })
-                }
-                className="accent-indigo-500"
-              />
-              {t('autoTag')}
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-800">
-              <input
-                type="checkbox"
-                checked={value.postProcessing.videoTranscode}
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    postProcessing: {
-                      ...value.postProcessing,
-                      videoTranscode: event.target.checked,
-                    },
-                  })
-                }
-                className="accent-indigo-500"
-              />
-              {t('videoTranscode')}
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-800">
-              <input
-                type="checkbox"
-                checked={value.postProcessing.imageCompress}
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    postProcessing: {
-                      ...value.postProcessing,
-                      imageCompress: event.target.checked,
-                    },
-                  })
-                }
-                className="accent-indigo-500"
-              />
-              {t('imageCompress')}
-            </label>
+          <div className="space-y-3">
+            {[
+              { id: 'autoTag', label: t('autoTag'), checked: value.postProcessing.autoTag },
+              { id: 'videoTranscode', label: t('videoTranscode'), checked: value.postProcessing.videoTranscode },
+              { id: 'imageCompress', label: t('imageCompress'), checked: value.postProcessing.imageCompress },
+            ].map((option) => (
+              <div key={option.id} className="flex items-center justify-between rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+                <Label htmlFor={option.id} className="cursor-pointer text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {option.label}
+                </Label>
+                <Switch
+                  id={option.id}
+                  checked={option.checked}
+                  onCheckedChange={(checked) =>
+                    onChange({
+                      ...value,
+                      postProcessing: {
+                        ...value.postProcessing,
+                        [option.id]: checked,
+                      },
+                    })
+                  }
+                />
+              </div>
+            ))}
           </div>
         </section>
       </CollapsibleContent>
