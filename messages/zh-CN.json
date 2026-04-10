@@ -420,7 +420,14 @@
         "authorFallback": "Lumina",
         "dateFallback": "--",
         "untitled": "未命名",
-        "play": "播放"
+        "play": "播放",
+        "keyboardShortcuts": "快捷键",
+        "shortcuts": {
+          "prevNext": "上一张/下一张",
+          "close": "关闭",
+          "playPause": "播放/暂停",
+          "firstLast": "第一张/最后一张"
+        }
       },
       "playback": {
         "failed": "播放失败",

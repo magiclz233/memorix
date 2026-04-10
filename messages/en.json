@@ -420,7 +420,14 @@
         "authorFallback": "Lumina",
         "dateFallback": "--",
         "untitled": "Untitled",
-        "play": "Play"
+        "play": "Play",
+        "keyboardShortcuts": "Keyboard Shortcuts",
+        "shortcuts": {
+          "prevNext": "Previous/Next",
+          "close": "Close",
+          "playPause": "Play/Pause",
+          "firstLast": "First/Last"
+        }
       },
       "playback": {
         "failed": "Playback failed",
