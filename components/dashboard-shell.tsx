@@ -19,20 +19,28 @@ import { usePathname } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
+type DashboardShellUser = {
+  name: string;
+  email: string;
+  avatar?: string | null;
+};
+
 export default function DashboardShell({
   children,
+  user,
 }: {
   children: React.ReactNode;
+  user?: DashboardShellUser | null;
 }) {
   const pathname = usePathname();
   const t = useTranslations('dashboard.shell');
   const tSidebar = useTranslations('dashboard.sidebar');
-  
+
   // Generate breadcrumbs from pathname
   // Example: /dashboard/media -> ['dashboard', 'media']
   // Filter out locale if present (usePathname usually handles this in next-intl)
   const segments = pathname.split('/').filter(Boolean);
-  
+
   // Helper to capitalize
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -59,9 +67,9 @@ export default function DashboardShell({
 
   return (
     <SidebarProvider>
-      <AdminSidebar />
+      <AdminSidebar user={user} />
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur transition-[width,height] ease-linear supports-[backdrop-filter]:bg-background/60 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
@@ -69,7 +77,7 @@ export default function DashboardShell({
               {segments.map((segment, index) => {
                 const isLast = index === segments.length - 1;
                 const href = `/${segments.slice(0, index + 1).join('/')}`;
-                
+
                 const title = getBreadcrumbTitle(segment);
 
                 return (
@@ -78,9 +86,7 @@ export default function DashboardShell({
                       {isLast ? (
                         <BreadcrumbPage>{title}</BreadcrumbPage>
                       ) : (
-                        <BreadcrumbLink href={href}>
-                          {title}
-                        </BreadcrumbLink>
+                        <BreadcrumbLink href={href}>{title}</BreadcrumbLink>
                       )}
                     </BreadcrumbItem>
                     {!isLast && <BreadcrumbSeparator className="hidden md:block" />}
@@ -91,8 +97,8 @@ export default function DashboardShell({
           </Breadcrumb>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min p-4">
-             {children}
+          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 p-4 md:min-h-min">
+            {children}
           </div>
         </div>
       </SidebarInset>
