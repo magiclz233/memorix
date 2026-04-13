@@ -1003,7 +1003,7 @@ export async function fetchHeroPhotoIdsByUser(userId: number) {
       .limit(1);
     return normalizeIdList(record[0]?.value);
   } catch (error) {
-    // 鍏煎鏈墽琛岃縼绉绘垨搴撴潈闄愪笉瓒冲鑷磋鍙栧け璐ョ殑鎯呭喌
+    // 兼容未执行迁移或数据库权限不足导致读取失败的情况
     if (shouldIgnoreHeroSettingsError(error)) {
       warnHeroSettingsFallback(error);
       return [];
@@ -1025,7 +1025,7 @@ const fetchHeroPhotoIdsForHome = async (userId?: number) => {
       .limit(1);
     return normalizeIdList(record[0]?.value);
   } catch (error) {
-    // 鍏煎鏈墽琛岃縼绉绘垨搴撴潈闄愪笉瓒冲鑷磋鍙栧け璐ョ殑鎯呭喌
+    // 兼容未执行迁移或数据库权限不足导致读取失败的情况
     if (shouldIgnoreHeroSettingsError(error)) {
       warnHeroSettingsFallback(error);
       return [];
@@ -1178,7 +1178,7 @@ export async function fetchPublishedPhotosForHome(limit = 12) {
 
 /**
  * 带 Redis 缓存的 Hero 照片查询（5 分钟）
- * Redis 涓嶅彲鐢ㄦ椂鑷姩闄嶇骇鍒?Next.js unstable_cache
+ * Redis 不可用时自动降级到 Next.js unstable_cache
  */
 export async function fetchHeroPhotosForHomeCached(options?: { userId?: number; limit?: number }) {
   return getCached(
@@ -1190,7 +1190,7 @@ export async function fetchHeroPhotosForHomeCached(options?: { userId?: number; 
 
 /**
  * 带 Redis 缓存的精选集合查询（5 分钟）
- * Redis 涓嶅彲鐢ㄦ椂鑷姩闄嶇骇鍒?Next.js unstable_cache
+ * Redis 不可用时自动降级到 Next.js unstable_cache
  */
 export async function fetchCollectionsCached(options?: FetchCollectionsOptions) {
   const cacheKey = `collections:${options?.status || 'published'}:${options?.limit || 'all'}`;
@@ -1200,3 +1200,4 @@ export async function fetchCollectionsCached(options?: FetchCollectionsOptions) 
     300 // 5 分钟
   );
 }
+
