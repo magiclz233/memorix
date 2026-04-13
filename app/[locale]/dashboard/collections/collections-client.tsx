@@ -33,6 +33,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -81,6 +82,7 @@ export function CollectionsClient({
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'draft' | 'published'
   >('all');
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const router = useRouter();
 
   const stats = useMemo(() => {
@@ -132,11 +134,14 @@ export function CollectionsClient({
   };
 
   const handleDelete = (id: number) => {
-    if (!window.confirm(t('deleteConfirm'))) return;
+    setPendingDeleteId(id);
+  };
 
-
+  const confirmDelete = () => {
+    if (pendingDeleteId === null) return;
     startTransition(async () => {
-      await deleteCollection(id);
+      await deleteCollection(pendingDeleteId);
+      setPendingDeleteId(null);
       router.refresh();
     });
   };
@@ -295,6 +300,35 @@ export function CollectionsClient({
             onSuccess={handleSuccess}
             onCancel={() => setIsDialogOpen(false)}
           />
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteId(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('actions.delete')}</DialogTitle>
+            <DialogDescription>{t('deleteConfirm')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPendingDeleteId(null)}
+              disabled={pendingDeleteId === null}
+            >
+              {t('form.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={pendingDeleteId === null}
+            >
+              {t('actions.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
