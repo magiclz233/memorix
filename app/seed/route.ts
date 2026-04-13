@@ -16,6 +16,27 @@ const DEFAULT_ADMIN = {
 const CREDENTIAL_PROVIDER_ID = 'credential';
 
 export async function GET(request: Request) {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 });
+  }
+
+  const seedToken = process.env.SEED_TOKEN?.trim();
+  if (!seedToken) {
+    return NextResponse.json(
+      { success: false, message: 'SEED_TOKEN is not configured' },
+      { status: 503 },
+    );
+  }
+
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token');
+  if (token !== seedToken) {
+    return NextResponse.json(
+      { success: false, message: 'Invalid seed token' },
+      { status: 403 },
+    );
+  }
+
   const existing = await db.query.users.findFirst({
     where: eq(users.email, DEFAULT_ADMIN.email),
   });
