@@ -26,5 +26,11 @@ export default async function Layout({
     return null;
   }
 
-  return <DashboardShell>{children}</DashboardShell>;
+  const user = {
+    name: session.user.name?.trim() || session.user.email?.trim() || 'Administrator',
+    email: session.user.email ?? '',
+    avatar: (session.user as { image?: string | null }).image ?? null,
+  };
+
+  return <DashboardShell user={user}>{children}</DashboardShell>;
 }
