@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useTransition, type FormEvent } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { saveUserStorage } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,8 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
   const [secretKey, setSecretKey] = useState(() => config.secretKey ?? '');
   const [prefix, setPrefix] = useState(() => config.prefix ?? '');
   const [isDisabled, setIsDisabled] = useState(() => config.isDisabled ?? false);
+  const [showAccessKey, setShowAccessKey] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const resetToCreate = () => {
@@ -67,6 +69,8 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
     setSecretKey('');
     setPrefix('');
     setIsDisabled(false);
+    setShowAccessKey(false);
+    setShowSecretKey(false);
     setMessage(null);
   };
 
@@ -175,19 +179,41 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
           </div>
           <div className="space-y-2">
             <Label className="text-zinc-800 dark:text-zinc-100">{t('form.labels.accessKey')}</Label>
-            <Input
-              value={accessKey}
-              onChange={(event) => setAccessKey(event.target.value)}
-              className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
-            />
+            <div className="relative">
+              <Input
+                type={showAccessKey ? 'text' : 'password'}
+                value={accessKey}
+                onChange={(event) => setAccessKey(event.target.value)}
+                className="border-zinc-200 bg-white/70 pr-10 dark:border-zinc-800 dark:bg-zinc-950/60"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-zinc-800 dark:hover:text-zinc-200"
+                onClick={() => setShowAccessKey((prev) => !prev)}
+                aria-label={showAccessKey ? t('form.security.hide') : t('form.security.show')}
+              >
+                {showAccessKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label className="text-zinc-800 dark:text-zinc-100">{t('form.labels.secretKey')}</Label>
-            <Input
-              value={secretKey}
-              onChange={(event) => setSecretKey(event.target.value)}
-              className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
-            />
+            <div className="relative">
+              <Input
+                type={showSecretKey ? 'text' : 'password'}
+                value={secretKey}
+                onChange={(event) => setSecretKey(event.target.value)}
+                className="border-zinc-200 bg-white/70 pr-10 dark:border-zinc-800 dark:bg-zinc-950/60"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-zinc-800 dark:hover:text-zinc-200"
+                onClick={() => setShowSecretKey((prev) => !prev)}
+                aria-label={showSecretKey ? t('form.security.hide') : t('form.security.show')}
+              >
+                {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label className="text-zinc-800 dark:text-zinc-100">{t('form.labels.prefix')}</Label>
@@ -195,7 +221,6 @@ export function StorageConfigForm({ storage }: StorageConfigFormProps) {
               value={prefix}
               onChange={(event) => setPrefix(event.target.value)}
               placeholder={t('form.placeholders.prefix')}
-
               className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
             />
           </div>
