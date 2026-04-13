@@ -152,7 +152,7 @@ export function CreateTaskForm({ storages }: CreateTaskFormProps) {
 
         <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
           <label className="mb-3 block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            任务文件
+            {t('taskFiles')}
           </label>
           <DropZone
             files={files}
