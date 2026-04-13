@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Activity, CircleCheckBig, Clock3, Gauge } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { UploadTask } from '@/app/lib/definitions';
@@ -36,27 +35,27 @@ export function UploadStatsCards({ tasks }: UploadStatsCardsProps) {
       key: 'uploading',
       title: t('stats.uploading'),
       value: String(stats.uploading).padStart(2, '0'),
-      suffix: t('queue.status.items', { count: '' }).trim(), // Extract something similar, or just hardcode unit
+      suffix: t('queue.taskHead'),
       valueColor: 'text-indigo-600 dark:text-indigo-400',
     },
     {
       key: 'queued',
       title: t('stats.queued'),
       value: String(stats.queued),
-      suffix: t('queue.status.items', { count: '' }).trim(),
+      suffix: t('queue.taskHead'),
       valueColor: 'text-zinc-900 dark:text-zinc-100',
     },
     {
       key: 'speed',
       title: t('stats.speed'),
-      value: formatSpeed(stats.speed).replace(/ (B\/s|KB\/s|MB\/s|GB\/s)/, ''), // Just the number
-      suffix: formatSpeed(stats.speed).replace(/[\d.\s]/g, ''), // Just the unit
+      value: formatSpeed(stats.speed).replace(/ (B\/s|KB\/s|MB\/s|GB\/s)/, ''),
+      suffix: formatSpeed(stats.speed).replace(/[\d.\s]/g, ''),
       valueColor: 'text-amber-600 dark:text-amber-500',
     },
     {
       key: 'completed',
       title: t('stats.completed'),
-      value: new Intl.NumberFormat().format(stats.completed), // To show comma for huge numbers like 1,248
+      value: new Intl.NumberFormat().format(stats.completed),
       suffix: t('queue.fileHead'),
       valueColor: 'text-zinc-900 dark:text-zinc-100',
     },
@@ -78,7 +77,7 @@ export function UploadStatsCards({ tasks }: UploadStatsCardsProps) {
                 {card.value}
               </span>
               <span className="text-sm font-medium text-zinc-400 dark:text-zinc-500">
-                {card.suffix || '项'}
+                {card.suffix}
               </span>
             </div>
           </div>
