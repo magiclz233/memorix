@@ -24,7 +24,7 @@ import {
 } from './schema'; // 引入表定义
 import { runStorageScan, runS3StorageScan, type StorageScanMode } from './storage-scan';
 import { ApiError } from 'next/dist/server/api-utils';
-import { buildSystemSettingsKey, type SystemSettings } from './data';
+import { buildSystemSettingsKey, fetchPublicSystemSettings, type SystemSettings } from './data';
 import { getStorageCacheRoot } from './storage';
 
 export type SignupState = {
@@ -92,6 +92,11 @@ export async function signup(
   formData: FormData,
 ): Promise<SignupState> {
   const t = await getTranslations('actions.signup');
+  const locale = await getLocale();
+  const settings = await fetchPublicSystemSettings(locale);
+  if (settings?.publicAccess === false) {
+    return { success: false, message: t('disabled'), errors: {} };
+  }
   const SignupSchema = z
     .object({
       name: z.string().trim().min(1, { message: t('nameRequired') }),
@@ -1330,3 +1335,4 @@ async function cleanCollectionCoverReferences(
     }
   }
 }
+
