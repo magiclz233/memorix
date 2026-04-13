@@ -149,6 +149,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
   const [cacheStorageId, setCacheStorageId] = useState<string>('');
   const [cacheMode, setCacheMode] = useState<CacheMode>('all');
   const [cacheDays, setCacheDays] = useState('30');
+  const [fullScanStorageId, setFullScanStorageId] = useState<number | null>(null);
 
   // Auto-scroll logs
   useEffect(() => {
@@ -177,17 +178,11 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
     });
   }, []);
 
-  const handleScan = (storageId: number, mode: ScanMode = 'incremental') => {
-    if (scanningStates[storageId]?.active) return;
-    
-    if (mode === 'full' && !window.confirm(t('view.alerts.confirmScanFull'))) {
-      return;
-    }
-
+  const startScan = (storageId: number, mode: ScanMode = 'incremental') => {
     // Initialize state
     updateScanState(storageId, { active: true, done: false, error: null, progress: 0, processed: 0, total: 0, logs: [] });
     setShowLogs(true);
-    
+
     const eventSource = new EventSource(`/api/storage/scan?storageId=${storageId}&mode=${mode}`);
 
     eventSource.addEventListener('log', (e: any) => {
@@ -201,8 +196,8 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
         try {
             const data = JSON.parse(e.data);
             const progress = data.total > 0 ? Math.round((data.processed / data.total) * 100) : 0;
-            updateScanState(storageId, { 
-                processed: data.processed, 
+            updateScanState(storageId, {
+                processed: data.processed,
                 total: data.total || 0,
                 progress: progress
             });
@@ -239,6 +234,21 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
     };
 
     return () => eventSource.close();
+  };
+
+  const handleScan = (storageId: number, mode: ScanMode = 'incremental') => {
+    if (scanningStates[storageId]?.active) return;
+    if (mode === 'full') {
+      setFullScanStorageId(storageId);
+      return;
+    }
+    startScan(storageId, mode);
+  };
+
+  const confirmFullScan = () => {
+    if (fullScanStorageId === null) return;
+    startScan(fullScanStorageId, 'full');
+    setFullScanStorageId(null);
   };
 
   const handleEdit = (storage: StorageItem) => {
@@ -336,7 +346,7 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
     const config = (storage.config ?? {}) as StorageConfig;
     const label = t(`view.types.${storage.type}`) || storage.type;
     const name = config.alias || config.rootPath || config.bucket || `${label} #${storage.id}`;
-    return { id: storage.id, label: `${label} · ${name}` };
+    return { id: storage.id, label: `${label} / ${name}` };
   });
 
   return (
@@ -450,6 +460,27 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
             </div>
         </div>
 
+        <Dialog
+          open={fullScanStorageId !== null}
+          onOpenChange={(open) => {
+            if (!open) setFullScanStorageId(null);
+          }}
+        >
+          <DialogContent className="sm:max-w-lg rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>{t('view.actions.scanFull')}</DialogTitle>
+              <DialogDescription>{t('view.alerts.confirmScanFull')}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" className="rounded-full" onClick={() => setFullScanStorageId(null)}>
+                {t('view.cache.cancel')}
+              </Button>
+              <Button className="rounded-full bg-indigo-600 hover:bg-indigo-700" onClick={confirmFullScan}>
+                {t('view.alerts.confirmAction')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <StorageModal
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
