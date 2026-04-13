@@ -1,6 +1,6 @@
 'use client';
 
-import { Pause, Play, RotateCcw, Search, X } from 'lucide-react';
+import { Pause, Play, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { UploadTask } from '@/app/lib/definitions';
@@ -47,14 +47,24 @@ export function TaskCard({
 }: TaskCardProps) {
   const t = useTranslations('dashboard.upload');
 
+  const viewLabel =
+    task.status === 'uploading'
+      ? t('actions.viewDetails')
+      : task.status === 'completed'
+        ? t('actions.viewFiles')
+        : t('actions.continueTask');
+
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:bg-zinc-900/50 transition-all border-l-4",
-        task.status === 'uploading' ? 'border-l-indigo-600' :
-        task.status === 'completed' ? 'border-l-emerald-500' :
-        task.status === 'failed' ? 'border-l-rose-500' :
-        'border-l-zinc-300 dark:border-l-zinc-700'
+        'relative overflow-hidden rounded-2xl border-l-4 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all dark:bg-zinc-900/50',
+        task.status === 'uploading'
+          ? 'border-l-indigo-600'
+          : task.status === 'completed'
+            ? 'border-l-emerald-500'
+            : task.status === 'failed'
+              ? 'border-l-rose-500'
+              : 'border-l-zinc-300 dark:border-l-zinc-700',
       )}
     >
       <div className="flex flex-col gap-4 p-5 pb-8 sm:flex-row sm:items-center sm:justify-between">
@@ -69,10 +79,10 @@ export function TaskCard({
               {task.name}
             </h3>
             <div className="mt-1 flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              <span>{task.metadata.totalFiles} 项</span>
-              <span>·</span>
+              <span>{t('taskCard.files', { count: task.metadata.totalFiles })}</span>
+              <span>/</span>
               <span>{formatDuration(task.metadata.remainingTime)}</span>
-              <Badge variant="secondary" className={cn("ml-2 font-semibold", statusClasses(task.status))}>
+              <Badge variant="secondary" className={cn('ml-2 font-semibold', statusClasses(task.status))}>
                 {t(`status.${task.status}`)}
               </Badge>
             </div>
@@ -87,9 +97,9 @@ export function TaskCard({
               onClick={() => onView(task.id)}
               className="h-8 rounded-full font-bold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-900/30"
             >
-              {task.status === 'uploading' ? '查看详情' : task.status === 'completed' ? '查看文件' : '继续任务'}
+              {viewLabel}
             </Button>
-            
+
             {task.status === 'uploading' ? (
               <Button size="icon" variant="ghost" onClick={() => onPause(task.id)} className="h-8 w-8 rounded-full text-zinc-400">
                 <Pause className="h-4 w-4" />
@@ -99,27 +109,30 @@ export function TaskCard({
                 <Play className="h-4 w-4" />
               </Button>
             ) : null}
-            
+
             {task.status !== 'completed' && (
-               <Button size="icon" variant="ghost" onClick={() => onCancel(task.id)} className="h-8 w-8 rounded-full text-rose-400 hover:text-rose-600 hover:bg-rose-50">
-                  <X className="h-4 w-4" />
-               </Button>
+              <Button size="icon" variant="ghost" onClick={() => onCancel(task.id)} className="h-8 w-8 rounded-full text-rose-400 hover:bg-rose-50 hover:text-rose-600">
+                <X className="h-4 w-4" />
+              </Button>
             )}
           </div>
           <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            {formatBytes(task.metadata.uploadedSize)} / {formatBytes(task.metadata.totalSize)} · {formatSpeed(task.metadata.speed)}
+            {formatBytes(task.metadata.uploadedSize)} / {formatBytes(task.metadata.totalSize)} / {formatSpeed(task.metadata.speed)}
           </div>
         </div>
       </div>
 
       <div className="absolute inset-x-0 bottom-0 h-1.5 w-full bg-zinc-100 dark:bg-zinc-800">
-        <div 
+        <div
           className={cn(
-            "h-full transition-all duration-300",
-            task.status === 'uploading' ? 'bg-indigo-600' :
-            task.status === 'completed' ? 'bg-emerald-500' :
-            task.status === 'failed' ? 'bg-rose-500' :
-            'bg-zinc-300 dark:bg-zinc-600'
+            'h-full transition-all duration-300',
+            task.status === 'uploading'
+              ? 'bg-indigo-600'
+              : task.status === 'completed'
+                ? 'bg-emerald-500'
+                : task.status === 'failed'
+                  ? 'bg-rose-500'
+                  : 'bg-zinc-300 dark:bg-zinc-600',
           )}
           style={{ width: `${task.metadata.progress}%` }}
         />
