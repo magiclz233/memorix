@@ -31,15 +31,20 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 
-const ADMIN_USER = {
-  name: 'Administrator',
-  email: 'admin@memorix.com',
-  avatar: '/hero1.jpg',
+type AdminSidebarUser = {
+  name: string;
+  email: string;
+  avatar?: string | null;
+};
+
+type AdminSidebarProps = React.ComponentProps<typeof Sidebar> & {
+  user?: AdminSidebarUser | null;
 };
 
 export function AdminSidebar({
+  user,
   ...props
-}: React.ComponentProps<typeof Sidebar>) {
+}: AdminSidebarProps) {
   const t = useTranslations('dashboard.sidebar');
 
   const navItems = [
@@ -85,15 +90,17 @@ export function AdminSidebar({
       <SidebarFooter className="gap-3">
         <div className="flex items-center gap-2 p-2">
           <Avatar className="h-8 w-8 rounded-lg">
-            <AvatarImage src={ADMIN_USER.avatar} alt={ADMIN_USER.name} />
-            <AvatarFallback className="rounded-lg">
-              {ADMIN_USER.name.slice(0, 1)}
+            {user?.avatar ? (
+              <AvatarImage src={user.avatar} alt={user.name} />
+            ) : null}
+            <AvatarFallback className="rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+              {(user?.name ?? 'A').slice(0, 1).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{ADMIN_USER.name}</p>
+            <p className="truncate text-sm font-medium">{user?.name ?? 'Administrator'}</p>
             <p className="truncate text-xs text-muted-foreground">
-              {ADMIN_USER.email}
+              {user?.email ?? ''}
             </p>
           </div>
           <div className="flex items-center gap-2">
