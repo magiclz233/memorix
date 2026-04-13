@@ -39,7 +39,10 @@
     },
     "signupPage": {
       "heroAlt": "注册页背景图",
-      "appName": "Memorix 画廊"
+      "appName": "Memorix 画廊",
+      "closedTitle": "注册已关闭",
+      "closedDescription": "当前站点已关闭公开注册，如需访问请联系管理员。",
+      "goToLogin": "前往登录"
     },
     "login": {
       "title": "登录你的账号",
@@ -747,7 +750,8 @@
         "configureStorage": "去存储配置启用",
         "unnamed": "未命名",
         "published": "已发布",
-        "unpublished": "未发布"
+        "unpublished": "未发布",
+        "cancel": "取消"
       }
     },
     "collections": {
@@ -909,6 +913,7 @@
           "confirmPublish": "确定要发布该数据源下的所有图片吗？",
           "confirmHide": "确定要隐藏该数据源下的所有图片吗？",
           "confirmScanFull": "确认执行全量扫描吗？这将重新解析全部图片，耗时更长。",
+          "confirmAction": "确认执行",
           "deleteTitle": "确认删除",
           "disableTitle": "确认停用",
           "deleteDesc": "删除该数据源将永久删除其下的所有文件，并从以下集合中移除相关引用。",
@@ -1000,6 +1005,10 @@
           "update": "更新配置",
           "save": "保存配置",
           "create": "新建配置"
+        },
+        "security": {
+          "show": "显示密钥",
+          "hide": "隐藏密钥"
         }
       },
       "files": {
@@ -1069,6 +1078,7 @@
       "categoryPhoto": "照片",
       "categoryVideo": "视频",
       "categoryDocument": "文档",
+      "taskFiles": "任务文件",
       "dragHere": "拖拽文件或文件夹到此处",
       "dragDescription": "支持 JPG、PNG、GIF、MP4、MOV 等格式",
       "selectFiles": "选择文件",
@@ -1108,6 +1118,8 @@
         "retry": "重试",
         "view": "查看",
         "viewDetails": "查看详情",
+        "viewFiles": "查看文件",
+        "continueTask": "继续任务",
         "pauseAll": "全部暂停",
         "resumeAll": "全部继续",
         "cancelTask": "取消任务",
@@ -1177,7 +1189,8 @@
           "error": "失败",
           "items": "{count} 个任务"
         },
-        "fileHead": "个文件"
+        "fileHead": "个文件",
+        "taskHead": "个任务"
       },
       "drag": {
         "title": "拖拽上传",
@@ -1294,7 +1307,9 @@
       "passwordMismatch": "两次输入的密码不一致。",
       "checkForm": "请检查表单信息。",
       "emailTaken": "该邮箱已注册。",
-      "failed": "注册失败，请稍后重试。"
+      "failed": "注册失败，请稍后重试。",
+      "disabled": "当前站点已关闭注册。",
+      "nameRequired": "请输入姓名。"
     },
     "login": {
       "invalidCredentials": "登录凭据无效。",

@@ -39,7 +39,10 @@
     },
     "signupPage": {
       "heroAlt": "Signup background",
-      "appName": "Memorix Gallery"
+      "appName": "Memorix Gallery",
+      "closedTitle": "Sign-up is disabled",
+      "closedDescription": "Public registration is currently disabled. Please contact the administrator for access.",
+      "goToLogin": "Go to Login"
     },
     "login": {
       "title": "Sign in",
@@ -747,7 +750,8 @@
         "configureStorage": "Go to Storage Config",
         "unnamed": "Unnamed",
         "published": "Published",
-        "unpublished": "Unpublished"
+        "unpublished": "Unpublished",
+        "cancel": "Cancel"
       }
     },
     "collections": {
@@ -909,6 +913,7 @@
           "confirmPublish": "Are you sure you want to publish all images from this source?",
           "confirmHide": "Are you sure you want to hide all images from this source?",
           "confirmScanFull": "Confirm full scan? This will reprocess all images and may take longer.",
+          "confirmAction": "Confirm",
           "deleteTitle": "Confirm Delete",
           "disableTitle": "Confirm Disable",
           "deleteDesc": "Deleting this source will permanently remove all its files and references from collections.",
@@ -1000,6 +1005,10 @@
           "update": "Update Config",
           "save": "Save Config",
           "create": "New Config"
+        },
+        "security": {
+          "show": "Show key",
+          "hide": "Hide key"
         }
       },
       "files": {
@@ -1069,6 +1078,7 @@
       "categoryPhoto": "Photo",
       "categoryVideo": "Video",
       "categoryDocument": "Document",
+      "taskFiles": "Task Files",
       "dragHere": "Drag files or folders here",
       "dragDescription": "Supports JPG, PNG, GIF, MP4, MOV and more",
       "selectFiles": "Select Files",
@@ -1108,6 +1118,8 @@
         "retry": "Retry",
         "view": "View",
         "viewDetails": "View Details",
+        "viewFiles": "View Files",
+        "continueTask": "Continue Task",
         "pauseAll": "Pause All",
         "resumeAll": "Resume All",
         "cancelTask": "Cancel Task",
@@ -1177,7 +1189,8 @@
           "error": "Error",
           "items": "{count, plural, =0 {tasks} one {task} other {tasks}}"
         },
-        "fileHead": "files"
+        "fileHead": "files",
+        "taskHead": "tasks"
       },
       "drag": {
         "title": "Drag & Drop Upload",
@@ -1295,7 +1308,8 @@
       "passwordMismatch": "Passwords do not match.",
       "checkForm": "Please check the form.",
       "emailTaken": "Email already registered.",
-      "failed": "Registration failed, please try again later."
+      "failed": "Registration failed, please try again later.",
+      "disabled": "Sign-up is currently disabled."
     },
     "login": {
       "invalidCredentials": "Invalid credentials.",
