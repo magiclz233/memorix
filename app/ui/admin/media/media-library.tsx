@@ -50,6 +50,14 @@ import { AdvancedFilterPanel } from './advanced-filter-panel';
 import { FilterChips } from './filter-chips';
 import { useMediaFilters, type FilterKey } from './use-media-filters';
 import { showErrorToast, showLoadingToast, showSuccessToast, updateToast } from '@/app/lib/batch-operations';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const formatSize = (size: number | null, unknownLabel: string) => {
   if (!size && size !== 0) return unknownLabel;
@@ -68,7 +76,7 @@ const formatResolution = (
   unknownLabel: string,
 ) => {
   if (!width || !height) return unknownLabel;
-  return `${width} 脳 ${height}`;
+  return `${width} x ${height}`;
 };
 
 const resolveMediaSrc = (item: MediaLibraryItem) =>
@@ -120,6 +128,7 @@ export function MediaLibraryManager({
   const [isDownloading, setIsDownloading] = useState(false);
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const heroIdSet = useMemo(() => new Set(heroIds), [heroIds]);
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('media-library-columns', 6),
@@ -259,7 +268,7 @@ export function MediaLibraryManager({
   );
 
   useEffect(() => {
-    // 纭繚鍙繚鐣欏綋鍓嶅彲鍕鹃€夌殑ID
+    // 确保仅保留当前可选中的 ID
     queueMicrotask(() => {
       setSelectedIds((prev) => {
         const next = new Set<number>();
@@ -377,21 +386,28 @@ export function MediaLibraryManager({
     return storages?.some((s) => (s.config as any)?.isDisabled);
   }, [storages]);
 
-  // 鎵归噺鍒犻櫎鎿嶄綔
-  const handleBatchDelete = async () => {
+  // 批量删除操作
+  const handleBatchDelete = () => {
     if (selectedIds.size === 0) {
       showErrorToast(t('library.selectFirst'));
       return;
     }
+    setDeleteDialogOpen(true);
+  };
 
-    const confirmed = confirm(t('library.deleteConfirm', { count: selectedIds.size }));
-    if (!confirmed) return;
+  const confirmBatchDelete = async () => {
+    if (selectedIds.size === 0) {
+      showErrorToast(t('library.selectFirst'));
+      setDeleteDialogOpen(false);
+      return;
+    }
 
     const fileIds = Array.from(selectedIds);
     const toastId = showLoadingToast(t('library.deleting'));
 
     setIsDeleting(true);
     setMessage(null);
+    setDeleteDialogOpen(false);
 
     try {
       const { deleteMediaFiles } = await import('@/app/lib/actions');
@@ -949,6 +965,24 @@ export function MediaLibraryManager({
       )}
 
 
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('library.deleteSelected')}</DialogTitle>
+            <DialogDescription>
+              {t('library.deleteConfirm', { count: selectedIds.size })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              {t('library.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={confirmBatchDelete} disabled={isDeleting}>
+              {isDeleting ? t('library.deleting') : t('library.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Gallery25
         items={galleryItemsForLightbox}
         showGrid={false}
@@ -969,13 +1003,3 @@ export function MediaLibraryManager({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
