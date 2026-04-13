@@ -1,13 +1,18 @@
 import Image from 'next/image';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { GalleryVerticalEnd } from 'lucide-react';
 
 import { SignupForm } from '@/components/signup-form';
 import { LocaleSwitcher } from '@/components/locale-switcher';
+import { fetchPublicSystemSettings } from '@/app/lib/data';
+import { Button } from '@/components/ui/button';
 
 export default async function SignupPage() {
   const t = await getTranslations('auth.signupPage');
+  const locale = await getLocale();
+  const settings = await fetchPublicSystemSettings(locale);
+  const signupEnabled = settings?.publicAccess !== false;
 
   return (
     <div className='grid min-h-svh lg:grid-cols-2'>
@@ -37,7 +42,21 @@ export default async function SignupPage() {
         </div>
         <div className='flex flex-1 items-center justify-center'>
           <div className='w-full max-w-md'>
-            <SignupForm />
+            {signupEnabled ? (
+              <SignupForm />
+            ) : (
+              <div className='rounded-2xl border border-zinc-200 bg-white/80 p-6 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60'>
+                <h1 className='text-xl font-semibold text-zinc-900 dark:text-zinc-100'>
+                  {t('closedTitle')}
+                </h1>
+                <p className='mt-2 text-sm text-zinc-600 dark:text-zinc-300'>
+                  {t('closedDescription')}
+                </p>
+                <Button asChild className='mt-6 w-full'>
+                  <Link href='/login'>{t('goToLogin')}</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
