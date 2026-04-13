@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html class="light" lang="zh"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumina - 相框模式 (现代简约卡纸)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Noto+Serif+SC:wght@300;400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --primary: #1a1a1a;
+            --background-light: #f8f8f8;
+            --background-dark: #0a0a0a;
+            --mat-color: #ffffff;
+        }
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            @apply antialiased overflow-hidden;
+        }
+        .font-serif-zh {
+            font-family: 'Noto Serif SC', serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }.digital-mat {
+            background-color: var(--mat-color);
+            box-shadow: 0 10px 50px -10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;padding: 4% 6% 8% 6%;
+        }
+        .image-lift {
+            box-shadow: 0 4px 20px -2px rgba(0,0,0,0.15);
+        }
+        .metadata-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+        .metadata-panel::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.05);
+            border-radius: 10px;
+        }
+        .dark .digital-mat {
+            background-color: #1a1a1a;
+        }
+        .dark .metadata-panel::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.05);
+        }
+    </style>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1a1a1a",
+                        "background-light": "#f8f8f8",
+                        "background-dark": "#0a0a0a",
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-500 h-screen flex flex-col">
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-slate-100 dark:border-white/5 px-6 py-3 flex justify-between items-center">
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+<span class="text-[10px] uppercase tracking-[0.3em] font-semibold opacity-40">LUMINA VIEWER</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="text-[11px] font-medium tracking-widest opacity-60">相框模式</span>
+<div class="w-8 h-4 bg-black dark:bg-white rounded-full relative">
+<div class="absolute right-1 top-1 w-2 h-2 bg-white dark:bg-black rounded-full"></div>
+</div>
+</div>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors" onclick="document.documentElement.classList.toggle('dark')">
+<span class="material-symbols-outlined text-[20px] dark:hidden">dark_mode</span>
+<span class="material-symbols-outlined text-[20px] hidden dark:block">light_mode</span>
+</button>
+</div>
+</nav>
+<main class="flex-1 flex overflow-hidden pt-14">
+<div class="flex-1 relative flex items-center justify-center p-12 bg-[#f0f0f0] dark:bg-[#050505] transition-colors">
+<button class="absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/50 dark:bg-white/5 backdrop-blur-sm hover:bg-white transition-all shadow-sm z-10">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/50 dark:bg-white/5 backdrop-blur-sm hover:bg-white transition-all shadow-sm z-10">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+<div class="relative max-w-full max-h-full flex items-center justify-center">
+<div class="digital-mat transition-all duration-700">
+<div class="relative image-lift">
+<img alt="沉浸之境 作品" class="max-h-[60vh] md:max-h-[70vh] object-contain block" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2RSn_OXcl1As9CqaKwcXGXub2JclVDPujCUxyejjaJdeOMQlE7YH_JB4_iNt4GhBfVqXOajzl_ILBHuzaHKu4aB1EqZNDqQcR_ClqxX7h7f0mlwzQ4uyyKDHQyQoYXpFspiqgiyLP9t4cs-oMdIq5MiOkKteQEPbj8b-Fr52To9YBpCa2wlMAtECKO-xUKq-SdLOypCxMyoExHJ7k6m8ifIRSuZNU6wt2Mg-e0XYq5Hou06lVRUy874DqA5K6vjHKVsOX9JQnvi0w"/>
+</div>
+<div class="mt-8 md:mt-12 text-center">
+<h3 class="font-serif-zh text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300">沉浸之境</h3>
+<p class="font-serif-zh text-[10px] md:text-[11px] mt-1 opacity-40 tracking-widest italic">Captured by Lumina • 2024-05-20</p>
+</div>
+</div>
+</div>
+</div>
+<aside class="w-[360px] bg-white dark:bg-black border-l border-slate-100 dark:border-white/5 flex flex-col metadata-panel overflow-y-auto hidden lg:flex">
+<div class="p-8 space-y-10">
+<div class="flex justify-between items-start">
+<div>
+<h2 class="text-lg font-medium tracking-tight">IMG_5915.HEIC</h2>
+<p class="text-xs opacity-40 mt-1">Shot on Apple iPhone 15 Pro Max</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-xl">download</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-px bg-slate-100 dark:bg-white/10 border border-slate-100 dark:border-white/10 rounded-xl overflow-hidden">
+<div class="bg-white dark:bg-black p-4 space-y-1">
+<div class="flex items-center gap-2 opacity-40">
+<span class="material-symbols-outlined text-sm">shutter_speed</span>
+<span class="text-[10px] uppercase font-bold tracking-tighter">焦距</span>
+</div>
+<p class="text-sm font-semibold">2.2 mm</p>
+</div>
+<div class="bg-white dark:bg-black p-4 space-y-1">
+<div class="flex items-center gap-2 opacity-40">
+<span class="material-symbols-outlined text-sm">camera</span>
+<span class="text-[10px] uppercase font-bold tracking-tighter">光圈</span>
+</div>
+<p class="text-sm font-semibold">f/2.2</p>
+</div>
+<div class="bg-white dark:bg-black p-4 space-y-1">
+<div class="flex items-center gap-2 opacity-40">
+<span class="material-symbols-outlined text-sm">timer</span>
+<span class="text-[10px] uppercase font-bold tracking-tighter">快门</span>
+</div>
+<p class="text-sm font-semibold">1/60s</p>
+</div>
+<div class="bg-white dark:bg-black p-4 space-y-1">
+<div class="flex items-center gap-2 opacity-40">
+<span class="material-symbols-outlined text-sm">iso</span>
+<span class="text-[10px] uppercase font-bold tracking-tighter">ISO</span>
+</div>
+<p class="text-sm font-semibold">800</p>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="text-[10px] uppercase tracking-widest font-bold opacity-40">直方图</span>
+<div class="flex gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+</div>
+</div>
+<div class="h-24 w-full bg-slate-50 dark:bg-white/5 rounded-lg flex items-end px-1 gap-px">
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[20%]"></div>
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[30%]"></div>
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[45%]"></div>
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[60%]"></div>
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[80%]"></div>
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[70%]"></div>
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[55%]"></div>
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[40%]"></div>
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[25%]"></div>
+<div class="flex-1 bg-slate-200 dark:bg-white/10 h-[15%]"></div>
+</div>
+</div>
+<div class="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+<span class="text-[10px] uppercase tracking-widest font-bold opacity-40 block mb-2">基本信息</span>
+<div class="flex justify-between text-xs py-1">
+<span class="opacity-50">分辨率</span>
+<span class="font-medium">4032 × 3024</span>
+</div>
+<div class="flex justify-between text-xs py-1">
+<span class="opacity-50">文件大小</span>
+<span class="font-medium">859.0 KB</span>
+</div>
+<div class="flex justify-between text-xs py-1">
+<span class="opacity-50">拍摄时间</span>
+<span class="font-medium">2024/5/20 18:42:51</span>
+</div>
+<div class="flex justify-between text-xs py-1">
+<span class="opacity-50">色彩空间</span>
+<span class="font-medium uppercase">sRGB</span>
+</div>
+</div>
+<div class="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+<span class="text-[10px] uppercase tracking-widest font-bold opacity-40 block mb-2">标签</span>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full text-[10px] font-medium">风景</span>
+<span class="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full text-[10px] font-medium">山脉</span>
+<span class="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full text-[10px] font-medium">电影感</span>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<div class="h-20 bg-white dark:bg-black border-t border-slate-100 dark:border-white/5 px-4 flex items-center gap-2 overflow-x-auto overflow-y-hidden">
+<div class="flex-none w-14 h-14 rounded overflow-hidden border-2 border-slate-900 dark:border-white">
+<img alt="thumb" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2RSn_OXcl1As9CqaKwcXGXub2JclVDPujCUxyejjaJdeOMQlE7YH_JB4_iNt4GhBfVqXOajzl_ILBHuzaHKu4aB1EqZNDqQcR_ClqxX7h7f0mlwzQ4uyyKDHQyQoYXpFspiqgiyLP9t4cs-oMdIq5MiOkKteQEPbj8b-Fr52To9YBpCa2wlMAtECKO-xUKq-SdLOypCxMyoExHJ7k6m8ifIRSuZNU6wt2Mg-e0XYq5Hou06lVRUy874DqA5K6vjHKVsOX9JQnvi0w"/>
+</div>
+<div class="flex-none w-14 h-14 rounded overflow-hidden opacity-40 hover:opacity-100 transition-opacity cursor-pointer">
+<img alt="thumb" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhSog-XdQdThvFUV9jNI8eIb7tCpBEVsULGuGr7dMa8AokvJnkh1_lIDA1u6HLLvzSZYrn3YjLl8PEXVmSRNBzUvyCXx6ugTpvxrK6yAnts2oeGGfOXJ8lJHozM_283uAimkceuoOpYa2rO_AT8wfdBZv6H6F_xwGne3ZL9ZokxqD2_s_mB6pBxMGyAxoaQEzo3bSodkUc-5s_qbzkEM7UIxNa49rpnlnk7fuX_tz4qBuR6O-Ihn1JxcdBtjzSZdIGhiNcfk5hIXFg"/>
+</div>
+<div class="flex-none w-14 h-14 rounded overflow-hidden opacity-40 hover:opacity-100 transition-opacity cursor-pointer">
+<img alt="thumb" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1ocHOgE-Ge_ulujJxNvTHfFIrOSVsNjztGd-fDn0sDROEJd9IFMN287Y4vjjtiG2oEUy_WNVfigfW4PAo_Lf4iBspPZSQFBey0ACUx95iTXuX2RbBaLvXvtZdac7m9UQx1pH9UjFWlvK-rN4cnD2uyvpPH0rdrib2fzPBRc6ht2MLPhTvhvc4_0T4gcgEqvOpZENh3C0HY8iitNFr7jZ3KxMjL_vHFcEc1wlHkDdfKO-zgFqo1HZ3DIdE7sGIKFoOOnVX2mcavoQ3"/>
+</div>
+<div class="flex-none w-14 h-14 rounded overflow-hidden opacity-40 hover:opacity-100 transition-opacity cursor-pointer">
+<img alt="thumb" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwhCfp827_NAlmmgJ1AdTi6cmRtFqT9Xs2Od5YzNYJJOBFK5KH46YlkTg2RSSluFpShG5erhdrTDnn2ypGwl7rcC5kUsnnbWOLpbEJyp8QgXa5yFBGfjDIvaJR1ru2FkMgP3Kfn6rLlr4En8rji4k01XG9pBpB3-C6iJGjVXPCzNXmRX8CMP3IOEmyM3STooWZNNY1B-sPMNq8eq9kbL5SOaHfMqKBCNRVwIwUzmZ8ATqbxmotIrpV5ug7RJfgwq6laH41OS6OO11I"/>
+</div>
+<div class="flex-none w-14 h-14 rounded overflow-hidden opacity-40 hover:opacity-100 transition-opacity cursor-pointer">
+<img alt="thumb" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKx4Sm_Q0ML8UflLb5SEotOp5wco-5PZDAY7biP25GVGirOkp2pBbHihRY6QwVNWd7DnbdQuN5BeOYtrj_uWf8VcN9R-wudvmzvfcbzhyNjmq0x-CgSKiaoUSdN5byI7-XH8LopKHGU6QvREofM9MVTPlPo0Aw393JOtdKHAs0jQYkhc2c_WuyGhWdnScnWFruOjdNWqqfyNgDTRFdk1NvHKmLMDF82c_9HSP-kXn4WKnyvLcZyAGScZndmC2Glxp_Rz5vmfl2z2-I"/>
+</div>
+<div class="flex-none w-14 h-14 rounded overflow-hidden opacity-40 hover:opacity-100 transition-opacity cursor-pointer">
+<img alt="thumb" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_k8blP1V1fQQbNkCnuSm0F6-gFkpWIjL7fr4ut2VdUEXGt_EIWFM7EBGDt9w0mSZwFjzbsZnScWEZ5safEmvwIyz1lNLxpZl2aM4PTI4X0GMUSFbB0qjBOwmOW_0MbHNSvrIQAdBWiwTO87SsEmdGVgkKX_mBVfocSXWsXt3LTOd74_1nj38u_yBLWfFecfOSJ8NIbRTFCFwRSxfY19F8WNCzkJ9yQsKr4yh2H5rLKBZXbdh6pcKh6h-7Fcc7y33PpV3B1Fo1H_Q6"/>
+</div>
+</div>
+
+</body></html>
