@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 
 import type {
@@ -51,6 +51,24 @@ export function CreateTaskForm({ storages }: CreateTaskFormProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [config, setConfig] = useState<TaskConfig>(createTaskConfig());
   const [submitting, setSubmitting] = useState(false);
+
+  // 表单防离开保护
+  const hasChanges = taskName.trim() !== '' || files.length > 0;
+
+  useEffect(() => {
+    if (!hasChanges || submitting) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasChanges, submitting]);
 
   const selectedStorage = useMemo(
     () => storages.find((item) => String(item.id) === storageId) ?? null,
