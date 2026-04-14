@@ -27,6 +27,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import { setFilesPublished, setHeroPhotos } from '@/app/lib/actions';
 import type { MediaLibraryItem } from '@/app/lib/data';
@@ -37,6 +54,8 @@ import { Gallery25 } from '@/components/gallery25';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import { MediaLibrarySkeleton } from '@/app/ui/components/skeletons';
 import { useDebounce } from '@/app/ui/hooks/use-debounce';
+import { useRubberBandSelection } from '@/app/ui/hooks/use-rubber-band-selection';
+import { SelectionBox } from '@/app/ui/components/selection-box';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -129,7 +148,23 @@ export function MediaLibraryManager({
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const heroIdSet = useMemo(() => new Set(heroIds), [heroIds]);
+  const [deleteTargetIds, setDeleteTargetIds] = useState<number[]>([]);
+  const [contextMenuItemId, setContextMenuItemId] = useState<number | null>(null);
+  
+  // 乐观更新状态
+  const [optimisticItems, setOptimisticItems] = useState<MediaLibraryItem[]>(items);
+  const [optimisticHeroIds, setOptimisticHeroIds] = useState<number[]>(heroIds);
+  
+  const heroIdSet = useMemo(() => new Set(optimisticHeroIds), [optimisticHeroIds]);
+  
+  // 同步服务端数据到乐观状态
+  useEffect(() => {
+    setOptimisticItems(items);
+  }, [items]);
+  
+  useEffect(() => {
+    setOptimisticHeroIds(heroIds);
+  }, [heroIds]);
   const [columnCount, setColumnCount] = useState(() =>
     readStoredNumber('media-library-columns', 6),
   );
@@ -141,6 +176,7 @@ export function MediaLibraryManager({
   const debouncedSearch = useDebounce(searchInput, 300);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const gridParentRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [gridWidth, setGridWidth] = useState(0);
 
   const currentCategory = filters.category;
@@ -263,8 +299,8 @@ export function MediaLibraryManager({
   const activeFilterCount = activeFilterChips.length;
 
   const selectableIds = useMemo(
-    () => items.filter((item) => !item.storage.isDisabled).map((item) => item.id),
-    [items],
+    () => optimisticItems.filter((item) => !item.storage.isDisabled).map((item) => item.id),
+    [optimisticItems],
   );
 
   useEffect(() => {
@@ -287,7 +323,7 @@ export function MediaLibraryManager({
   }, [columnCount]);
 
   const galleryItems = useMemo(() => {
-    return items.map((item) => {
+    return optimisticItems.map((item) => {
       const titleText = item.title
         ? resolveMessage(messages, item.title)
         : item.path?.split('/').pop() || t('library.unnamed');
@@ -332,7 +368,7 @@ export function MediaLibraryManager({
         isPublished: item.isPublished,
       };
     });
-  }, [items, messages, t]);
+  }, [optimisticItems, messages, t]);
 
   const galleryItemsForLightbox = useMemo(() => {
     return galleryItems.map((item) => ({
@@ -354,30 +390,68 @@ export function MediaLibraryManager({
     });
   };
 
-  const handlePublish = (publish: boolean) => {
-    if (selectedIds.size === 0) {
+  const handlePublish = (publish: boolean, targetIds?: number[]) => {
+    const idsToUpdate = targetIds || Array.from(selectedIds);
+    
+    if (idsToUpdate.length === 0) {
       setMessage(t('library.selectFirst'));
       return;
     }
+    
     setMessage(null);
+    
+    // 乐观更新
+    setOptimisticItems((prev) =>
+      prev.map((item) =>
+        idsToUpdate.includes(item.id) ? { ...item, isPublished: publish } : item
+      )
+    );
+    
     startTransition(async () => {
-      const result = await setFilesPublished(Array.from(selectedIds), publish);
-      setMessage(result.message ?? null);
-      setSelectedIds(new Set());
+      const result = await setFilesPublished(idsToUpdate, publish);
+      
+      if (result.message) {
+        setMessage(result.message);
+      }
+      
+      if (!targetIds) {
+        setSelectedIds(new Set());
+      }
+      
+      // 刷新以同步服务端状态
       router.refresh();
     });
   };
 
-  const handleHero = (isHero: boolean) => {
-    if (selectedIds.size === 0) {
+  const handleHero = (isHero: boolean, targetIds?: number[]) => {
+    const idsToUpdate = targetIds || Array.from(selectedIds);
+    
+    if (idsToUpdate.length === 0) {
       setMessage(t('library.selectFirst'));
       return;
     }
+    
     setMessage(null);
+    
+    // 乐观更新
+    if (isHero) {
+      setOptimisticHeroIds((prev) => Array.from(new Set([...prev, ...idsToUpdate])));
+    } else {
+      setOptimisticHeroIds((prev) => prev.filter((id) => !idsToUpdate.includes(id)));
+    }
+    
     startTransition(async () => {
-      const result = await setHeroPhotos(Array.from(selectedIds), isHero);
-      setMessage(result.message ?? null);
-      setSelectedIds(new Set());
+      const result = await setHeroPhotos(idsToUpdate, isHero);
+      
+      if (result.message) {
+        setMessage(result.message);
+      }
+      
+      if (!targetIds) {
+        setSelectedIds(new Set());
+      }
+      
+      // 刷新以同步服务端状态
       router.refresh();
     });
   };
@@ -387,41 +461,52 @@ export function MediaLibraryManager({
   }, [storages]);
 
   // 批量删除操作
-  const handleBatchDelete = () => {
-    if (selectedIds.size === 0) {
+  const handleBatchDelete = (targetIds?: number[]) => {
+    const idsToDelete = targetIds || Array.from(selectedIds);
+    
+    if (idsToDelete.length === 0) {
       showErrorToast(t('library.selectFirst'));
       return;
     }
+    
+    setDeleteTargetIds(idsToDelete);
     setDeleteDialogOpen(true);
   };
 
   const confirmBatchDelete = async () => {
-    if (selectedIds.size === 0) {
+    if (deleteTargetIds.length === 0) {
       showErrorToast(t('library.selectFirst'));
       setDeleteDialogOpen(false);
       return;
     }
 
-    const fileIds = Array.from(selectedIds);
     const toastId = showLoadingToast(t('library.deleting'));
 
     setIsDeleting(true);
     setMessage(null);
     setDeleteDialogOpen(false);
+    
+    // 乐观更新 - 立即从列表中移除
+    setOptimisticItems((prev) => prev.filter((item) => !deleteTargetIds.includes(item.id)));
 
     try {
       const { deleteMediaFiles } = await import('@/app/lib/actions');
-      const result = await deleteMediaFiles(fileIds);
+      const result = await deleteMediaFiles(deleteTargetIds);
 
       if (result.success) {
         setSelectedIds(new Set());
+        setDeleteTargetIds([]);
         router.refresh();
         updateToast(toastId, 'success', t('library.deleteSuccess'));
       } else {
+        // 删除失败，恢复数据
+        setOptimisticItems(items);
         updateToast(toastId, 'error', result.message || t('library.deleteFailed'));
       }
     } catch (error) {
       console.error('Delete error:', error);
+      // 删除失败，恢复数据
+      setOptimisticItems(items);
       updateToast(toastId, 'error', t('library.deleteFailed'));
     } finally {
       setIsDeleting(false);
@@ -532,7 +617,7 @@ export function MediaLibraryManager({
     return Math.max(120, Math.floor(usable / effectiveColumns));
   }, [effectiveColumns, gridWidth, viewportWidth]);
 
-  const rowCount = Math.ceil(items.length / effectiveColumns);
+  const rowCount = Math.ceil(optimisticItems.length / effectiveColumns);
 
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
@@ -540,6 +625,15 @@ export function MediaLibraryManager({
     estimateSize: () => itemSize + gap,
     overscan: 5,
   });
+
+  // 框选功能
+  const { isSelecting, selectionBox } = useRubberBandSelection(
+    optimisticItems,
+    gridParentRef,
+    itemRefs,
+    setSelectedIds,
+    true // 启用框选
+  );
 
   return (
     <div className="space-y-6">
@@ -812,7 +906,19 @@ export function MediaLibraryManager({
       {isFilterPending ? (
         <MediaLibrarySkeleton />
       ) : (
-        <div ref={gridParentRef} className="h-[72vh] overflow-auto">
+        <div 
+          ref={gridParentRef} 
+          className="h-[72vh] overflow-auto relative"
+          style={{ userSelect: isSelecting ? 'none' : 'auto' }}
+        >
+          {isSelecting && selectionBox && (
+            <SelectionBox
+              startX={selectionBox.startX}
+              startY={selectionBox.startY}
+              endX={selectionBox.endX}
+              endY={selectionBox.endY}
+            />
+          )}
           <div
             style={{
               height: `${rowVirtualizer.getTotalSize()}px`,
@@ -821,7 +927,7 @@ export function MediaLibraryManager({
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
               const start = virtualRow.index * effectiveColumns;
-              const rowItems = items.slice(start, start + effectiveColumns);
+              const rowItems = optimisticItems.slice(start, start + effectiveColumns);
 
               return (
                 <div
@@ -858,14 +964,18 @@ export function MediaLibraryManager({
                       const sizeText = formatSize(item.size ?? null, '');
 
                       return (
-                        <div
-                          key={item.id}
-                          className={cn(
-                            'group relative aspect-square overflow-hidden rounded-xl bg-zinc-100 transition-all dark:bg-zinc-800',
-                            isSelected && 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-zinc-950',
-                            item.storage.isDisabled && 'opacity-60',
-                          )}
-                        >
+                        <ContextMenu key={item.id}>
+                          <ContextMenuTrigger asChild>
+                            <div
+                              ref={(el) => {
+                                itemRefs.current[item.id] = el;
+                              }}
+                              className={cn(
+                                'group relative aspect-square overflow-hidden rounded-xl bg-zinc-100 transition-all dark:bg-zinc-800',
+                                isSelected && 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-zinc-950',
+                                item.storage.isDisabled && 'opacity-60',
+                              )}
+                            >
                           {src ? (
                             <BlurImage
                               src={src}
@@ -952,8 +1062,52 @@ export function MediaLibraryManager({
                               <span>{resolutionText}</span>
                               <span>{sizeText}</span>
                             </div>
-                          </div>
-                        </div>
+                          </ContextMenuTrigger>
+                          <ContextMenuContent className="w-56">
+                            <ContextMenuItem
+                              onClick={() => setViewingItemId(item.id)}
+                              className="cursor-pointer"
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              {t('library.view')}
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                              onClick={() => handlePublish(!item.isPublished, [item.id])}
+                              className="cursor-pointer"
+                              disabled={item.storage.isDisabled}
+                            >
+                              {item.isPublished ? (
+                                <>
+                                  <EyeOff className="mr-2 h-4 w-4" />
+                                  {t('library.unpublish')}
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  {t('library.publish')}
+                                </>
+                              )}
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onClick={() => handleHero(!heroIdSet.has(item.id), [item.id])}
+                              className="cursor-pointer"
+                              disabled={item.storage.isDisabled}
+                            >
+                              <Star className="mr-2 h-4 w-4" />
+                              {heroIdSet.has(item.id) ? t('library.unsetHero') : t('library.setAsHero')}
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                              onClick={() => handleBatchDelete([item.id])}
+                              className="cursor-pointer text-red-600 focus:text-red-600 dark:text-red-400"
+                              disabled={item.storage.isDisabled}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              {t('library.delete')}
+                            </ContextMenuItem>
+                          </ContextMenuContent>
+                        </ContextMenu>
                       );
                     })}
                   </div>
@@ -965,24 +1119,28 @@ export function MediaLibraryManager({
       )}
 
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('library.deleteSelected')}</DialogTitle>
-            <DialogDescription>
-              {t('library.deleteConfirm', { count: selectedIds.size })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('library.deleteSelected')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('library.deleteConfirm', { count: deleteTargetIds.length })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
               {t('library.cancel')}
-            </Button>
-            <Button variant="destructive" onClick={confirmBatchDelete} disabled={isDeleting}>
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBatchDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
               {isDeleting ? t('library.deleting') : t('library.delete')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Gallery25
         items={galleryItemsForLightbox}
         showGrid={false}
