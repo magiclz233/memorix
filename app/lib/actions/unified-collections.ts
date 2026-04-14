@@ -148,6 +148,43 @@ export async function updateCollection(id: number, formData: FormData) {
   revalidatePathForAllLocales('/dashboard/collections');
   revalidatePathForAllLocales(`/dashboard/collections/${id}`);
   revalidatePathForAllLocales('/collections');
+}
+
+/**
+ * 快速切换藏品发布状态
+ */
+export async function toggleCollectionStatus(
+  id: number,
+  status: 'draft' | 'published'
+) {
+  const user = await requireAdmin();
+
+  try {
+    await db
+      .update(collections)
+      .set({
+        status,
+        updatedBy: typeof user.id === 'number' ? user.id : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(collections.id, id));
+
+    revalidatePathForAllLocales('/dashboard/collections');
+    revalidatePathForAllLocales(`/dashboard/collections/${id}`);
+    revalidatePathForAllLocales('/collections');
+
+    return {
+      success: true,
+      message: status === 'published' ? '已发布' : '已设为草稿',
+    };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return {
+      success: false,
+      message: 'Database Error: Failed to Update Collection Status.',
+    };
+  }
+}
   revalidatePathForAllLocales(`/collections/${id}`);
 }
 
