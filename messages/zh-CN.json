@@ -30,6 +30,11 @@
       "title": "账户",
       "loginHint": "登录以同步你的影像偏好",
       "loginDescription": "收藏图集、保存播放记录、管理作品发布。"
+    },
+    "search": {
+      "open": "全局搜索",
+      "placeholder": "搜索标题、作者、地点或标签",
+      "submit": "搜索"
     }
   },
   "auth": {
@@ -149,7 +154,11 @@
         "timeline": "时间线",
         "newest": "最新优先",
         "oldest": "最旧优先"
-      }
+      },
+      "searchPlaceholder": "搜索标题、作者、地点或标签",
+      "searchAria": "搜索画廊内容",
+      "clearSearch": "清除搜索",
+      "noResults": "没有匹配的内容，试试更短的关键词。"
     },
     "media": {
       "photo": "照片",
@@ -430,7 +439,19 @@
           "close": "关闭",
           "playPause": "播放/暂停",
           "firstLast": "第一张/最后一张"
-        }
+        },
+        "favorite": "收藏",
+        "unfavorite": "取消收藏",
+        "favorited": "已加入收藏",
+        "unfavorited": "已取消收藏",
+        "share": "分享",
+        "shareSuccess": "分享成功",
+        "shareCopied": "分享链接已复制",
+        "shareFailed": "分享失败，请重试",
+        "download": "下载",
+        "mapUnavailable": "地图加载失败，请稍后重试。",
+        "tagsPlaceholder": "输入标签，逗号分隔",
+        "tagsEmpty": "暂无标签"
       },
       "playback": {
         "failed": "播放失败",
@@ -486,7 +507,8 @@
         "equipment": "设备信息",
         "basic": "基本信息",
         "shooting": "拍摄信息",
-        "params": "技术参数"
+        "params": "技术参数",
+        "tags": "标签"
       },
       "badges": {
         "video": "视频",

@@ -30,6 +30,11 @@
       "title": "Account",
       "loginHint": "Sign in to sync your visual preferences",
       "loginDescription": "Save collections, keep playback history, manage releases."
+    },
+    "search": {
+      "open": "Global search",
+      "placeholder": "Search title, author, place, or tags",
+      "submit": "Search"
     }
   },
   "auth": {
@@ -149,7 +154,11 @@
         "timeline": "Timeline",
         "newest": "Newest First",
         "oldest": "Oldest First"
-      }
+      },
+      "searchPlaceholder": "Search title, author, place, or tags",
+      "searchAria": "Search gallery content",
+      "clearSearch": "Clear search",
+      "noResults": "No matching content. Try a shorter keyword."
     },
     "media": {
       "photo": "Photo",
@@ -430,7 +439,19 @@
           "close": "Close",
           "playPause": "Play/Pause",
           "firstLast": "First/Last"
-        }
+        },
+        "favorite": "Favorite",
+        "unfavorite": "Remove favorite",
+        "favorited": "Added to favorites",
+        "unfavorited": "Removed from favorites",
+        "share": "Share",
+        "shareSuccess": "Shared successfully",
+        "shareCopied": "Share link copied",
+        "shareFailed": "Unable to share. Please try again.",
+        "download": "Download",
+        "mapUnavailable": "Map failed to load. Please try again later.",
+        "tagsPlaceholder": "Enter tags separated by commas",
+        "tagsEmpty": "No tags yet"
       },
       "playback": {
         "failed": "Playback failed",
@@ -486,7 +507,8 @@
         "equipment": "Equipment Info",
         "basic": "Basic Info",
         "shooting": "Shooting Info",
-        "params": "Technical Params"
+        "params": "Technical Params",
+        "tags": "Tags"
       },
       "badges": {
         "video": "VIDEO",
