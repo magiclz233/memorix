@@ -31,6 +31,59 @@ import { getCached } from './redis';
 export const buildSystemSettingsKey = (locale: string) =>
   `system_settings_${locale}`;
 
+const MEDIA_TAGS_KEY = 'media_tags';
+
+type MediaTagsMap = Record<string, string[]>;
+
+const normalizeTagValue = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, 32);
+};
+
+const normalizeTagList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  const tags = value
+    .map((item) => normalizeTagValue(item))
+    .filter((item): item is string => Boolean(item));
+  return Array.from(new Set(tags)).slice(0, 12);
+};
+
+const normalizeMediaTagsMap = (value: unknown): MediaTagsMap => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const entries = Object.entries(value as Record<string, unknown>);
+  const map: MediaTagsMap = {};
+  entries.forEach(([key, rawValue]) => {
+    const tags = normalizeTagList(rawValue);
+    if (tags.length > 0) {
+      map[key] = tags;
+    }
+  });
+  return map;
+};
+
+const fetchMediaTagsMap = async (): Promise<MediaTagsMap> => {
+  const admin = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.role, 'admin'))
+    .orderBy(asc(users.id))
+    .limit(1);
+
+  const adminId = admin[0]?.id;
+  if (!adminId) return {};
+
+  const rows = await db
+    .select({ value: userSettings.value })
+    .from(userSettings)
+    .where(and(eq(userSettings.userId, adminId), eq(userSettings.key, MEDIA_TAGS_KEY)))
+    .limit(1);
+
+  return normalizeMediaTagsMap(rows[0]?.value);
+};
+
+
 export type ContactItem = {
   id: string;
   type: string; // 'email' | 'github' | 'wechat' | 'telegram' | 'weibo' | 'twitter' | 'instagram' | 'website' | 'other'
@@ -1079,6 +1132,7 @@ type FetchGalleryOptions = {
   offset?: number;
   mediaTypes?: Array<'image' | 'video' | 'animated'>;
   sortOrder?: 'newest' | 'oldest';
+  keyword?: string;
 };
 
 export async function fetchPublishedMediaForGallery(
@@ -1089,6 +1143,23 @@ export async function fetchPublishedMediaForGallery(
       options.mediaTypes && options.mediaTypes.length > 0
         ? options.mediaTypes
         : ['image', 'video', 'animated'];
+    const keyword = options.keyword?.trim();
+    const conditions = [
+      eq(files.isPublished, true),
+      inArray(files.mediaType, mediaTypes),
+    ] as any[];
+
+    if (keyword) {
+      conditions.push(
+        or(
+          ilike(files.title, `%${keyword}%`),
+          ilike(files.path, `%${keyword}%`),
+          ilike(files.author, `%${keyword}%`),
+          ilike(photoMetadata.description, `%${keyword}%`),
+          ilike(photoMetadata.locationName, `%${keyword}%`),
+        ),
+      );
+    }
     let query = db
       .select({
         id: files.id,
@@ -1131,9 +1202,7 @@ export async function fetchPublishedMediaForGallery(
       .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
       .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
       .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
-      .where(
-        and(eq(files.isPublished, true), inArray(files.mediaType, mediaTypes)),
-      )
+      .where(and(...conditions))
       .orderBy(options.sortOrder === 'oldest' ? asc(files.mtime) : desc(files.mtime))
       .$dynamic();
     if (typeof options.limit === 'number') {
@@ -1144,12 +1213,17 @@ export async function fetchPublishedMediaForGallery(
     }
     const records = await query;
 
+    const tagsMap = await fetchMediaTagsMap();
+
     return records
       .filter(
         (record) =>
           !(record.storageConfig as { isDisabled?: boolean })?.isDisabled,
       )
-      .map(({ storageConfig, ...rest }) => rest);
+      .map(({ storageConfig, ...rest }) => ({
+        ...rest,
+        tags: tagsMap[String(rest.id)] ?? [],
+      }));
   } catch (error) {
     const cause = (error as Error & { cause?: unknown }).cause;
     console.error('Gallery query failed:', error);
@@ -1160,6 +1234,65 @@ export async function fetchPublishedMediaForGallery(
   }
 }
 
+
+export async function fetchPublishedMediaById(id: number) {
+  const tagsMap = await fetchMediaTagsMap();
+
+  const records = await db
+    .select({
+      id: files.id,
+      title: files.title,
+      path: files.path,
+      size: files.size,
+      mimeType: files.mimeType,
+      mediaType: files.mediaType,
+      url: files.url,
+      thumbUrl: files.thumbUrl,
+      mtime: files.mtime,
+      blurHash: files.blurHash,
+      resolutionWidth: photoMetadata.resolutionWidth,
+      resolutionHeight: photoMetadata.resolutionHeight,
+      videoWidth: videoMetadata.width,
+      videoHeight: videoMetadata.height,
+      videoDuration: videoMetadata.duration,
+      description: photoMetadata.description,
+      author: files.author,
+      camera: photoMetadata.camera,
+      maker: photoMetadata.maker,
+      lens: photoMetadata.lens,
+      dateShot: photoMetadata.dateShot,
+      exposure: photoMetadata.exposure,
+      aperture: photoMetadata.aperture,
+      iso: photoMetadata.iso,
+      focalLength: photoMetadata.focalLength,
+      focalLengthIn35mmFormat: photoMetadata.focalLengthIn35mmFormat,
+      flash: photoMetadata.flash,
+      exposureProgram: photoMetadata.exposureProgram,
+      colorSpace: photoMetadata.colorSpace,
+      locationName: photoMetadata.locationName,
+      whiteBalance: photoMetadata.whiteBalance,
+      gpsLatitude: photoMetadata.gpsLatitude,
+      gpsLongitude: photoMetadata.gpsLongitude,
+      liveType: photoMetadata.liveType,
+      storageConfig: userStorages.config,
+    })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
+    .where(and(eq(files.id, id), eq(files.isPublished, true)))
+    .limit(1);
+
+  const record = records[0];
+  if (!record) return null;
+  if ((record.storageConfig as { isDisabled?: boolean })?.isDisabled) return null;
+
+  const { storageConfig, ...rest } = record;
+  return {
+    ...rest,
+    tags: tagsMap[String(rest.id)] ?? [],
+  };
+}
 export async function fetchPublishedPhotosForHome(limit = 12) {
   const records = await db
     .select({

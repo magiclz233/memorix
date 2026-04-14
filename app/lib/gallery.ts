@@ -1,4 +1,4 @@
-import type { fetchPublishedMediaForGallery } from '@/app/lib/data';
+﻿import type { fetchPublishedMediaForGallery } from '@/app/lib/data';
 
 export type GalleryItem = {
   id: string;
@@ -32,6 +32,7 @@ export type GalleryItem = {
   dateShot?: string | null;
   createdAt?: string | null;
   blurHash?: string | null;
+  tags?: string[];
   liveType?: 'none' | 'embedded' | 'paired';
 };
 
@@ -105,6 +106,7 @@ export const buildGalleryItems = (records: GalleryRecord[]) =>
       dateShot: normalizeDate(shotAt),
       createdAt: normalizeDate(record.mtime),
       blurHash: record.blurHash ?? null,
+      tags: Array.isArray(record.tags) ? record.tags : [],
       liveType: (record.liveType as 'none' | 'embedded' | 'paired') ?? 'none',
     });
     return acc;

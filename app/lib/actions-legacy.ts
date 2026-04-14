@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { z } from 'zod';
 import path from 'path';
@@ -259,6 +259,7 @@ const StorageCacheClearSchema = z.object({
 });
 
 const HERO_SETTING_KEY = 'hero_images';
+const MEDIA_TAGS_KEY = 'media_tags';
 const SYSTEM_SETTINGS_CAPABILITY_COUNT = 4;
 const SYSTEM_SETTINGS_EQUIPMENT_COUNT = 6;
 
@@ -938,11 +939,80 @@ export async function deleteUser(formData: FormData) {
   }
 }
 
+
+const normalizeMediaTagInput = (value: unknown): string[] => {
+  if (typeof value !== 'string') return [];
+  const tags = value
+    .split(/[\n,，]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .map((item) => item.slice(0, 32));
+  return Array.from(new Set(tags)).slice(0, 12);
+};
+
+const normalizeMediaTagsMapValue = (value: unknown): Record<string, string[]> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const result: Record<string, string[]> = {};
+  Object.entries(value as Record<string, unknown>).forEach(([key, rawValue]) => {
+    const tags = Array.isArray(rawValue)
+      ? rawValue
+          .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+          .filter((tag): tag is string => tag.length > 0)
+          .slice(0, 12)
+      : [];
+    if (tags.length > 0) {
+      result[key] = Array.from(new Set(tags));
+    }
+  });
+  return result;
+};
+
+const saveMediaTagsForFile = async (userId: number, fileId: number, tags: string[]) => {
+  const existing = await db
+    .select({ id: userSettings.id, value: userSettings.value })
+    .from(userSettings)
+    .where(and(eq(userSettings.userId, userId), eq(userSettings.key, MEDIA_TAGS_KEY)))
+    .limit(1);
+
+  const currentMap = normalizeMediaTagsMapValue(existing[0]?.value);
+  const key = String(fileId);
+
+  if (tags.length > 0) {
+    currentMap[key] = tags;
+  } else {
+    delete currentMap[key];
+  }
+
+  const entries = Object.entries(currentMap);
+
+  if (entries.length === 0) {
+    if (existing[0]?.id) {
+      await db.delete(userSettings).where(eq(userSettings.id, existing[0].id));
+    }
+    return;
+  }
+
+  if (existing[0]?.id) {
+    await db
+      .update(userSettings)
+      .set({ value: currentMap, updatedAt: new Date() })
+      .where(eq(userSettings.id, existing[0].id));
+    return;
+  }
+
+  await db.insert(userSettings).values({
+    userId,
+    key: MEDIA_TAGS_KEY,
+    value: currentMap,
+    updatedAt: new Date(),
+  });
+};
 const UpdatePhotoSchema = z.object({
   fileId: z.coerce.number().int().positive(),
   title: z.string().trim().optional(),
   author: z.string().trim().optional().or(z.literal('')),
   dateShot: z.string().trim().optional(),
+  tags: z.string().trim().optional(),
 });
 
 export async function updatePhotoDetails(formData: FormData) {
@@ -954,13 +1024,15 @@ export async function updatePhotoDetails(formData: FormData) {
     title: formData.get('title'),
     author: formData.get('author'),
     dateShot: formData.get('dateShot'),
+    tags: formData.get('tags'),
   });
 
   if (!parsed.success) {
     return { success: false, message: t('invalid') };
   }
 
-  const { fileId, title, author, dateShot } = parsed.data;
+  const { fileId, title, author, dateShot, tags } = parsed.data;
+  const nextTags = normalizeMediaTagInput(tags);
 
   try {
     const updates: { title?: string; author?: string | null; updatedAt: Date } = {
@@ -1009,6 +1081,10 @@ export async function updatePhotoDetails(formData: FormData) {
           dateShot: nextDate ?? null,
         })
         .where(eq(photoMetadata.fileId, fileId));
+    }
+
+    if (tags !== undefined) {
+      await saveMediaTagsForFile(admin.id, fileId, nextTags);
     }
 
     revalidatePathForAllLocales('/gallery');
@@ -1212,6 +1288,8 @@ export async function deleteMediaFiles(fileIds: number[]) {
 
     await Promise.allSettled(deletePromises);
 
+    await Promise.all(fileIds.map((fileId) => saveMediaTagsForFile(user.id, fileId, [])));
+
     // 重新验证相关页面
     revalidatePathForAllLocales('/dashboard/media');
     revalidatePathForAllLocales('/gallery');
@@ -1242,8 +1320,6 @@ async function cleanHeroReferences(
   deletedFileIds: number[],
   userId: number
 ) {
-  const HERO_SETTING_KEY = 'hero_images';
-
   // 读取用户的 hero_images 设置
   const heroSettings = await tx
     .select({ value: userSettings.value })
@@ -1334,5 +1410,29 @@ async function cleanCollectionCoverReferences(
         .where(eq(collections.id, collection.id));
     }
   }
+}
+
+export async function setMediaTags(fileIds: number[], tags: string[]) {
+  const t = await getTranslations('actions.files');
+  const user = await requireAdminUser();
+
+  if (!fileIds || fileIds.length === 0) {
+    return { success: false, message: t('noneSelected') };
+  }
+
+  const normalizedTags = Array.from(
+    new Set(
+      tags
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0)
+        .map((tag) => tag.slice(0, 32)),
+    ),
+  ).slice(0, 12);
+
+  await Promise.all(fileIds.map((fileId) => saveMediaTagsForFile(user.id, fileId, normalizedTags)));
+
+  revalidatePathForAllLocales('/dashboard/media');
+  revalidatePathForAllLocales('/gallery');
+  return { success: true, message: t('updated') };
 }
 
