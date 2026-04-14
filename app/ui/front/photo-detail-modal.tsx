@@ -4,35 +4,8 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSwipeable } from 'react-swipeable';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Heart,
-  MapPin,
-  Ruler,
-  Aperture,
-  Timer,
-  Gauge,
-  Camera,
-  FileText,
-  HardDrive,
-  Maximize,
-  Grid,
-  Calendar,
-  Palette,
-  Flag,
-  Building2,
-  X,
-  Play,
-  Loader2,
-  Sparkles,
-  Keyboard,
-} from 'lucide-react';
-import { Pencil, Save, Undo2 } from 'lucide-react';
-import { BlurImage } from '@/app/ui/gallery/blur-image';
+import { ChevronLeft, ChevronRight, Keyboard, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -48,12 +21,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { Histogram } from './histogram';
 import type { GalleryItem } from '@/app/lib/gallery';
 import { updatePhotoDetails } from '@/app/lib/actions';
 import { showError, showSuccess } from '@/app/lib/toast-utils';
 import { authClient } from '@/lib/auth-client';
+import { PhotoMediaCanvas } from './photo-detail/photo-media-canvas';
+import { PhotoFilmstrip } from './photo-detail/photo-filmstrip';
+import { PhotoInfoSidebar } from './photo-detail/photo-info-sidebar';
 
 type PhotoDetailModalProps = {
   selectedItem: GalleryItem | null;
@@ -86,78 +60,6 @@ function isTypingTarget(target: EventTarget | null) {
   if (target.isContentEditable) return true;
   const tag = target.tagName;
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
-}
-
-function InlineEditableText({
-  value,
-  onChange,
-  onSave,
-  editable,
-  className,
-  inputClassName,
-  placeholder,
-  type = 'text',
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  onSave: () => void;
-  editable: boolean;
-  className?: string;
-  inputClassName?: string;
-  placeholder?: string;
-  type?: string;
-}) {
-  const [isEditing, setIsEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isEditing]);
-
-  const handleBlur = () => {
-    setIsEditing(false);
-    onSave();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      inputRef.current?.blur();
-    } else if (e.key === 'Escape') {
-      setIsEditing(false);
-    }
-  };
-
-  if (isEditing) {
-    return (
-      <input
-        ref={inputRef}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        className={cn("bg-transparent border-b border-indigo-400 outline-none", inputClassName)}
-        placeholder={placeholder}
-      />
-    );
-  }
-
-  return (
-    <span
-      className={cn(
-        className,
-        editable ? 'cursor-text hover:underline decoration-dashed decoration-zinc-400/70 underline-offset-[6px]' : ''
-      )}
-      onClick={() => {
-        if (editable) setIsEditing(true);
-      }}
-      title={editable ? "点击修改" : undefined}
-    >
-      {value || placeholder}
-    </span>
-  );
 }
 
 export function PhotoDetailModal({
@@ -275,7 +177,7 @@ function PhotoDetailContent({
 
   const isFrame = viewMode === 'frame';
   const isVideo = item.type === 'video';
-  const isLive = item.liveType && item.liveType !== 'none';
+  const isLive = Boolean(item.liveType && item.liveType !== 'none');
   const isAnimated = Boolean(item.isAnimated && item.animatedUrl);
   const canPlayVideo = isVideo;
   const videoSrc = item.videoUrl ?? `/api/media/stream/${item.id}`;
@@ -658,73 +560,37 @@ function PhotoDetailContent({
     setIsPlaying(true);
     setIsLivePreviewing(false);
   };
-
-  const formatNumber = (val?: number | null, digits = 1) =>
-    typeof val === 'number' && !Number.isNaN(val)
-      ? val.toFixed(digits).replace(/\.0+$/, '')
-      : null;
-
-  const formatExposure = (val?: number | null) => {
-    if (typeof val !== 'number' || Number.isNaN(val)) return null;
-    if (val >= 1) return `${formatNumber(val, 2)}s`;
-    return `1/${Math.round(1 / val)}`;
-  };
-
-  const formatFileSize = (bytes?: number | null) => {
-    if (typeof bytes !== 'number') return null;
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let size = bytes;
-    let i = 0;
-    while (size >= 1024 && i < units.length - 1) {
-      size /= 1024;
-      i++;
-    }
-    return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-  };
-
-  const formatDate = (date?: string | null) => {
-    if (!date) return null;
-    return new Date(date).toLocaleString(locale, { hour12: false });
-  };
-
-  const getExposureProgram = (prog: number | null) => {
-    if (prog === null) return null;
-    return t(`values.exposureProgram.${prog}` as never);
-  };
-
-  const getFlashState = (flash: number | null) => {
-    if (flash === null) return null;
-    const fired = (flash & 1) !== 0;
-    return fired ? t('values.flash.fired') : t('values.flash.off');
-  };
-
-  const resolution = item.width && item.height ? `${item.width} x ${item.height}` : '-';
-  const mp =
-    item.width && item.height
-      ? (item.width * item.height / 1000000).toFixed(2) + ' MP'
-      : null;
-  const focalLength = formatNumber(item.focalLength);
-  const apertureValue = formatNumber(item.aperture);
-  const exposureValue = formatExposure(item.exposure);
-  const isoValue = typeof item.iso === 'number' ? String(item.iso) : null;
-  const exposureProgramValue =
-    typeof item.exposureProgram === 'number'
-      ? getExposureProgram(item.exposureProgram)
-      : null;
-  const flashValue =
-    typeof item.flash === 'number' ? getFlashState(item.flash) : null;
-  const hasShootingInfo =
-    Boolean(item.whiteBalance) ||
-    Boolean(exposureProgramValue) ||
-    Boolean(flashValue);
   const showFilmstrip = items.length > 1 && typeof onSelect === 'function';
 
-  const locationParts = item.locationName
-    ? item.locationName.split(',').map((s) => s.trim())
-    : [];
-  const city = locationParts[0];
-  const country = locationParts.length > 1 ? locationParts[locationParts.length - 1] : null;
+  const handleFilmstripPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!filmstripRef.current) return;
+    setIsDraggingFilmstrip(true);
+    dragPointerIdRef.current = event.pointerId;
+    dragStartXRef.current = event.clientX;
+    dragStartScrollLeftRef.current = filmstripRef.current.scrollLeft;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
 
+  const handleFilmstripPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingFilmstrip || !filmstripRef.current) return;
+    if (dragPointerIdRef.current !== event.pointerId) return;
+    const delta = event.clientX - dragStartXRef.current;
+    filmstripRef.current.scrollLeft = dragStartScrollLeftRef.current - delta;
+  };
+
+  const handleFilmstripPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragPointerIdRef.current !== event.pointerId) return;
+    setIsDraggingFilmstrip(false);
+    dragPointerIdRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const handleFilmstripPointerCancel = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragPointerIdRef.current !== event.pointerId) return;
+    setIsDraggingFilmstrip(false);
+    dragPointerIdRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  };
   return (
     <motion.div
       ref={modalRootRef}
@@ -802,310 +668,35 @@ function PhotoDetailContent({
             </button>
           )}
           
-          <div
-            {...swipeHandlers}
-            className={cn(
-              "relative w-full h-full flex items-center justify-center overflow-hidden transition-colors duration-500",
-              isFrame && "bg-[#f0f0f0] dark:bg-zinc-950"
-            )}
-          >
-            <AnimatePresence initial={false} custom={direction} mode="wait">
-              <motion.div
-                key={item.id}
-                custom={direction}
-                variants={{
-                  enter: (dir: number) => ({ x: dir >= 0 ? 80 : -80, opacity: 0, scale: 0.98 }),
-                  center: {
-                    x: 0,
-                    opacity: 1,
-                    scale: 1,
-                    transition: {
-                      x: { type: 'spring', stiffness: 300, damping: 30 },
-                      opacity: { duration: 0.2 },
-                      scale: { duration: 0.2 },
-                    },
-                  },
-                  exit: (dir: number) => ({ x: dir >= 0 ? -80 : 80, opacity: 0, scale: 0.98, transition: { duration: 0.2 } }),
-                }}
-                initial="enter"
-                animate="center"
-                exit="exit"
-
-                className={cn(
-                  "absolute inset-0 flex items-center justify-center w-full h-full",
-                  isFrame ? "p-4 md:p-8" : "p-0"
-                )}
-              >
-                {(() => {
-                  const hasDimensions = !!(item.width && item.height);
-                  const safeWidth = item.width || 1920;
-                  const safeHeight = item.height || 1080;
-                  const isFrame = viewMode === 'frame';
-                  const useShrinkWrap = !isFrame && hasDimensions; // Only shrink-wrap in Fit mode
-
-                  const containerClass = useShrinkWrap
-                    ? 'relative flex max-w-full max-h-full shadow-2xl rounded-sm overflow-hidden transition-all duration-300'
-                    : isFrame
-                      ? 'relative max-w-full max-h-full flex items-center justify-center'
-                      : 'relative w-full h-full overflow-hidden bg-zinc-950'; // Fallback
-
-                  return (
-                    <div className={containerClass}>
-                      {isFrame ? (
-                         // Structure prototype moved to docs/archive/code.html
-                         <div className="bg-white dark:bg-[#1a1a1a] shadow-[0_10px_50px_-10px_rgba(0,0,0,0.1)] flex flex-col items-center pt-[4%] pr-[6%] pb-[8%] pl-[6%] transition-all duration-700 min-w-[300px]">
-                            {/* Image Container with Lift Shadow */}
-                            <div className="relative shadow-[0_4px_20px_-2px_rgba(0,0,0,0.15)]">
-                              {isAnimated ? (
-                                <Image
-                                  src={item.animatedUrl ?? ''}
-                                  alt={isEditing ? footTitle || item.title : item.title}
-                                  width={safeWidth}
-                                  height={safeHeight}
-                                  unoptimized
-                                  className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block"
-                                  sizes="100vw"
-                                  priority
-                                />
-                              ) : (
-                                <BlurImage
-                                  src={item.src}
-                                  alt={isEditing ? footTitle || item.title : item.title}
-                                  blurHash={item.blurHash}
-                                  width={safeWidth}
-                                  height={safeHeight}
-                                  quality={90}
-                                  className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block"
-                                  sizes="100vw"
-                                  priority
-                                />
-                              )}
-                              
-                              {/* Video/Live Elements layered on top */}
-                              {canPlayVideo && isPlaying && (
-                                <video
-                                  ref={videoRef}
-                                  src={videoSrc}
-                                  autoPlay
-                                  controls
-                                  className="absolute inset-0 w-full h-full object-contain"
-                                  onLoadStart={() => setIsBuffering(true)}
-                                  onWaiting={() => setIsBuffering(true)}
-                                  onCanPlay={() => setIsBuffering(false)}
-                                  onPlaying={() => setIsBuffering(false)}
-                                  onError={() => {
-                                    setIsPlaying(false);
-                                    setIsBuffering(false);
-                                  }}
-                                />
-                              )}
-
-                              {isLive && isLivePreviewing && (
-                                <video
-                                  ref={videoRef}
-                                  src={videoSrc}
-                                  autoPlay
-                                  muted
-                                  playsInline
-                                  className="absolute z-10 inset-0 w-full h-full object-contain"
-                                  onLoadStart={() => setIsBuffering(true)}
-                                  onWaiting={() => setIsBuffering(true)}
-                                  onCanPlay={() => setIsBuffering(false)}
-                                  onPlaying={() => setIsBuffering(false)}
-                                  onEnded={() => setIsLivePreviewing(false)}
-                                  onError={() => {
-                                    setIsLivePreviewing(false);
-                                    setIsBuffering(false);
-                                  }}
-                                />
-                              )}
-                              {isLive ? (
-                                <button
-                                  type="button"
-                                  aria-label={liveLabel}
-                                  onMouseEnter={() => setIsLivePreviewing(true)}
-                                  onMouseLeave={() => setIsLivePreviewing(false)}
-                                  onFocus={() => setIsLivePreviewing(true)}
-                                  onBlur={() => setIsLivePreviewing(false)}
-                                  onClick={(event) => event.stopPropagation()}
-                                  className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
-                                >
-                                  <Sparkles className="h-4 w-4" />
-                                </button>
-                              ) : isAnimated ? (
-                                <div className="absolute right-3 top-3 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
-                                  {t('badges.animated')}
-                                </div>
-                              ) : null}
-                            </div>
-
-                            {/* Metadata Panel inside Mat */}
-                            <div className="mt-8 md:mt-12 text-center w-full">
-                                <div className="w-full text-center">
-                                  <InlineEditableText
-                                    value={footTitle}
-                                    onChange={setFootTitle}
-                                    onSave={handleInlineSave}
-                                    editable={isAdmin}
-                                    className="font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 break-words"
-                                    inputClassName="text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 w-full max-w-[300px]"
-                                    placeholder={t('modal.untitled')}
-                                  />
-                                </div>
-
-                              <div className="flex items-center justify-center gap-2 mt-2 opacity-60 hover:opacity-100 transition-opacity duration-300">
-                                <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">
-                                  {t('modal.authorPrefix')}
-                                </span>
-                                  <div className="min-w-[72px] text-center">
-                                    <InlineEditableText
-                                      value={footAuthor}
-                                      onChange={setFootAuthor}
-                                      onSave={handleInlineSave}
-                                      editable={isAdmin}
-                                      className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 block w-full"
-                                      inputClassName="text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 w-24"
-                                      placeholder={t('modal.authorFallback')}
-                                    />
-                                  </div>
-                                <span className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300">·</span>
-                                  <div className="min-w-[92px] text-center">
-                                    <InlineEditableText
-                                      value={footDate}
-                                      onChange={setFootDate}
-                                      onSave={handleInlineSave}
-                                      editable={isAdmin}
-                                      type="date"
-                                      className="font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 block w-full"
-                                      inputClassName="text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 w-32"
-                                      placeholder={t('modal.dateFallback')}
-                                    />
-                                  </div>
-                              </div>
-                            </div>
-                         </div>
-                      ) : (
-                        // Existing Fit Mode
-                        <div
-                          className={cn(
-                            'relative flex',
-                            useShrinkWrap ? 'w-auto h-auto' : 'w-full h-full'
-                          )}
-                        >
-                          {isAnimated ? (
-                            <Image
-                              src={item.animatedUrl ?? ''}
-                              alt={item.title}
-                              unoptimized
-                              fill={!useShrinkWrap}
-                              width={useShrinkWrap ? (item.width || undefined) : undefined}
-                              height={useShrinkWrap ? (item.height || undefined) : undefined}
-                              className={cn(
-                                useShrinkWrap
-                                  ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
-                                  : 'object-contain'
-                              )}
-                              sizes="100vw"
-                              priority
-                            />
-                          ) : (
-                            <BlurImage
-                              src={item.src}
-                              alt={item.title}
-                              blurHash={item.blurHash}
-                              fill={!useShrinkWrap}
-                              width={useShrinkWrap ? (item.width || undefined) : undefined}
-                              height={useShrinkWrap ? (item.height || undefined) : undefined}
-                              className={cn(
-                                useShrinkWrap
-                                  ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
-                                  : 'object-contain'
-                              )}
-                              sizes="100vw"
-                              priority
-                            />
-                          )}
-                           {canPlayVideo && isPlaying && (
-                            <video
-                              ref={videoRef}
-                              src={videoSrc}
-                              autoPlay
-                              controls
-                              className="absolute inset-0 w-full h-full object-contain"
-                              onLoadStart={() => setIsBuffering(true)}
-                              onWaiting={() => setIsBuffering(true)}
-                              onCanPlay={() => setIsBuffering(false)}
-                              onPlaying={() => setIsBuffering(false)}
-                              onError={() => {
-                                setIsPlaying(false);
-                                setIsBuffering(false);
-                              }}
-                            />
-                          )}
-                          {isLive && isLivePreviewing && (
-                            <video
-                              ref={videoRef}
-                              src={videoSrc}
-                              autoPlay
-                              muted
-                              playsInline
-                              className="absolute z-10 inset-0 w-full h-full object-contain"
-                              onLoadStart={() => setIsBuffering(true)}
-                              onWaiting={() => setIsBuffering(true)}
-                              onCanPlay={() => setIsBuffering(false)}
-                              onPlaying={() => setIsBuffering(false)}
-                              onEnded={() => setIsLivePreviewing(false)}
-                              onError={() => {
-                                setIsLivePreviewing(false);
-                                setIsBuffering(false);
-                              }}
-                            />
-                          )}
-                          {isLive ? (
-                            <button
-                              type="button"
-                              aria-label={liveLabel}
-                              onMouseEnter={() => setIsLivePreviewing(true)}
-                              onMouseLeave={() => setIsLivePreviewing(false)}
-                              onFocus={() => setIsLivePreviewing(true)}
-                              onBlur={() => setIsLivePreviewing(false)}
-                              onClick={(event) => event.stopPropagation()}
-                              className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
-                            >
-                              <Sparkles className="h-4 w-4" />
-                            </button>
-                          ) : isAnimated ? (
-                            <div className="absolute right-3 top-3 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
-                              {t('badges.animated')}
-                            </div>
-                          ) : null}
-                        </div>
-                      )}
-
-                      {/* Video/Live controls for Fit mode would go here if not already embedded above */}
-                      
-                      {canPlayVideo && !isPlaying && (
-                        <div className="absolute inset-0 flex items-center justify-center z-20">
-                          <button
-                            onClick={startVideo}
-                            className="h-20 w-20 rounded-full bg-black/30 flex items-center justify-center backdrop-blur-sm transition hover:scale-110 hover:bg-black/50 group/play"
-                          >
-                            <Play className="h-10 w-10 fill-white text-white opacity-90 group-hover/play:opacity-100" />
-                          </button>
-                        </div>
-                      )}
-
-                      {isBuffering && (
-                        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-                          <Loader2 className="h-12 w-12 animate-spin text-white" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          <PhotoMediaCanvas
+            item={item}
+            direction={direction}
+            viewMode={viewMode}
+            swipeHandlers={swipeHandlers}
+            isAnimated={isAnimated}
+            isLive={isLive}
+            canPlayVideo={canPlayVideo}
+            isPlaying={isPlaying}
+            isBuffering={isBuffering}
+            isLivePreviewing={isLivePreviewing}
+            videoSrc={videoSrc}
+            liveLabel={liveLabel}
+            isEditing={isEditing}
+            isAdmin={isAdmin}
+            footTitle={footTitle}
+            footAuthor={footAuthor}
+            footDate={footDate}
+            setFootTitle={setFootTitle}
+            setFootAuthor={setFootAuthor}
+            setFootDate={setFootDate}
+            handleInlineSave={handleInlineSave}
+            startVideo={startVideo}
+            setIsPlaying={setIsPlaying}
+            setIsBuffering={setIsBuffering}
+            setIsLivePreviewing={setIsLivePreviewing}
+            videoRef={videoRef}
+            t={t}
+          />
 
           {hasNext && (
             <button 
@@ -1116,236 +707,30 @@ function PhotoDetailContent({
             </button>
           )}
         </div>
-        {showFilmstrip && (
-          <div className="relative h-24 px-6 md:px-8">
-            {canScrollLeft ? (
-              <div className="pointer-events-none absolute left-0 top-0 z-20 h-full w-10 bg-gradient-to-r from-zinc-50 to-transparent dark:from-zinc-950" />
-            ) : null}
-            {canScrollRight ? (
-              <div className="pointer-events-none absolute right-0 top-0 z-20 h-full w-10 bg-gradient-to-l from-zinc-50 to-transparent dark:from-zinc-950" />
-            ) : null}
-
-            <div
-              ref={filmstripRef}
-              className={cn(
-                'h-full flex items-center gap-3 overflow-x-auto custom-scrollbar pb-1',
-                isDraggingFilmstrip ? 'cursor-grabbing select-none' : 'cursor-grab',
-              )}
-              onPointerDown={(event) => {
-                if (!filmstripRef.current) return;
-                setIsDraggingFilmstrip(true);
-                dragPointerIdRef.current = event.pointerId;
-                dragStartXRef.current = event.clientX;
-                dragStartScrollLeftRef.current = filmstripRef.current.scrollLeft;
-                event.currentTarget.setPointerCapture(event.pointerId);
-              }}
-              onPointerMove={(event) => {
-                if (!isDraggingFilmstrip || !filmstripRef.current) return;
-                if (dragPointerIdRef.current !== event.pointerId) return;
-                const delta = event.clientX - dragStartXRef.current;
-                filmstripRef.current.scrollLeft = dragStartScrollLeftRef.current - delta;
-              }}
-              onPointerUp={(event) => {
-                if (dragPointerIdRef.current !== event.pointerId) return;
-                setIsDraggingFilmstrip(false);
-                dragPointerIdRef.current = null;
-                event.currentTarget.releasePointerCapture(event.pointerId);
-              }}
-              onPointerCancel={(event) => {
-                if (dragPointerIdRef.current !== event.pointerId) return;
-                setIsDraggingFilmstrip(false);
-                dragPointerIdRef.current = null;
-                event.currentTarget.releasePointerCapture(event.pointerId);
-              }}
-            >
-              {items.map((thumb) => {
-                const isActive = thumb.id === item.id;
-                return (
-                  <button
-                    key={thumb.id}
-                    type="button"
-                    ref={(node) => {
-                      thumbRefs.current[String(thumb.id)] = node;
-                    }}
-                    onClick={() => requestAction({ type: 'select', id: String(thumb.id) })}
-                    className={cn(
-                      'flex-shrink-0 w-14 h-14 rounded-sm overflow-hidden transition-opacity',
-                      isActive
-                        ? 'border-2 border-primary dark:border-white shadow-lg ring-2 ring-white/20'
-                        : 'opacity-50 hover:opacity-100',
-                    )}
-                  >
-                    <Image
-                      src={thumb.src}
-                      alt={thumb.title}
-                      width={56}
-                      height={56}
-                      quality={70}
-                      unoptimized={thumb.src.startsWith('/api/')}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <PhotoFilmstrip
+          show={showFilmstrip}
+          items={items}
+          currentItemId={item.id}
+          canScrollLeft={canScrollLeft}
+          canScrollRight={canScrollRight}
+          isDraggingFilmstrip={isDraggingFilmstrip}
+          filmstripRef={filmstripRef}
+          thumbRefs={thumbRefs}
+          onRequestAction={requestAction}
+          onPointerDown={handleFilmstripPointerDown}
+          onPointerMove={handleFilmstripPointerMove}
+          onPointerUp={handleFilmstripPointerUp}
+          onPointerCancel={handleFilmstripPointerCancel}
+        />
       </div>
 
-      <aside className="w-[420px] flex-shrink-0 bg-white dark:bg-zinc-950/90 border-l border-gray-100 dark:border-zinc-800 flex flex-col h-full overflow-y-auto custom-scrollbar">
-        <div className="p-6 space-y-8">
-          <section className="flex justify-between items-start">
-            <h2 className="text-lg font-bold tracking-tight text-primary dark:text-white leading-tight pr-4 break-words">
-              {isEditing ? footTitle || item.title : item.title}
-            </h2>
-            <div className="flex items-center space-x-3 mt-1 flex-shrink-0">
-              <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Like">
-                <Heart className="w-5 h-5" />
-              </button>
-              <a 
-                 href={`/api/media/stream/${item.id}?download=true`}
-                 download
-                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary dark:hover:text-white transition-colors" 
-                 title="Download"
-              >
-                <Download className="w-5 h-5" />
-              </a>
-            </div>
-          </section>
-
-          {(item.gpsLatitude || item.locationName) && (
-            <section>
-              <div className="relative h-40 w-full bg-zinc-50 dark:bg-zinc-900/60 rounded-xl overflow-hidden border border-zinc-100 dark:border-zinc-800 mb-2">
-                 <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-900/70 text-zinc-400">
-                    <MapPin className="w-10 h-10 opacity-20" />
-                 </div>
-                 {item.gpsLatitude && item.gpsLongitude && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="relative">
-                        <div className="w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-lg"></div>
-                        <div className="absolute -inset-2 bg-red-500/30 rounded-full animate-ping"></div>
-                      </div>
-                    </div>
-                 )}
-              </div>
-              <div className="flex items-center space-x-2 text-[11px] text-gray-500 dark:text-gray-400">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>
-                  {item.locationName || `${formatNumber(item.gpsLatitude, 4)}, ${formatNumber(item.gpsLongitude, 4)}`}
-                </span>
-              </div>
-            </section>
-          )}
-
-          <section>
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-400 mb-3">{t('details.camera')}</h3>
-            <div className="grid grid-cols-2 gap-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden">
-              <div className="bg-white dark:bg-zinc-900/70 p-4 flex flex-col">
-                <div className="flex items-center space-x-2 text-zinc-400 mb-1">
-                  <Ruler className="w-4 h-4" />
-                  <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.focalLength')}</span>
-                </div>
-                <p className="text-[16px] font-bold">{focalLength ? `${focalLength} mm` : '-'}</p>
-              </div>
-              <div className="bg-white dark:bg-zinc-900/70 p-4 flex flex-col">
-                <div className="flex items-center space-x-2 text-gray-400 mb-1">
-                  <Aperture className="w-4 h-4" />
-                  <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.aperture')}</span>
-                </div>
-                <p className="text-[16px] font-bold">{apertureValue ? `f/${apertureValue}` : '-'}</p>
-              </div>
-              <div className="bg-white dark:bg-zinc-900/70 p-4 flex flex-col">
-                <div className="flex items-center space-x-2 text-gray-400 mb-1">
-                  <Timer className="w-4 h-4" />
-                  <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.shutter')}</span>
-                </div>
-                <p className="text-[16px] font-bold">{exposureValue ?? '-'}</p>
-              </div>
-              <div className="bg-white dark:bg-zinc-900/70 p-4 flex flex-col">
-                <div className="flex items-center space-x-2 text-gray-400 mb-1">
-                  <Gauge className="w-4 h-4" />
-                  <span className="text-[10px] uppercase font-bold tracking-wider">{t('details.iso')}</span>
-                </div>
-                <p className="text-[16px] font-bold">{isoValue ?? '-'}</p>
-              </div>
-            </div>
-          </section>
-
-          <section>
-             <div className="flex justify-between items-center mb-3">
-               <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400">{t('sections.histogram')}</h3>
-               <div className="flex space-x-1">
-                 <div className="w-1.5 h-1.5 rounded-full bg-red-400/80"></div>
-                 <div className="w-1.5 h-1.5 rounded-full bg-green-400/80"></div>
-                 <div className="w-1.5 h-1.5 rounded-full bg-blue-400/80"></div>
-               </div>
-             </div>
-             <div className="h-24 w-full bg-zinc-50/50 dark:bg-zinc-900/50 rounded-lg overflow-hidden border border-zinc-100 dark:border-zinc-800 p-2">
-                <Histogram src={item.src} className="w-full h-full" />
-             </div>
-          </section>
-
-          <section className="space-y-4">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">{t('sections.equipment')}</h3>
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex items-start space-x-3">
-                <Camera className="w-5 h-5 text-gray-400" />
-                <div className="flex-grow">
-                  <p className="text-[10px] text-gray-400 uppercase font-bold">{t('details.camera')}</p>
-                  <p className="text-[13px] font-bold text-gray-800 dark:text-gray-100">
-                    {item.maker} {item.camera}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <Aperture className="w-5 h-5 text-gray-400" />
-                <div className="flex-grow">
-                  <p className="text-[10px] text-gray-400 uppercase font-bold">{t('details.lens')}</p>
-                  <p className="text-[13px] font-bold text-gray-800 dark:text-gray-100">{item.lens || '-'}</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                 <Maximize className="w-5 h-5 text-gray-400" />
-                 <div className="flex-grow flex justify-between items-end">
-                   <p className="text-[13px] text-gray-500">{t('details.focalLength35mm')}</p>
-                   <p className="text-[13px] font-bold">{item.focalLengthIn35mmFormat ? `${item.focalLengthIn35mmFormat} mm` : '-'}</p>
-                 </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">{t('sections.basic')}</h3>
-            <div className="space-y-2.5">
-              <InfoRow icon={<FileText className="w-4 h-4" />} label={t('details.filename')} value={item.title} />
-              <InfoRow icon={<HardDrive className="w-4 h-4" />} label={t('details.fileSize')} value={formatFileSize(item.size)} />
-              <InfoRow icon={<Maximize className="w-4 h-4" />} label={t('details.resolution')} value={resolution} />
-              <InfoRow icon={<Grid className="w-4 h-4" />} label={t('details.megapixels')} value={mp} />
-              <InfoRow icon={<Calendar className="w-4 h-4" />} label={t('details.dateShot')} value={formatDate(item.dateShot)} />
-              <InfoRow icon={<Palette className="w-4 h-4" />} label={t('details.colorSpace')} value={item.colorSpace || 'sRGB'} />
-              {city && <InfoRow icon={<Building2 className="w-4 h-4" />} label={t('details.city')} value={city} />}
-              {country && <InfoRow icon={<Flag className="w-4 h-4" />} label={t('details.country')} value={country} />}
-            </div>
-          </section>
-          {hasShootingInfo && (
-            <section className="space-y-3">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2">{t('sections.shooting')}</h3>
-              <div className="space-y-2.5">
-                {item.whiteBalance && (
-                  <SimpleRow label={t('details.whiteBalance')} value={item.whiteBalance} />
-                )}
-                {exposureProgramValue && (
-                  <SimpleRow label={t('details.exposureProgram')} value={exposureProgramValue} />
-                )}
-                {flashValue && (
-                  <SimpleRow label={t('details.flash')} value={flashValue} />
-                )}
-              </div>
-            </section>
-          )}
-
-        </div>
-      </aside>
+      <PhotoInfoSidebar
+        item={item}
+        isEditing={isEditing}
+        footTitle={footTitle}
+        locale={locale}
+        t={t}
+      />
 
       <Dialog
         open={confirmOpen}
@@ -1378,23 +763,3 @@ function PhotoDetailContent({
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: React.ReactNode, label: string, value: React.ReactNode }) {
-  return (
-    <div className="flex justify-between items-center text-[12px]">
-      <div className="flex items-center space-x-2 text-gray-400">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <span className="font-semibold text-gray-900 dark:text-gray-100">{value || '-'}</span>
-    </div>
-  );
-}
-
-function SimpleRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex justify-between text-[12px]">
-      <span className="text-gray-400">{label}</span>
-      <span className="font-semibold text-gray-900 dark:text-gray-100">{value || '-'}</span>
-    </div>
-  );
-}
