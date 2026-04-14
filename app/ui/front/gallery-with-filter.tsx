@@ -46,8 +46,14 @@ export function GalleryWithFilter({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [mediaType, setMediaType] = useState<MediaType>('all');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+  const [mediaType, setMediaType] = useState<MediaType>(() => {
+    const param = searchParams.get('mediaType');
+    return (param === 'photo' || param === 'video') ? param : 'all';
+  });
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const param = searchParams.get('sortOrder');
+    return param === 'oldest' ? 'oldest' : 'newest';
+  });
   const [keyword, setKeyword] = useState(initialKeyword);
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
   const [hasNext, setHasNext] = useState(initialHasNext);
@@ -79,6 +85,13 @@ export function GalleryWithFilter({
 
   const applyFilter = useCallback(
     async (nextMediaType: MediaType, nextSortOrder: SortOrder, nextKeyword: string) => {
+      // 更新 URL 参数
+      replaceQuery({
+        mediaType: nextMediaType !== 'all' ? nextMediaType : null,
+        sortOrder: nextSortOrder !== 'newest' ? nextSortOrder : null,
+        q: nextKeyword || null,
+      });
+      
       startTransition(async () => {
         const params = new URLSearchParams({
           page: '1',
@@ -97,7 +110,6 @@ export function GalleryWithFilter({
           setItems(data.items);
           setHasNext(data.hasNext);
           setSelectedId(null);
-          replaceQuery({ media: null, q: nextKeyword || null });
         } catch {
           // 静默失败，保留当前数据
         }

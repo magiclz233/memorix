@@ -87,6 +87,25 @@ export function PhotoDetailModal({
 }: PhotoDetailModalProps) {
   const t = useTranslations('front.galleryGrid');
 
+  // 浏览器返回支持
+  useEffect(() => {
+    if (!selectedItem) return;
+
+    const handlePopState = (event: PopStateEvent) => {
+      // 当用户点击浏览器返回按钮时关闭弹窗
+      onClose();
+    };
+
+    // 打开弹窗时添加一个历史记录
+    window.history.pushState({ modal: true }, '');
+    
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [selectedItem, onClose]);
+
   // Lock body scroll
   useEffect(() => {
     if (selectedItem) {
