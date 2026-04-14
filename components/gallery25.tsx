@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { motion } from 'motion/react';
 import { Play, Sparkles } from 'lucide-react';
@@ -441,6 +441,7 @@ const Gallery25 = ({
                     item.liveType === 'embedded'
                       ? tMedia('motionPhoto')
                       : tMedia('livePhoto');
+                  const itemTags = (item.tags ?? []).slice(0, 3);
 
                   return (
                     <motion.article
@@ -550,6 +551,18 @@ const Gallery25 = ({
                                 {item.resolution ?? `${item.width}×${item.height}`}
                               </p>
                             ) : null}
+                            {itemTags.length > 0 ? (
+                              <div className='mt-1 flex flex-wrap gap-1.5'>
+                                {itemTags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className='rounded-full border border-white/30 bg-black/35 px-2 py-0.5 text-[10px] text-white/85 backdrop-blur-sm'
+                                  >
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -577,3 +590,6 @@ const Gallery25 = ({
 };
 
 export { Gallery25 };
+
+
+
