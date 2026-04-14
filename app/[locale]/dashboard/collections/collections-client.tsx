@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition, useEffect } from 'react';
 import {
   Plus,
   MoreHorizontal,
@@ -54,10 +54,11 @@ import {
   CollectionForm,
   CollectionFormData,
 } from '@/app/ui/dashboard/collection-form';
-import { deleteCollection } from '@/app/lib/actions/unified-collections';
+import { deleteCollection, toggleCollectionStatus } from '@/app/lib/actions/unified-collections';
 import { Link, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import type { CollectionListItem } from '@/app/lib/data';
+import { Switch } from '@/components/ui/switch';
 
 type CollectionsClientProps = {
   collections: CollectionListItem[];
@@ -83,24 +84,30 @@ export function CollectionsClient({
     'all' | 'draft' | 'published'
   >('all');
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [optimisticCollections, setOptimisticCollections] = useState(collections);
   const router = useRouter();
 
+  // 同步服务端数据
+  useEffect(() => {
+    setOptimisticCollections(collections);
+  }, [collections]);
+
   const stats = useMemo(() => {
-    const totalItems = collections.reduce(
+    const totalItems = optimisticCollections.reduce(
       (acc, curr) => acc + curr.itemCount,
       0,
     );
-    const publishedCount = collections.filter(
+    const publishedCount = optimisticCollections.filter(
       (item) => item.status === 'published',
     ).length;
     return {
-      totalCollections: collections.length,
+      totalCollections: optimisticCollections.length,
       totalItems,
       publishedCount,
     };
-  }, [collections]);
+  }, [optimisticCollections]);
 
-  const filteredCollections = collections.filter((item) => {
+  const filteredCollections = optimisticCollections.filter((item) => {
     const matchesSearch = item.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
@@ -149,6 +156,26 @@ export function CollectionsClient({
   const handleSuccess = () => {
     setIsDialogOpen(false);
     router.refresh();
+  };
+
+  const handleToggleStatus = (id: number, currentStatus: 'draft' | 'published') => {
+    const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+    
+    // 乐观更新
+    setOptimisticCollections((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, status: newStatus } : item
+      )
+    );
+
+    startTransition(async () => {
+      const result = await toggleCollectionStatus(id, newStatus);
+      if (!result.success) {
+        // 失败时恢复
+        setOptimisticCollections(collections);
+      }
+      router.refresh();
+    });
   };
 
   return (
@@ -272,6 +299,7 @@ export function CollectionsClient({
               t={t}
               onEdit={() => handleEdit(collection)}
               onDelete={() => handleDelete(collection.id)}
+              onToggleStatus={() => handleToggleStatus(collection.id, collection.status)}
             />
           ))}
         </div>
@@ -281,6 +309,7 @@ export function CollectionsClient({
           t={t}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onToggleStatus={handleToggleStatus}
         />
       )}
 
@@ -402,11 +431,13 @@ function CollectionGridItem({
   t,
   onEdit,
   onDelete,
+  onToggleStatus,
 }: {
   item: CollectionListItem;
   t: any;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleStatus: () => void;
 }) {
   const coverSrc = item.cover?.thumbUrl || item.cover?.url || '';
   const TypeIcon =
@@ -502,24 +533,30 @@ function CollectionGridItem({
           <p className="mt-1 h-5" /> /* Spacer for alignment */
         )}
 
-        <div className="mt-4 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-          <div className="flex items-center gap-1.5">
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
             <User className="h-3.5 w-3.5" />
-            <span className="font-medium">{item.author || 'Unknown'}</span>
+            <span className="font-medium truncate">{item.author || 'Unknown'}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                'rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider',
-                item.status === 'published'
-                  ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
-                  : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500',
-              )}
-            >
-              {t(`statusLabel.${item.status}`)}
-            </span>
-            <span>{t('itemCount', { count: item.itemCount })}</span>
+            <span className="text-xs text-zinc-500">{t('itemCount', { count: item.itemCount })}</span>
           </div>
+        </div>
+
+        {/* 发布开关 */}
+        <div className="pointer-events-auto mt-3 flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-800/50">
+          <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            {item.status === 'published' ? t('statusLabel.published') : t('statusLabel.draft')}
+          </span>
+          <Switch
+            checked={item.status === 'published'}
+            onCheckedChange={(e) => {
+              e.stopPropagation();
+              onToggleStatus();
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="data-[state=checked]:bg-indigo-600"
+          />
         </div>
       </div>
     </div>
@@ -531,11 +568,13 @@ function CollectionListView({
   t,
   onEdit,
   onDelete,
+  onToggleStatus,
 }: {
   items: CollectionListItem[];
   t: any;
   onEdit: (item: CollectionListItem) => void;
   onDelete: (id: number) => void;
+  onToggleStatus: (id: number, status: 'draft' | 'published') => void;
 }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -607,9 +646,11 @@ function CollectionListView({
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                    {t(`statusLabel.${item.status}`)}
-                  </span>
+                  <Switch
+                    checked={item.status === 'published'}
+                    onCheckedChange={() => onToggleStatus(item.id, item.status)}
+                    className="data-[state=checked]:bg-indigo-600"
+                  />
                 </TableCell>
                 <TableCell className="text-zinc-500">
                   {new Date(item.updatedAt).toLocaleDateString()}
