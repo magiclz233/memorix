@@ -730,6 +730,7 @@
       "pagination": "第 {current} / {total} 页",
       "library": {
         "hero": "首页展示",
+        "view": "查看",
         "selectAllPage": "全选当前页",
         "clearSelection": "清空选择",
         "publish": "发布",
@@ -1196,7 +1197,13 @@
         "selectStorageFirst": "请先选择存储",
         "taskNameRequired": "请输入任务名称",
         "storageRequired": "请选择目标存储",
-        "filesRequired": "请至少选择 1 个文件"
+        "filesRequired": "请至少选择 1 个文件",
+        "noCompletedFiles": "没有已完成的文件可发布",
+        "publishing": "发布中...",
+        "publishSuccess": "已发布所有完成的文件",
+        "publishFailed": "发布失败，请重试"
+      },
+      "publishAll": "一键发布全部"
       },
       "queue": {
         "title": "任务队列",

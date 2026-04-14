@@ -730,6 +730,7 @@
       "pagination": "Page {current} of {total}",
       "library": {
         "hero": "Hero",
+        "view": "View",
         "selectAllPage": "Select All on Page",
         "clearSelection": "Clear Selection",
         "publish": "Publish",
@@ -1196,7 +1197,13 @@
         "selectStorageFirst": "Please select storage first",
         "taskNameRequired": "Please enter task name",
         "storageRequired": "Please select target storage",
-        "filesRequired": "Please select files to upload"
+        "filesRequired": "Please select files to upload",
+        "noCompletedFiles": "No completed files to publish",
+        "publishing": "Publishing...",
+        "publishSuccess": "All completed files published",
+        "publishFailed": "Publish failed, please try again"
+      },
+      "publishAll": "Publish All"
       },
       "queue": {
         "title": "Task Queue",
