@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { MediaPicker } from '@/app/ui/dashboard/media-picker';
 
 export type CollectionFormData = {
@@ -75,6 +82,23 @@ export function CollectionForm({
       : [],
   );
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // 表单防离开保护
+  useEffect(() => {
+    if (!hasChanges) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasChanges]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,6 +114,7 @@ export function CollectionForm({
       if (result?.message) {
         setError(result.message);
       } else {
+        setHasChanges(false); // 清除变更标记
         onSuccess();
       }
     });
@@ -134,6 +159,7 @@ export function CollectionForm({
           name="title"
           defaultValue={initialData?.title}
           placeholder={t('titlePlaceholder')}
+          onChange={() => setHasChanges(true)}
           required
         />
       </div>
@@ -144,7 +170,10 @@ export function CollectionForm({
           id="author"
           name="author"
           value={author}
-          onChange={(event) => setAuthor(event.target.value)}
+          onChange={(event) => {
+            setAuthor(event.target.value);
+            setHasChanges(true);
+          }}
           placeholder={t('authorPlaceholder')}
         />
       </div>
@@ -154,9 +183,10 @@ export function CollectionForm({
           <Label htmlFor="type">{t('type')}</Label>
           <Select
             value={collectionType}
-            onValueChange={(value) =>
-              setCollectionType(value as 'mixed' | 'photo' | 'video')
-            }
+            onValueChange={(value) => {
+              setCollectionType(value as 'mixed' | 'photo' | 'video');
+              setHasChanges(true);
+            }}
           >
             <SelectTrigger id="type">
               <SelectValue placeholder={t('typePlaceholder')} />
@@ -172,9 +202,10 @@ export function CollectionForm({
           <Label htmlFor="status">{t('status')}</Label>
           <Select
             value={collectionStatus}
-            onValueChange={(value) =>
-              setCollectionStatus(value as 'draft' | 'published')
-            }
+            onValueChange={(value) => {
+              setCollectionStatus(value as 'draft' | 'published');
+              setHasChanges(true);
+            }}
           >
             <SelectTrigger id="status">
               <SelectValue placeholder={t('statusPlaceholder')} />
@@ -194,6 +225,7 @@ export function CollectionForm({
           name="description"
           defaultValue={initialData?.description}
           placeholder={t('descriptionPlaceholder')}
+          onChange={() => setHasChanges(true)}
           rows={3}
         />
       </div>
@@ -260,23 +292,25 @@ export function CollectionForm({
         </Button>
       </DialogFooter>
 
-      <Dialog open={isPickerOpen} onOpenChange={setIsPickerOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{t('coverImageSelect')}</DialogTitle>
-            <DialogDescription>{t('coverImageHelp')}</DialogDescription>
-          </DialogHeader>
-          <MediaPicker
-            selectionMode="multiple"
-            maxSelect={3}
-            onConfirm={() => undefined}
-            onConfirmItems={handleCoverSelect}
-            onCancel={() => setIsPickerOpen(false)}
-            allowedMediaTypes={coverMediaTypes}
-            initialSelectedIds={coverFileIds}
-          />
-        </DialogContent>
-      </Dialog>
+      <Sheet open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{t('coverImageSelect')}</SheetTitle>
+            <SheetDescription>{t('coverImageHelp')}</SheetDescription>
+          </SheetHeader>
+          <div className="mt-6">
+            <MediaPicker
+              selectionMode="multiple"
+              maxSelect={3}
+              onConfirm={() => undefined}
+              onConfirmItems={handleCoverSelect}
+              onCancel={() => setIsPickerOpen(false)}
+              allowedMediaTypes={coverMediaTypes}
+              initialSelectedIds={coverFileIds}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </form>
   );
 }
