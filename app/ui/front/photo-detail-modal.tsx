@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
@@ -53,6 +53,18 @@ function toDateInputValue(dateShot?: string | null) {
   const parsed = new Date(dateShot);
   if (Number.isNaN(parsed.getTime())) return '';
   return parsed.toISOString().slice(0, 10);
+}
+
+function normalizeTagsInput(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\n,，]/)
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+        .map((item) => item.slice(0, 32)),
+    ),
+  ).slice(0, 12);
 }
 
 function isTypingTarget(target: EventTarget | null) {
@@ -146,6 +158,7 @@ function PhotoDetailContent({
   const [footTitle, setFootTitle] = useState(item.title ?? '');
   const [footAuthor, setFootAuthor] = useState(item.author ?? '');
   const [footDate, setFootDate] = useState(toDateInputValue(item.dateShot));
+  const [footTags, setFootTags] = useState((item.tags ?? []).join(', '));
   const [isSaving, startSaving] = useTransition();
   const [isEditing, setIsEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -187,17 +200,20 @@ function PhotoDetailContent({
   const originalTitle = item.title ?? '';
   const originalAuthor = item.author ?? '';
   const originalDate = toDateInputValue(item.dateShot);
+  const originalTags = (item.tags ?? []).join(', ');
   const hasChanges =
     isEditing &&
     (footTitle !== originalTitle ||
       footAuthor !== originalAuthor ||
-      footDate !== originalDate);
+      footDate !== originalDate ||
+      footTags !== originalTags);
 
   const resetEditFields = useCallback(() => {
     setFootTitle(item.title ?? '');
     setFootAuthor(item.author ?? '');
     setFootDate(toDateInputValue(item.dateShot));
-  }, [item.author, item.dateShot, item.title]);
+    setFootTags((item.tags ?? []).join(', '));
+  }, [item.author, item.dateShot, item.tags, item.title]);
   useEffect(() => {
     const previousId = previousItemIdRef.current;
     if (previousId === item.id) return;
@@ -309,6 +325,7 @@ function PhotoDetailContent({
           fd.set('title', footTitle.trim());
           fd.set('author', footAuthor.trim());
           fd.set('dateShot', footDate.trim());
+          fd.set('tags', footTags.trim());
 
           const res = await updatePhotoDetails(fd);
 
@@ -321,6 +338,7 @@ function PhotoDetailContent({
           item.title = footTitle.trim();
           item.author = footAuthor.trim() || null;
           item.dateShot = footDate.trim() ? new Date(footDate).toISOString() : null;
+          item.tags = normalizeTagsInput(footTags);
 
           showSuccess(res.message || t('modal.saved'));
           setIsEditing(false);
@@ -331,7 +349,7 @@ function PhotoDetailContent({
         }
       });
     });
-  }, [footAuthor, footDate, footTitle, hasChanges, isAdmin, isSaving, item, t]);
+  }, [footAuthor, footDate, footTags, footTitle, hasChanges, isAdmin, isSaving, item, t]);
 
   const handleInlineSave = async () => {
     if (!isAdmin || isSaving) return;
@@ -340,8 +358,9 @@ function PhotoDetailContent({
     const oTitle = item.title ?? '';
     const oAuthor = item.author ?? '';
     const oDate = toDateInputValue(item.dateShot);
+    const oTags = (item.tags ?? []).join(', ');
 
-    if (footTitle === oTitle && footAuthor === oAuthor && footDate === oDate) {
+    if (footTitle === oTitle && footAuthor === oAuthor && footDate === oDate && footTags === oTags) {
       return;
     }
 
@@ -352,6 +371,7 @@ function PhotoDetailContent({
         fd.set('title', footTitle.trim());
         fd.set('author', footAuthor.trim());
         fd.set('dateShot', footDate.trim());
+        fd.set('tags', footTags.trim());
 
         const res = await updatePhotoDetails(fd);
 
@@ -365,6 +385,7 @@ function PhotoDetailContent({
         item.title = footTitle.trim();
         item.author = footAuthor.trim() || null;
         item.dateShot = footDate.trim() ? new Date(footDate).toISOString() : null;
+        item.tags = normalizeTagsInput(footTags);
 
         showSuccess(res.message || t('modal.saved'));
       } catch {
@@ -727,7 +748,11 @@ function PhotoDetailContent({
       <PhotoInfoSidebar
         item={item}
         isEditing={isEditing}
+        isAdmin={isAdmin}
         footTitle={footTitle}
+        footTags={footTags}
+        setFootTags={setFootTags}
+        onSaveTags={handleInlineSave}
         locale={locale}
         t={t}
       />
@@ -762,4 +787,10 @@ function PhotoDetailContent({
     </motion.div>
   );
 }
+
+
+
+
+
+
 

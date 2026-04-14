@@ -1,12 +1,13 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Link, usePathname } from '@/i18n/navigation';
-import { LogIn, ShieldCheck, UserCircle, KeyRound, LogOut } from 'lucide-react';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
+import { LogIn, ShieldCheck, UserCircle, KeyRound, LogOut, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ModeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import {
   DropdownMenu,
@@ -20,6 +21,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { authClient } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
 import { ChangePasswordForm } from '@/app/ui/shared/change-password-form';
@@ -35,6 +37,7 @@ const navItems = [
 export function FloatingNav() {
   const t = useTranslations('nav');
   const pathname = usePathname();
+  const router = useRouter();
   const isHome = pathname === '/';
   const isCollectionDetail =
     pathname?.startsWith('/collections/') && pathname !== '/collections';
@@ -43,6 +46,8 @@ export function FloatingNav() {
     : '/login';
   const [accountOpen, setAccountOpen] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const accountCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -87,6 +92,13 @@ export function FloatingNav() {
       ? 'border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white'
       : 'bg-primary text-primary-foreground hover:bg-primary/90'
   );
+
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const keyword = searchKeyword.trim();
+    setSearchOpen(false);
+    router.push(keyword ? `/gallery?q=${encodeURIComponent(keyword)}` : '/gallery');
+  };
 
   const clearAccountCloseTimer = () => {
     if (!accountCloseTimerRef.current) return;
@@ -185,6 +197,44 @@ export function FloatingNav() {
               );
             })}
           </nav>
+          <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant='ghost'
+                size='icon'
+                className={cn(
+                  'h-8 w-8 rounded-full border shadow-sm backdrop-blur-md transition-colors',
+                  isHome
+                    ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                    : 'border-input bg-background/80 text-foreground hover:bg-accent hover:text-accent-foreground'
+                )}
+                aria-label={t('search.open')}
+              >
+                <Search className='h-4 w-4' />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              align='end'
+              className={cn(
+                'w-72 border p-3 shadow-xl backdrop-blur-md',
+                isHome
+                  ? 'border-white/20 bg-black/75 text-white'
+                  : 'border-input bg-background/95 text-foreground'
+              )}
+            >
+              <form className='flex items-center gap-2' onSubmit={handleSearchSubmit}>
+                <Input
+                  value={searchKeyword}
+                  onChange={(event) => setSearchKeyword(event.target.value)}
+                  placeholder={t('search.placeholder')}
+                  className='h-9 rounded-full border-zinc-300 bg-white/80 px-3 text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-100'
+                />
+                <Button type='submit' size='sm' className='rounded-full px-4'>
+                  {t('search.submit')}
+                </Button>
+              </form>
+            </PopoverContent>
+          </Popover>
           <LocaleSwitcher
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-full border text-[10px] font-semibold shadow-sm backdrop-blur-md transition-colors',
@@ -383,3 +433,10 @@ export function FloatingNav() {
     </div>
   );
 }
+
+
+
+
+
+
+

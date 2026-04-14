@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
@@ -30,6 +30,9 @@ type GalleryInfiniteProps = {
   pageSize: number;
   mediaType?: string;
   sortOrder?: string;
+  keyword?: string;
+  selectedId?: string | null;
+  onSelectedIdChange?: (id: string | number | null) => void;
 };
 
 export function GalleryInfinite({
@@ -39,6 +42,9 @@ export function GalleryInfinite({
   pageSize,
   mediaType = 'all',
   sortOrder = 'newest',
+  keyword = '',
+  selectedId,
+  onSelectedIdChange,
 }: GalleryInfiniteProps) {
   const t = useTranslations('front.gallery');
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
@@ -48,13 +54,12 @@ export function GalleryInfinite({
   const [loadError, setLoadError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // 筛选变化时重置
   useEffect(() => {
     setItems(initialItems);
     setPage(initialPage);
     setHasNext(initialHasNext);
     setLoadError(false);
-  }, [initialItems, initialPage, initialHasNext, mediaType, sortOrder]);
+  }, [initialItems, initialPage, initialHasNext, mediaType, sortOrder, keyword]);
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasNext) return;
@@ -68,6 +73,9 @@ export function GalleryInfinite({
       mediaType,
       sortOrder,
     });
+    if (keyword) {
+      params.set('q', keyword);
+    }
 
     try {
       const response = await fetch(`/api/gallery?${params.toString()}`, {
@@ -87,7 +95,7 @@ export function GalleryInfinite({
     } finally {
       setIsLoading(false);
     }
-  }, [hasNext, isLoading, page, pageSize, mediaType, sortOrder]);
+  }, [hasNext, isLoading, keyword, mediaType, page, pageSize, sortOrder]);
 
   useEffect(() => {
     if (!hasNext || loadError) return;
@@ -109,7 +117,11 @@ export function GalleryInfinite({
 
   return (
     <>
-      <Gallery25 items={items} />
+      <Gallery25
+        items={items}
+        selectedId={selectedId ?? null}
+        onSelectedIdChange={onSelectedIdChange}
+      />
 
       <div className='mt-10 flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground'>
         {loadError ? (
