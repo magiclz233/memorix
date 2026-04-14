@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import {
   Aperture,
@@ -16,15 +16,24 @@ import {
   Maximize,
   Palette,
   Ruler,
+  Share2,
+  Tag,
   Timer,
 } from 'lucide-react';
 import type { GalleryItem } from '@/app/lib/gallery';
+import { showError, showSuccess } from '@/app/lib/toast-utils';
+import { useFavorites } from '@/app/ui/hooks/use-favorites';
+import { LeafletMiniMap } from './leaflet-mini-map';
 import { Histogram } from '../histogram';
 
 type PhotoInfoSidebarProps = {
   item: GalleryItem;
   isEditing: boolean;
+  isAdmin: boolean;
   footTitle: string;
+  footTags: string;
+  setFootTags: (value: string) => void;
+  onSaveTags: () => void;
   locale: string;
   t: (key: string) => string;
 };
@@ -57,6 +66,16 @@ const formatDate = (locale: string, date?: string | null) => {
   return new Date(date).toLocaleString(locale, { hour12: false });
 };
 
+const normalizeTags = (value: string) =>
+  Array.from(
+    new Set(
+      value
+        .split(/[\n,，]/)
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0),
+    ),
+  );
+
 function InfoRow({
   icon,
   label,
@@ -67,7 +86,7 @@ function InfoRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className='flex justify-between items-center text-[12px]'>
+    <div className='flex items-center justify-between text-[12px]'>
       <div className='flex items-center space-x-2 text-gray-400'>
         {icon}
         <span>{label}</span>
@@ -99,10 +118,17 @@ function SimpleRow({
 export function PhotoInfoSidebar({
   item,
   isEditing,
+  isAdmin,
   footTitle,
+  footTags,
+  setFootTags,
+  onSaveTags,
   locale,
   t,
 }: PhotoInfoSidebarProps) {
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorite = isFavorite(item.id);
+
   const resolution =
     item.width && item.height ? `${item.width} x ${item.height}` : '-';
   const mp =
@@ -146,48 +172,90 @@ export function PhotoInfoSidebar({
       ? locationParts[locationParts.length - 1]
       : null;
 
+  const activeTags = normalizeTags(footTags);
+
+  const handleToggleFavorite = () => {
+    const next = toggleFavorite(item.id);
+    showSuccess(next ? t('modal.favorited') : t('modal.unfavorited'));
+  };
+
+  const handleShare = async () => {
+    if (typeof window === 'undefined') return;
+
+    const shareUrl = new URL(window.location.href);
+    shareUrl.pathname = `/${locale}/gallery`;
+    shareUrl.searchParams.set('media', String(item.id));
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: item.title || t('modal.untitled'),
+          text: item.description || undefined,
+          url: shareUrl.toString(),
+        });
+        showSuccess(t('modal.shareSuccess'));
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl.toString());
+      showSuccess(t('modal.shareCopied'));
+    } catch {
+      showError(t('modal.shareFailed'));
+    }
+  };
+
   return (
-    <aside className='w-[420px] flex-shrink-0 bg-white dark:bg-zinc-950/90 border-l border-gray-100 dark:border-zinc-800 flex flex-col h-full overflow-y-auto custom-scrollbar'>
-      <div className='p-6 space-y-8'>
-        <section className='flex justify-between items-start'>
-          <h2 className='text-lg font-bold tracking-tight text-primary dark:text-white leading-tight pr-4 break-words'>
+    <aside className='custom-scrollbar flex h-full w-[420px] flex-shrink-0 flex-col overflow-y-auto border-l border-gray-100 bg-white dark:border-zinc-800 dark:bg-zinc-950/90'>
+      <div className='space-y-8 p-6'>
+        <section className='flex items-start justify-between'>
+          <h2 className='pr-4 text-lg font-bold leading-tight tracking-tight text-primary break-words dark:text-white'>
             {isEditing ? footTitle || item.title : item.title}
           </h2>
-          <div className='flex items-center space-x-3 mt-1 flex-shrink-0'>
+          <div className='mt-1 flex flex-shrink-0 items-center space-x-2'>
             <button
-              className='w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors'
-              title='Like'
+              className='flex h-8 w-8 items-center justify-center text-gray-500 transition-colors hover:text-red-500'
+              title={favorite ? t('modal.unfavorite') : t('modal.favorite')}
+              onClick={handleToggleFavorite}
+              type='button'
             >
-              <Heart className='w-5 h-5' />
+              <Heart
+                className={`h-5 w-5 ${favorite ? 'fill-red-500 text-red-500' : ''}`}
+              />
+            </button>
+            <button
+              className='flex h-8 w-8 items-center justify-center text-gray-500 transition-colors hover:text-indigo-500 dark:hover:text-indigo-300'
+              title={t('modal.share')}
+              onClick={() => void handleShare()}
+              type='button'
+            >
+              <Share2 className='h-5 w-5' />
             </button>
             <a
               href={`/api/media/stream/${item.id}?download=true`}
               download
-              className='w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary dark:hover:text-white transition-colors'
-              title='Download'
+              className='flex h-8 w-8 items-center justify-center text-gray-500 transition-colors hover:text-primary dark:hover:text-white'
+              title={t('modal.download')}
             >
-              <Download className='w-5 h-5' />
+              <Download className='h-5 w-5' />
             </a>
           </div>
         </section>
 
         {(item.gpsLatitude || item.locationName) && (
           <section>
-            <div className='relative h-40 w-full bg-zinc-50 dark:bg-zinc-900/60 rounded-xl overflow-hidden border border-zinc-100 dark:border-zinc-800 mb-2'>
-              <div className='w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-900/70 text-zinc-400'>
-                <MapPin className='w-10 h-10 opacity-20' />
+            {item.gpsLatitude && item.gpsLongitude ? (
+              <LeafletMiniMap
+                latitude={item.gpsLatitude}
+                longitude={item.gpsLongitude}
+                fallbackText={t('modal.mapUnavailable')}
+              />
+            ) : (
+              <div className='flex h-40 w-full items-center justify-center rounded-xl border border-zinc-100 bg-zinc-100 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/70'>
+                <MapPin className='h-10 w-10 opacity-20' />
               </div>
-              {item.gpsLatitude && item.gpsLongitude && (
-                <div className='absolute inset-0 flex items-center justify-center'>
-                  <div className='relative'>
-                    <div className='w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-lg' />
-                    <div className='absolute -inset-2 bg-red-500/30 rounded-full animate-ping' />
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className='flex items-center space-x-2 text-[11px] text-gray-500 dark:text-gray-400'>
-              <MapPin className='w-3.5 h-3.5' />
+            )}
+            <div className='mt-2 flex items-center space-x-2 text-[11px] text-gray-500 dark:text-gray-400'>
+              <MapPin className='h-3.5 w-3.5' />
               <span>
                 {item.locationName ||
                   `${formatNumber(item.gpsLatitude, 4)}, ${formatNumber(item.gpsLongitude, 4)}`}
@@ -196,15 +264,52 @@ export function PhotoInfoSidebar({
           </section>
         )}
 
+        <section className='space-y-3'>
+          <h3 className='border-b border-gray-100 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:border-gray-800'>
+            {t('sections.tags')}
+          </h3>
+          {activeTags.length > 0 ? (
+            <div className='flex flex-wrap gap-2'>
+              {activeTags.map((tag) => (
+                <span
+                  key={tag}
+                  className='inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100/70 px-2.5 py-1 text-[11px] text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200'
+                >
+                  <Tag className='h-3 w-3' />
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className='text-xs text-zinc-500'>{t('modal.tagsEmpty')}</p>
+          )}
+          {isAdmin ? (
+            <input
+              type='text'
+              value={footTags}
+              onChange={(event) => setFootTags(event.target.value)}
+              onBlur={onSaveTags}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  (event.currentTarget as HTMLInputElement).blur();
+                }
+              }}
+              placeholder={t('modal.tagsPlaceholder')}
+              className='h-9 w-full rounded-full border border-zinc-200 bg-white px-4 text-xs text-zinc-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:ring-indigo-800/40'
+            />
+          ) : null}
+        </section>
+
         <section>
-          <h3 className='text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-400 mb-3'>
+          <h3 className='mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400'>
             {t('details.camera')}
           </h3>
-          <div className='grid grid-cols-2 gap-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-hidden'>
-            <div className='bg-white dark:bg-zinc-900/70 p-4 flex flex-col'>
-              <div className='flex items-center space-x-2 text-zinc-400 mb-1'>
-                <Ruler className='w-4 h-4' />
-                <span className='text-[10px] uppercase font-bold tracking-wider'>
+          <div className='grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-100 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800'>
+            <div className='flex flex-col bg-white p-4 dark:bg-zinc-900/70'>
+              <div className='mb-1 flex items-center space-x-2 text-zinc-400'>
+                <Ruler className='h-4 w-4' />
+                <span className='text-[10px] font-bold uppercase tracking-wider'>
                   {t('details.focalLength')}
                 </span>
               </div>
@@ -212,10 +317,10 @@ export function PhotoInfoSidebar({
                 {focalLength ? `${focalLength} mm` : '-'}
               </p>
             </div>
-            <div className='bg-white dark:bg-zinc-900/70 p-4 flex flex-col'>
-              <div className='flex items-center space-x-2 text-gray-400 mb-1'>
-                <Aperture className='w-4 h-4' />
-                <span className='text-[10px] uppercase font-bold tracking-wider'>
+            <div className='flex flex-col bg-white p-4 dark:bg-zinc-900/70'>
+              <div className='mb-1 flex items-center space-x-2 text-gray-400'>
+                <Aperture className='h-4 w-4' />
+                <span className='text-[10px] font-bold uppercase tracking-wider'>
                   {t('details.aperture')}
                 </span>
               </div>
@@ -223,19 +328,19 @@ export function PhotoInfoSidebar({
                 {apertureValue ? `f/${apertureValue}` : '-'}
               </p>
             </div>
-            <div className='bg-white dark:bg-zinc-900/70 p-4 flex flex-col'>
-              <div className='flex items-center space-x-2 text-gray-400 mb-1'>
-                <Timer className='w-4 h-4' />
-                <span className='text-[10px] uppercase font-bold tracking-wider'>
+            <div className='flex flex-col bg-white p-4 dark:bg-zinc-900/70'>
+              <div className='mb-1 flex items-center space-x-2 text-gray-400'>
+                <Timer className='h-4 w-4' />
+                <span className='text-[10px] font-bold uppercase tracking-wider'>
                   {t('details.shutter')}
                 </span>
               </div>
               <p className='text-[16px] font-bold'>{exposureValue ?? '-'}</p>
             </div>
-            <div className='bg-white dark:bg-zinc-900/70 p-4 flex flex-col'>
-              <div className='flex items-center space-x-2 text-gray-400 mb-1'>
-                <Gauge className='w-4 h-4' />
-                <span className='text-[10px] uppercase font-bold tracking-wider'>
+            <div className='flex flex-col bg-white p-4 dark:bg-zinc-900/70'>
+              <div className='mb-1 flex items-center space-x-2 text-gray-400'>
+                <Gauge className='h-4 w-4' />
+                <span className='text-[10px] font-bold uppercase tracking-wider'>
                   {t('details.iso')}
                 </span>
               </div>
@@ -245,30 +350,30 @@ export function PhotoInfoSidebar({
         </section>
 
         <section>
-          <div className='flex justify-between items-center mb-3'>
-            <h3 className='text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400'>
+          <div className='mb-3 flex items-center justify-between'>
+            <h3 className='text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400'>
               {t('sections.histogram')}
             </h3>
             <div className='flex space-x-1'>
-              <div className='w-1.5 h-1.5 rounded-full bg-red-400/80' />
-              <div className='w-1.5 h-1.5 rounded-full bg-green-400/80' />
-              <div className='w-1.5 h-1.5 rounded-full bg-blue-400/80' />
+              <div className='h-1.5 w-1.5 rounded-full bg-red-400/80' />
+              <div className='h-1.5 w-1.5 rounded-full bg-green-400/80' />
+              <div className='h-1.5 w-1.5 rounded-full bg-blue-400/80' />
             </div>
           </div>
-          <div className='h-24 w-full bg-zinc-50/50 dark:bg-zinc-900/50 rounded-lg overflow-hidden border border-zinc-100 dark:border-zinc-800 p-2'>
-            <Histogram src={item.src} className='w-full h-full' />
+          <div className='h-24 w-full overflow-hidden rounded-lg border border-zinc-100 bg-zinc-50/50 p-2 dark:border-zinc-800 dark:bg-zinc-900/50'>
+            <Histogram src={item.src} className='h-full w-full' />
           </div>
         </section>
 
         <section className='space-y-4'>
-          <h3 className='text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2'>
+          <h3 className='border-b border-gray-100 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:border-gray-800'>
             {t('sections.equipment')}
           </h3>
           <div className='grid grid-cols-1 gap-4'>
             <div className='flex items-start space-x-3'>
-              <Camera className='w-5 h-5 text-gray-400' />
+              <Camera className='h-5 w-5 text-gray-400' />
               <div className='flex-grow'>
-                <p className='text-[10px] text-gray-400 uppercase font-bold'>
+                <p className='text-[10px] font-bold uppercase text-gray-400'>
                   {t('details.camera')}
                 </p>
                 <p className='text-[13px] font-bold text-gray-800 dark:text-gray-100'>
@@ -277,9 +382,9 @@ export function PhotoInfoSidebar({
               </div>
             </div>
             <div className='flex items-start space-x-3'>
-              <Aperture className='w-5 h-5 text-gray-400' />
+              <Aperture className='h-5 w-5 text-gray-400' />
               <div className='flex-grow'>
-                <p className='text-[10px] text-gray-400 uppercase font-bold'>
+                <p className='text-[10px] font-bold uppercase text-gray-400'>
                   {t('details.lens')}
                 </p>
                 <p className='text-[13px] font-bold text-gray-800 dark:text-gray-100'>
@@ -288,8 +393,8 @@ export function PhotoInfoSidebar({
               </div>
             </div>
             <div className='flex items-start space-x-3'>
-              <Maximize className='w-5 h-5 text-gray-400' />
-              <div className='flex-grow flex justify-between items-end'>
+              <Maximize className='h-5 w-5 text-gray-400' />
+              <div className='flex-grow flex items-end justify-between'>
                 <p className='text-[13px] text-gray-500'>
                   {t('details.focalLength35mm')}
                 </p>
@@ -304,50 +409,50 @@ export function PhotoInfoSidebar({
         </section>
 
         <section className='space-y-3'>
-          <h3 className='text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2'>
+          <h3 className='border-b border-gray-100 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:border-gray-800'>
             {t('sections.basic')}
           </h3>
           <div className='space-y-2.5'>
             <InfoRow
-              icon={<FileText className='w-4 h-4' />}
+              icon={<FileText className='h-4 w-4' />}
               label={t('details.filename')}
               value={item.title}
             />
             <InfoRow
-              icon={<HardDrive className='w-4 h-4' />}
+              icon={<HardDrive className='h-4 w-4' />}
               label={t('details.fileSize')}
               value={formatFileSize(item.size)}
             />
             <InfoRow
-              icon={<Maximize className='w-4 h-4' />}
+              icon={<Maximize className='h-4 w-4' />}
               label={t('details.resolution')}
               value={resolution}
             />
             <InfoRow
-              icon={<Grid className='w-4 h-4' />}
+              icon={<Grid className='h-4 w-4' />}
               label={t('details.megapixels')}
               value={mp ? `${mp.toFixed(2)} MP` : null}
             />
             <InfoRow
-              icon={<Calendar className='w-4 h-4' />}
+              icon={<Calendar className='h-4 w-4' />}
               label={t('details.dateShot')}
               value={formatDate(locale, item.dateShot)}
             />
             <InfoRow
-              icon={<Palette className='w-4 h-4' />}
+              icon={<Palette className='h-4 w-4' />}
               label={t('details.colorSpace')}
               value={item.colorSpace || 'sRGB'}
             />
             {city && (
               <InfoRow
-                icon={<Building2 className='w-4 h-4' />}
+                icon={<Building2 className='h-4 w-4' />}
                 label={t('details.city')}
                 value={city}
               />
             )}
             {country && (
               <InfoRow
-                icon={<Flag className='w-4 h-4' />}
+                icon={<Flag className='h-4 w-4' />}
                 label={t('details.country')}
                 value={country}
               />
@@ -357,7 +462,7 @@ export function PhotoInfoSidebar({
 
         {hasShootingInfo && (
           <section className='space-y-3'>
-            <h3 className='text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-2'>
+            <h3 className='border-b border-gray-100 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:border-gray-800'>
               {t('sections.shooting')}
             </h3>
             <div className='space-y-2.5'>
