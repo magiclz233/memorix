@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useVirtualizer } from '@tantml:react-virtual';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { CheckCircle2 } from 'lucide-react';
 
 import type { UploadTask } from '@/app/lib/definitions';
@@ -60,7 +60,9 @@ export function TaskList({
     return tasks
       .filter((task) => task.status === 'completed')
       .flatMap((task) => task.files.map((file) => file.id))
-      .filter((id): id is number => id !== null && id !== undefined);
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id));
   }, [tasks]);
 
   const handlePublishAll = () => {
@@ -181,3 +183,4 @@ export function TaskList({
     </section>
   );
 }
+
