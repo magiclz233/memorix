@@ -550,8 +550,7 @@ function CollectionGridItem({
           </span>
           <Switch
             checked={item.status === 'published'}
-            onCheckedChange={(e) => {
-              e.stopPropagation();
+            onCheckedChange={() => {
               onToggleStatus();
             }}
             onClick={(e) => e.stopPropagation()}
