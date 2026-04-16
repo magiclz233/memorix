@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Position = {
   x: number;
@@ -14,7 +14,7 @@ type SelectionBox = {
 
 export function useRubberBandSelection<T extends { id: number }>(
   items: T[],
-  containerRef: React.RefObject<HTMLElement>,
+  containerRef: React.RefObject<HTMLElement | null>,
   itemRefs: React.MutableRefObject<Record<number, HTMLElement | null>>,
   onSelectionChange: (selectedIds: Set<number>) => void,
   isEnabled: boolean = true
@@ -177,3 +177,4 @@ export function useRubberBandSelection<T extends { id: number }>(
     selectionBox,
   };
 }
+
