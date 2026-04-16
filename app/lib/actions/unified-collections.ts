@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { z } from 'zod';
 import { db } from '../drizzle';
@@ -185,8 +185,6 @@ export async function toggleCollectionStatus(
     };
   }
 }
-  revalidatePathForAllLocales(`/collections/${id}`);
-}
 
 export async function deleteCollection(id: number) {
   await requireAdmin();
@@ -358,3 +356,4 @@ export async function fetchMediaForPicker(
   const offset = (page - 1) * limit;
   return fetchPublishedMediaForGallery({ limit, offset, mediaTypes });
 }
+
