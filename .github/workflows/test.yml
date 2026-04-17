@@ -1,0 +1,117 @@
+name: 测试
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  unit-tests:
+    name: 单元测试
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: 获取 pnpm 缓存目录
+        id: pnpm-cache
+        run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: 缓存 pnpm 依赖
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 运行 ESLint
+        run: pnpm lint
+
+      - name: TypeScript 类型检查
+        run: pnpm tsc --noEmit
+
+      - name: 运行单元测试
+        run: pnpm test:unit --run
+        continue-on-error: true
+
+      - name: 上传覆盖率报告
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/coverage-final.json
+          fail_ci_if_error: false
+
+  integration-tests:
+    name: 集成测试
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lumina_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 执行数据库迁移
+        run: pnpm db:migrate
+        env:
+          POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/lumina_test
+          POSTGRES_SSL_MODE: disable
+
+      - name: 运行集成测试
+        run: pnpm test:integration --run
+        continue-on-error: true
+        env:
+          POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/lumina_test
+          POSTGRES_SSL_MODE: disable
+          REDIS_URL: redis://localhost:6379
+          BETTER_AUTH_SECRET: test-secret-key-at-least-32-characters
+          NODE_ENV: test

@@ -1,0 +1,113 @@
+name: 部署
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    name: 构建 Docker 镜像
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 登录 Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 提取镜像元数据
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 构建并推送 Docker 镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: 部署到生产环境
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - name: 部署到生产服务器
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            set -e
+            cd /opt/lumina
+
+            # 拉取最新镜像
+            docker-compose pull app
+
+            # 滚动更新（先启动新容器，再停止旧容器）
+            docker-compose up -d --no-deps --scale app=2 --no-recreate app
+            sleep 10
+
+            # 健康检查
+            NEW_CONTAINER=$(docker-compose ps -q app | head -n 1)
+            for i in $(seq 1 30); do
+              if docker exec "$NEW_CONTAINER" node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"; then
+                echo "新容器健康检查通过"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "健康检查失败，回滚..."
+                docker-compose up -d --no-deps --scale app=1 app
+                exit 1
+              fi
+              sleep 2
+            done
+
+            # 执行数据库迁移
+            docker exec "$NEW_CONTAINER" pnpm db:migrate
+
+            # 缩减到单实例
+            docker-compose up -d --no-deps --scale app=1 --remove-orphans app
+
+            echo "部署成功！"
+
+      - name: 通知部署结果
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            部署到生产环境 ${{ job.status == 'success' && '✅ 成功' || '❌ 失败' }}
+            提交: ${{ github.sha }}
+            分支: ${{ github.ref_name }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
