@@ -29,7 +29,17 @@ class BaseErrorBoundary extends React.Component<BoundaryProps, BoundaryState> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.props.onError?.(error, errorInfo);
-    console.error('[ErrorBoundary]', error, errorInfo);
+    // 使用 console.error 记录（避免在客户端组件中直接导入 pino）
+    console.error('[ErrorBoundary]', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    });
+    // 上报到错误追踪服务（如 Sentry）
+    if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).__errorReporter) {
+      const reporter = (window as unknown as Record<string, unknown>).__errorReporter as (e: Error, ctx: unknown) => void;
+      reporter(error, { componentStack: errorInfo.componentStack });
+    }
   }
 
   reset = () => {
@@ -82,8 +92,8 @@ export function ErrorBoundary({
 export function GlobalErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
-      onError={(error) => {
-        console.error('[GlobalErrorBoundary]', error);
+      onError={(error, errorInfo) => {
+        console.error('[GlobalErrorBoundary]', error, errorInfo);
       }}
     >
       {children}
