@@ -22,11 +22,13 @@ import { generateVideoPoster, probeVideoMetadata } from './video';
  * @param fileId 文件 ID
  * @param absolutePath 文件绝对路径
  * @param storageId 存储源 ID
+ * @param preserveGPS 是否保留 GPS 数据（默认 false，脱敏处理）
  */
 export async function extractPhotoMetadata(
   fileId: number,
   absolutePath: string,
   storageId: number,
+  preserveGPS: boolean = false,
 ): Promise<void> {
   const thumbRoot = getStorageCacheRoot(storageId);
   const thumbPath = path.join(thumbRoot, `${fileId}.webp`);
@@ -55,8 +57,8 @@ export async function extractPhotoMetadata(
       iso: metadata?.iso ?? null,
       focalLength: metadata?.focalLength ?? null,
       whiteBalance: metadata?.whiteBalance ?? null,
-      gpsLatitude: metadata?.gpsLatitude ?? null,
-      gpsLongitude: metadata?.gpsLongitude ?? null,
+      gpsLatitude: preserveGPS ? (metadata?.gpsLatitude ?? null) : null,
+      gpsLongitude: preserveGPS ? (metadata?.gpsLongitude ?? null) : null,
       resolutionWidth: metadata?.resolutionWidth ?? null,
       resolutionHeight: metadata?.resolutionHeight ?? null,
       liveType,
@@ -75,8 +77,8 @@ export async function extractPhotoMetadata(
         iso: metadata?.iso ?? null,
         focalLength: metadata?.focalLength ?? null,
         whiteBalance: metadata?.whiteBalance ?? null,
-        gpsLatitude: metadata?.gpsLatitude ?? null,
-        gpsLongitude: metadata?.gpsLongitude ?? null,
+        gpsLatitude: preserveGPS ? (metadata?.gpsLatitude ?? null) : null,
+        gpsLongitude: preserveGPS ? (metadata?.gpsLongitude ?? null) : null,
         resolutionWidth: metadata?.resolutionWidth ?? null,
         resolutionHeight: metadata?.resolutionHeight ?? null,
         liveType,

@@ -112,6 +112,24 @@ export const files = pgTable(
       table.userStorageId,
       table.isPublished,
     ),
+    // 媒体类型 + 发布状态 + 修改时间（画廊按类型筛选）
+    mediaTypePublishedMtimeIndex: index('files_media_type_published_mtime_idx').on(
+      table.mediaType,
+      table.isPublished,
+      table.mtime,
+    ),
+    // 存储源 + 媒体类型（存储源下的媒体分类）
+    storageMediaTypeIndex: index('files_storage_media_type_idx').on(
+      table.userStorageId,
+      table.mediaType,
+    ),
+    // 创建时间索引（按上传时间排序）
+    createdAtIndex: index('files_created_at_idx').on(table.createdAt),
+    // 软删除 + 发布状态（排除已删除文件）
+    deletedPublishedIndex: index('files_deleted_published_idx').on(
+      table.deletedAt,
+      table.isPublished,
+    ),
   }),
 );
 
@@ -488,5 +506,89 @@ export const uploadChunks = pgTable(
     ),
     // 按任务 ID 查询索引
     uploadTaskIndex: index('upload_chunks_upload_task_idx').on(table.uploadTaskId),
+  }),
+);
+
+// 性能指标表：记录 Web Vitals 等性能数据
+export const performanceMetrics = pgTable(
+  'performance_metrics',
+  {
+    id: serial('id').primaryKey(),
+    // 指标名称（LCP/FID/CLS/FCP/TTFB）
+    metricName: varchar('metric_name', { length: 50 }).notNull(),
+    // 指标值
+    metricValue: doublePrecision('metric_value').notNull(),
+    // 评级（good/needs-improvement/poor）
+    rating: varchar('rating', { length: 20 }),
+    // 页面路径
+    page: varchar('page', { length: 255 }),
+    // 关联用户 ID（可空）
+    userId: integer('user_id'),
+    // 用户代理
+    userAgent: text('user_agent'),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    metricNameIndex: index('performance_metrics_metric_name_idx').on(table.metricName),
+    createdAtIndex: index('performance_metrics_created_at_idx').on(table.createdAt),
+    pageIndex: index('performance_metrics_page_idx').on(table.page),
+  }),
+);
+
+// 错误日志表：记录应用错误
+export const errorLogs = pgTable(
+  'error_logs',
+  {
+    id: serial('id').primaryKey(),
+    // 日志级别（debug/info/warn/error）
+    level: varchar('level', { length: 20 }).notNull(),
+    // 错误消息
+    message: text('message').notNull(),
+    // 错误堆栈
+    stack: text('stack'),
+    // 上下文信息（JSONB）
+    context: jsonb('context'),
+    // 关联用户 ID（可空）
+    userId: integer('user_id'),
+    // 请求 ID
+    requestId: varchar('request_id', { length: 64 }),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    levelIndex: index('error_logs_level_idx').on(table.level),
+    createdAtIndex: index('error_logs_created_at_idx').on(table.createdAt),
+    requestIdIndex: index('error_logs_request_id_idx').on(table.requestId),
+  }),
+);
+
+// 审计日志表：记录关键操作
+export const auditLogs = pgTable(
+  'audit_logs',
+  {
+    id: serial('id').primaryKey(),
+    // 操作类型（如 media.publish、collection.create）
+    action: varchar('action', { length: 100 }).notNull(),
+    // 资源类型（如 media、collection）
+    resource: varchar('resource', { length: 100 }).notNull(),
+    // 资源 ID（可空）
+    resourceId: integer('resource_id'),
+    // 操作用户 ID
+    userId: integer('user_id').notNull(),
+    // 变更内容（JSONB）
+    changes: jsonb('changes'),
+    // 客户端 IP
+    ipAddress: varchar('ip_address', { length: 45 }),
+    // 用户代理
+    userAgent: text('user_agent'),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    actionIndex: index('audit_logs_action_idx').on(table.action),
+    userIdIndex: index('audit_logs_user_id_idx').on(table.userId),
+    createdAtIndex: index('audit_logs_created_at_idx').on(table.createdAt),
+    resourceIndex: index('audit_logs_resource_idx').on(table.resource, table.resourceId),
   }),
 );

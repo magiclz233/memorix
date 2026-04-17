@@ -29,8 +29,13 @@ const VIDEO_MIME_BY_EXT: Record<string, string> = {
   '.ts': 'video/mp2t',
 };
 
-export const getStorageCacheRoot = (storageId: number) =>
-  path.resolve(process.cwd(), '.cache', 'memorix', 'thumbs', String(storageId));
+export const getStorageCacheRoot = (storageId: number) => {
+  // Vercel 只有 /tmp 可写；本地开发使用项目目录下的 .cache
+  const baseDir = process.env.VERCEL
+    ? '/tmp/memorix/thumbs'
+    : path.resolve(process.cwd(), '.cache', 'memorix', 'thumbs');
+  return path.join(baseDir, String(storageId));
+};
 
 const MOTION_XMP_SCAN_BYTES = 512 * 1024;
 const MIN_EMBEDDED_VIDEO_BYTES = 8 * 1024;

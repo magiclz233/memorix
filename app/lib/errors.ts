@@ -10,6 +10,21 @@ export class AppError extends Error {
   }
 }
 
+// 别名，与设计文档保持一致
+export class AuthenticationError extends AppError {
+  constructor(message: string = 'Authentication required') {
+    super(message, 'AUTH_ERROR', 401);
+    this.name = 'AuthenticationError';
+  }
+}
+
+export class AuthorizationError extends AppError {
+  constructor(message: string = 'Permission denied') {
+    super(message, 'PERMISSION_ERROR', 403);
+    this.name = 'AuthorizationError';
+  }
+}
+
 export class ValidationError extends AppError {
   constructor(message: string, details?: unknown) {
     super(message, 'VALIDATION_ERROR', 400, details);

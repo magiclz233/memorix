@@ -33,10 +33,41 @@ export function withTiming<T>(name: string, fn: () => Promise<T>): Promise<T> {
 }
 
 /**
- * 创建子日志器
+ * 创建子日志器（支持模块名字符串或上下文对象）
  */
-export function createLogger(context: Record<string, unknown>) {
-  return logger.child(context);
+export function createLogger(moduleOrContext: string | Record<string, unknown>) {
+  if (typeof moduleOrContext === 'string') {
+    return logger.child({ module: moduleOrContext });
+  }
+  return logger.child(moduleOrContext);
+}
+
+/**
+ * 请求日志中间件 - 记录 requestId、method、url、duration
+ */
+export function logRequest(method: string, url: string, userId?: number) {
+  const requestId = crypto.randomUUID();
+  const startTime = Date.now();
+
+  logger.info({ requestId, method, url, userId }, 'Request started');
+
+  return {
+    requestId,
+    end: (statusCode: number, error?: Error) => {
+      const duration = Date.now() - startTime;
+      if (error) {
+        logger.error(
+          { requestId, method, url, statusCode, duration, userId, error: error.message },
+          'Request failed',
+        );
+      } else {
+        logger.info(
+          { requestId, method, url, statusCode, duration, userId },
+          'Request completed',
+        );
+      }
+    },
+  };
 }
 
 /**
