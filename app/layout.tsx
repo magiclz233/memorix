@@ -5,11 +5,27 @@ import { getLocale } from 'next-intl/server';
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | Acme Dashboard',
-    default: 'Acme Dashboard',
+    template: '%s | Lumina Pro',
+    default: 'Lumina Pro',
   },
-  description: 'The official Next.js Learn Dashboard built with App Router.',
-  metadataBase: new URL('https://next-learn-dashboard.vercel.sh'),
+  description: 'Lumina Pro - 沉浸式光影与极简排版的视觉档案系统',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://example.com'),
+  openGraph: {
+    type: 'website',
+    locale: 'zh_CN',
+    alternateLocale: ['en_US'],
+    siteName: 'Lumina Pro',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
+  alternates: {
+    canonical: '/',
+    languages: {
+      'zh-CN': '/',
+      'en': '/en',
+    },
+  },
 };
 
 export default async function RootLayout({
@@ -23,6 +39,18 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <body className="font-sans font-medium antialiased">
         {children}
+        {/* Service Worker 注册 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function() {});
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
