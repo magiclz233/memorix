@@ -5,6 +5,8 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { AppToaster } from '@/app/ui/components/app-toaster';
 import { GlobalErrorBoundary } from '@/app/ui/components/error-boundary';
 import { ProgressBar } from '@/app/ui/components/progress-bar';
+import { WebVitalsReporter } from '@/app/ui/components/web-vitals-reporter';
+import { ClientErrorHandler } from '@/app/ui/components/client-error-handler';
 import { routing } from '@/i18n/routing';
 
 type LocaleLayoutProps = {
@@ -34,6 +36,8 @@ export default async function LocaleLayout({
         <GlobalErrorBoundary>{children}</GlobalErrorBoundary>
         <AppToaster />
         <ProgressBar />
+        <WebVitalsReporter />
+        <ClientErrorHandler />
       </ThemeProvider>
     </NextIntlClientProvider>
   );
