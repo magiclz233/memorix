@@ -4,6 +4,9 @@ import { fetchPublishedMediaById } from '@/app/lib/data';
 import { GalleryContent } from '@/app/ui/front/gallery-content';
 import { GallerySkeleton } from '@/app/ui/front/gallery-skeleton';
 
+// ISR：每 60 秒重新验证画廊页面
+export const revalidate = 60;
+
 type GalleryPageProps = {
   searchParams: Promise<{
     q?: string;
