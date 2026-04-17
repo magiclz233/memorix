@@ -8,6 +8,8 @@ import { revalidatePathForAllLocales } from '../revalidate';
 import { auth } from '@/auth';
 import { headers } from 'next/headers';
 import { fetchPublishedMediaForGallery } from '../data';
+import { cache } from '../cache';
+import { CacheKeys } from '../cache-keys';
 
 const CollectionSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
@@ -103,6 +105,8 @@ export async function createCollection(formData: FormData) {
 
   revalidatePathForAllLocales('/dashboard/collections');
   revalidatePathForAllLocales('/collections');
+  // 清除作品集相关缓存
+  await cache.del([CacheKeys.frontFeaturedCollections(), CacheKeys.dashboardOverview()]);
 }
 
 export async function updateCollection(id: number, formData: FormData) {
@@ -148,6 +152,12 @@ export async function updateCollection(id: number, formData: FormData) {
   revalidatePathForAllLocales('/dashboard/collections');
   revalidatePathForAllLocales(`/dashboard/collections/${id}`);
   revalidatePathForAllLocales('/collections');
+  // 清除作品集相关缓存
+  await cache.del([
+    CacheKeys.collectionDetail(id),
+    CacheKeys.collectionMedia(id),
+    CacheKeys.frontFeaturedCollections(),
+  ]);
 }
 
 /**
@@ -203,6 +213,13 @@ export async function deleteCollection(id: number) {
 
   revalidatePathForAllLocales('/dashboard/collections');
   revalidatePathForAllLocales('/collections');
+  // 清除作品集相关缓存
+  await cache.del([
+    CacheKeys.collectionDetail(id),
+    CacheKeys.collectionMedia(id),
+    CacheKeys.frontFeaturedCollections(),
+    CacheKeys.dashboardOverview(),
+  ]);
 }
 
 export async function addMediaToCollection(
