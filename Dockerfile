@@ -1,58 +1,66 @@
-# 基于 Node.js 22 (LTS) 镜像构建
-FROM node:22-alpine AS base
+# syntax=docker/dockerfile:1
 
-# 安装基础依赖
-FROM base AS deps
+# ============ 阶段 1：安装依赖 ============
+FROM node:22-alpine AS deps
+RUN apk add --no-cache libc6-compat python3 make g++
+WORKDIR /app
+
+# 安装 pnpm
+RUN corepack enable pnpm
+
+# 复制依赖文件
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# ============ 阶段 2：构建应用 ============
+FROM node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# 复制依赖文件并安装
-COPY package.json pnpm-lock.yaml* ./
-RUN corepack enable pnpm && pnpm i --frozen-lockfile
+RUN corepack enable pnpm
 
-# 构建应用
-FROM base AS builder
-WORKDIR /app
+# 复制依赖
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# 禁用 Next.js 遥测
-ENV NEXT_TELEMETRY_DISABLED 1
+# 构建配置
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 
-# 运行构建
-RUN corepack enable pnpm && pnpm run build
+# 构建应用
+RUN pnpm build
 
-# 生产环境运行镜像
-FROM base AS runner
+# ============ 阶段 3：运行时 ============
+FROM node:22-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # 创建非 root 用户
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# 复制构建产物
+# 复制必要文件
 COPY --from=builder /app/public ./public
 
-# 自动利用 standalone 输出减小体积
+# 设置 standalone 输出目录权限
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# 复制 standalone 构建产物
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# 复制迁移文件与 Schema (用于运行时迁移)
-COPY --from=builder /app/drizzle ./drizzle
-COPY --from=builder /app/app/lib/schema.ts ./app/lib/schema.ts
-COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+# 创建上传目录
+RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+RUN mkdir -p /app/logs && chown nextjs:nodejs /app/logs
 
-# 切换用户
 USER nextjs
 
-# 暴露端口
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# 启动命令
 CMD ["node", "server.js"]
