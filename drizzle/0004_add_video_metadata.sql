@@ -1,4 +1,4 @@
-CREATE TABLE "video_metadata" (
+CREATE TABLE IF NOT EXISTS "video_metadata" (
 	"file_id" integer PRIMARY KEY NOT NULL,
 	"duration" double precision,
 	"width" integer,

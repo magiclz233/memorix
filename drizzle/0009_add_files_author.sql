@@ -1,1 +1,1 @@
-ALTER TABLE "files" ADD COLUMN "author" varchar(255);
+ALTER TABLE "files" ADD COLUMN IF NOT EXISTS "author" varchar(255);

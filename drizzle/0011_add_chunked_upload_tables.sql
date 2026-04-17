@@ -1,5 +1,5 @@
 -- 添加文件哈希字段到 files 表
-ALTER TABLE "files" ADD COLUMN "file_hash" varchar(64);
+ALTER TABLE "files" ADD COLUMN IF NOT EXISTS "file_hash" varchar(64);
 
 -- 创建文件哈希索引
 CREATE INDEX IF NOT EXISTS "files_file_hash_idx" ON "files" USING btree ("file_hash");

@@ -1,1 +1,1 @@
-ALTER TABLE "files" ADD COLUMN "blur_hash" varchar(64);
+ALTER TABLE "files" ADD COLUMN IF NOT EXISTS "blur_hash" varchar(64);

@@ -212,6 +212,6 @@ COMMENT ON COLUMN "verification"."created_at" IS '创建时间';
 --> statement-breakpoint
 COMMENT ON COLUMN "verification"."updated_at" IS '更新时间';
 --> statement-breakpoint
-CREATE UNIQUE INDEX "files_storage_path_unique" ON "files" USING btree ("user_storage_id","path");
+CREATE UNIQUE INDEX IF NOT EXISTS "files_storage_path_unique" ON "files" USING btree ("user_storage_id","path");
 --> statement-breakpoint
-CREATE UNIQUE INDEX "user_settings_user_key_unique" ON "user_settings" USING btree ("user_id","key");
+CREATE UNIQUE INDEX IF NOT EXISTS "user_settings_user_key_unique" ON "user_settings" USING btree ("user_id","key");

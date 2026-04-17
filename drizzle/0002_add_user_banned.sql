@@ -1,1 +1,1 @@
-ALTER TABLE "users" ADD COLUMN "banned" boolean DEFAULT false NOT NULL;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "banned" boolean DEFAULT false NOT NULL;
