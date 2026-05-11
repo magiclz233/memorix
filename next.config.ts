@@ -1,11 +1,10 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import dotenv from 'dotenv';
+import path from 'path';
 
 // 本地开发时加载环境特定配置（Vercel 上通过 Dashboard 配置环境变量）
 if (process.env.NODE_ENV !== 'production') {
-  const { default: dotenv } = await import('dotenv');
-  const { default: path } = await import('path');
-
   dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
   const appEnv = process.env.APP_ENV || 'dev';
@@ -20,14 +19,12 @@ if (process.env.NODE_ENV !== 'production') {
 const nextConfig: NextConfig = {
   // 注意：Vercel 部署不需要 standalone，本地 Docker 部署时可开启
   // output: 'standalone',
+  // 隐藏 Next.js 版本信息
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'http',
         hostname: '**',
       },
     ],
