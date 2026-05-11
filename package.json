@@ -56,7 +56,6 @@
     "heic-convert": "^2.1.0",
     "ioredis": "^5.10.1",
     "lucide-react": "^0.562.0",
-    "motion": "^12.23.26",
     "next": "16.0.7",
     "next-intl": "^4.7.0",
     "next-nprogress-bar": "^2.4.7",
