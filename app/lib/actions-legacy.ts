@@ -25,7 +25,14 @@ import {
 import { runStorageScan, runS3StorageScan, type StorageScanMode } from './storage-scan';
 import { ApiError } from 'next/dist/server/api-utils';
 import { buildSystemSettingsKey, fetchPublicSystemSettings, type SystemSettings } from './data';
+import type { ContactItem } from './data-legacy';
 import { getStorageCacheRoot } from './storage';
+
+export type ActionState = {
+  success: boolean;
+  message: string;
+  errors?: Record<string, string[]>;
+} | undefined;
 
 export type SignupState = {
   errors?: {
@@ -238,7 +245,7 @@ export async function setUserRole(formData: FormData) {
   };
 }
 
-const StorageConfigSchema = z.object({
+export const StorageConfigSchema = z.object({
   id: z.number().optional(),
   type: z.enum(['local', 'nas', 'qiniu', 's3']),
   rootPath: z.string().optional(),
@@ -792,7 +799,7 @@ export async function saveSystemSettings(formData: FormData) {
   );
 
   const equipmentItemsJson = readText('equipmentItemsJson');
-  let normalizedEquipmentItems = [];
+  let normalizedEquipmentItems: { title: string; description: string }[] = [];
   if (equipmentItemsJson) {
     try {
       normalizedEquipmentItems = JSON.parse(equipmentItemsJson);
@@ -802,7 +809,7 @@ export async function saveSystemSettings(formData: FormData) {
   }
 
   const aboutContactsJson = readText('aboutContactsJson');
-  let normalizedContacts: any[] = [];
+  let normalizedContacts: ContactItem[] = [];
   if (aboutContactsJson) {
     try {
       const parsed = JSON.parse(aboutContactsJson);
@@ -1096,7 +1103,7 @@ export async function updatePhotoDetails(formData: FormData) {
   }
 }
 
-export async function updateProfile(prevState: any, formData: FormData) {
+export async function updateProfile(prevState: ActionState, formData: FormData) {
   const t = await getTranslations('actions.profile');
   const tSignup = await getTranslations('actions.signup');
   const user = await requireUser();
@@ -1148,13 +1155,14 @@ export async function updateProfile(prevState: any, formData: FormData) {
   }
 }
 
-export async function changePasswordAction(prevState: any, formData: FormData) {
+export async function changePasswordAction(prevState: ActionState, formData: FormData) {
   const t = await getTranslations('actions.password');
+  const { config: appConfig } = await import('./config');
   const ChangePasswordSchema = z
     .object({
       currentPassword: z.string().min(1, { message: t('currentRequired') }),
-      newPassword: z.string().min(6, { message: t('newMin') }),
-      confirmPassword: z.string().min(6, { message: t('confirmMin') }),
+      newPassword: z.string().min(appConfig.auth.minPasswordLength, { message: t('newMin') }),
+      confirmPassword: z.string().min(appConfig.auth.minPasswordLength, { message: t('confirmMin') }),
     })
     .refine((data) => data.newPassword === data.confirmPassword, {
       message: t('mismatch'),
