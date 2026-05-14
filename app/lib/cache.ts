@@ -59,17 +59,31 @@ class CacheManager {
   }
 
   /**
-   * 按模式批量删除缓存
+   * 按模式批量删除缓存（使用 SCAN 避免阻塞 Redis）
    * 例如：delPattern('gallery:list:*') 清除所有画廊列表缓存
    */
   async delPattern(pattern: string): Promise<void> {
     if (!redisClient) return;
 
     try {
-      const keys = await redisClient.keys(pattern);
-      if (keys.length > 0) {
-        await redisClient.del(...keys);
-        logger.debug({ pattern, count: keys.length }, 'Cache pattern deleted');
+      let cursor = '0';
+      let totalDeleted = 0;
+      do {
+        const [nextCursor, keys] = await redisClient.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          100,
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await redisClient.del(...keys);
+          totalDeleted += keys.length;
+        }
+      } while (cursor !== '0');
+      if (totalDeleted > 0) {
+        logger.debug({ pattern, count: totalDeleted }, 'Cache pattern deleted');
       }
     } catch (error) {
       logger.warn({ pattern, error }, 'Cache delete pattern error');
@@ -90,10 +104,8 @@ class CacheManager {
     // 2. 缓存未命中，执行查询
     const data = await fetcher();
 
-    // 3. 写入缓存（异步，不阻塞返回）
-    this.set(key, data, ttl).catch((err) => {
-      logger.warn({ key, err }, 'Cache write failed after fetch');
-    });
+    // 3. 写入缓存
+    await this.set(key, data, ttl);
 
     return data;
   }
