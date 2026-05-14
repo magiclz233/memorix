@@ -1,12 +1,13 @@
 ﻿import { NextResponse } from 'next/server';
 import { fetchPublishedMediaForGallery } from '@/app/lib/data';
 import { buildGalleryItems } from '@/app/lib/gallery';
+import { config as appConfig } from '@/app/lib/config';
 
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_PAGE_SIZE = 12;
-const MAX_PAGE_SIZE = 60;
-const MAX_QUERY_LENGTH = 80;
+const DEFAULT_PAGE_SIZE = appConfig.gallery.defaultPageSize;
+const MAX_PAGE_SIZE = appConfig.gallery.maxPageSize;
+const MAX_QUERY_LENGTH = appConfig.gallery.maxQueryLength;
 
 const parsePositiveInt = (value: string | null, fallback: number) => {
   if (!value) return fallback;

@@ -11,9 +11,10 @@ import { getTranslations } from 'next-intl/server';
 import { resolveS3Client, normalizeS3Prefix } from '@/app/lib/s3-helper';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { checkRateLimit } from '@/app/lib/rate-limit';
+import { config as appConfig } from '@/app/lib/config';
 
-// 文件大小限制：500MB
-const MAX_FILE_SIZE = 500 * 1024 * 1024;
+// 文件大小限制
+const MAX_FILE_SIZE = appConfig.upload.maxFileSize;
 
 // 支持的文件类型
 const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
