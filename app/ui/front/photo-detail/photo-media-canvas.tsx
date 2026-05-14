@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, Play, Sparkles } from 'lucide-react';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import { cn } from '@/lib/utils';
