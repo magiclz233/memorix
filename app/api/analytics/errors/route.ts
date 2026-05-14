@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/app/lib/drizzle';
 import { errorLogs } from '@/app/lib/schema';
+import { RateLimiter, getClientIdentifier } from '@/app/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // 速率限制：每 IP 每分钟最多 30 次
+    const identifier = getClientIdentifier(request);
+    await RateLimiter.check(identifier, 'analytics-errors', {
+      windowMs: 60 * 1000,
+      maxRequests: 30,
+    });
+
     const data = await request.json();
 
     await db.insert(errorLogs).values({

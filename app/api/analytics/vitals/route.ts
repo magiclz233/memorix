@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/app/lib/drizzle';
 import { performanceMetrics } from '@/app/lib/schema';
 import { createLogger } from '@/app/lib/logger';
+import { RateLimiter, getClientIdentifier } from '@/app/lib/rate-limit';
 
 const logger = createLogger('analytics-vitals');
 
@@ -10,6 +11,13 @@ const logger = createLogger('analytics-vitals');
  */
 export async function POST(request: NextRequest) {
   try {
+    // 速率限制：每 IP 每分钟最多 60 次
+    const identifier = getClientIdentifier(request);
+    await RateLimiter.check(identifier, 'analytics-vitals', {
+      windowMs: 60 * 1000,
+      maxRequests: 60,
+    });
+
     const data = await request.json();
 
     // 基本验证
