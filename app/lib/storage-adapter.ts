@@ -99,7 +99,7 @@ export class LocalStorageAdapter implements StorageAdapter {
 }
 
 export class S3StorageAdapter implements StorageAdapter {
-  private s3Client: any;
+  private s3Client: InstanceType<typeof import('@aws-sdk/client-s3').S3Client> | undefined;
   private bucket: string;
   private region: string;
   private endpoint?: string;
@@ -142,8 +142,9 @@ export class S3StorageAdapter implements StorageAdapter {
 
     const response = await client.send(command);
     const chunks: Uint8Array[] = [];
+    const body = response.Body as AsyncIterable<Uint8Array>;
 
-    for await (const chunk of response.Body as any) {
+    for await (const chunk of body) {
       chunks.push(chunk);
     }
 
