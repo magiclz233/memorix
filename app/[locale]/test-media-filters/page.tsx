@@ -4,6 +4,7 @@
  */
 
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
 export default async function TestMediaFiltersPage() {
@@ -155,7 +156,7 @@ export default async function TestMediaFiltersPage() {
               <div className="flex items-start gap-2">
                 <span className="text-green-600 dark:text-green-400">✓</span>
                 <div>
-                  <strong>图片懒加载:</strong> loading="lazy" + BlurHash 占位符
+                  <strong>图片懒加载:</strong> loading=&quot;lazy&quot; + BlurHash 占位符
                   <br />
                   <span className="text-xs">优先加载可见区域图片</span>
                 </div>
@@ -270,7 +271,7 @@ export default async function TestMediaFiltersPage() {
               <li>1. 访问 /dashboard/media 页面</li>
               <li>2. 测试搜索框输入，观察防抖效果和结果更新</li>
               <li>3. 点击存储类型快速切换 (All/Local/NAS/S3)</li>
-              <li>4. 点击"高级筛选"按钮，测试所有筛选维度</li>
+              <li>4. 点击&quot;高级筛选&quot;按钮，测试所有筛选维度</li>
               <li>5. 观察筛选状态 Chips 的显示和移除功能</li>
               <li>6. 复制 URL，在新标签页打开，验证筛选条件保持</li>
               <li>7. 刷新页面，验证筛选条件不丢失</li>
@@ -311,30 +312,30 @@ export default async function TestMediaFiltersPage() {
               🔗 快速跳转
             </h2>
             <div className="mt-4 flex flex-wrap gap-2">
-              <a
+              <Link
                 href="/dashboard/media"
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
               >
                 媒体库页面
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/dashboard/media?category=local"
                 className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Local 存储筛选
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/dashboard/media?status=published&type=image"
                 className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 已发布图片
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/dashboard/media?hero=yes"
                 className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Hero 媒体
-              </a>
+              </Link>
             </div>
           </div>
         </div>
