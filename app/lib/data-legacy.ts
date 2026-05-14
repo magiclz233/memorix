@@ -63,24 +63,28 @@ const normalizeMediaTagsMap = (value: unknown): MediaTagsMap => {
   return map;
 };
 
+const MEDIA_TAGS_CACHE_TTL = 300; // 5 分钟
+
 const fetchMediaTagsMap = async (): Promise<MediaTagsMap> => {
-  const admin = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.role, 'admin'))
-    .orderBy(asc(users.id))
-    .limit(1);
+  return getCached<MediaTagsMap>('media:tags:map', async () => {
+    const admin = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.role, 'admin'))
+      .orderBy(asc(users.id))
+      .limit(1);
 
-  const adminId = admin[0]?.id;
-  if (!adminId) return {};
+    const adminId = admin[0]?.id;
+    if (!adminId) return {};
 
-  const rows = await db
-    .select({ value: userSettings.value })
-    .from(userSettings)
-    .where(and(eq(userSettings.userId, adminId), eq(userSettings.key, MEDIA_TAGS_KEY)))
-    .limit(1);
+    const rows = await db
+      .select({ value: userSettings.value })
+      .from(userSettings)
+      .where(and(eq(userSettings.userId, adminId), eq(userSettings.key, MEDIA_TAGS_KEY)))
+      .limit(1);
 
-  return normalizeMediaTagsMap(rows[0]?.value);
+    return normalizeMediaTagsMap(rows[0]?.value);
+  }, MEDIA_TAGS_CACHE_TTL);
 };
 
 
