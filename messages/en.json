@@ -1203,8 +1203,7 @@
         "publishSuccess": "All completed files published",
         "publishFailed": "Publish failed, please try again"
       },
-      "publishAll": "Publish All"
-      },
+      "publishAll": "Publish All",
       "queue": {
         "title": "Task Queue",
         "description": "Supports multi-task uploads with task-level scheduling.",

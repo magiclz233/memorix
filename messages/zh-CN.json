@@ -1203,8 +1203,7 @@
         "publishSuccess": "已发布所有完成的文件",
         "publishFailed": "发布失败，请重试"
       },
-      "publishAll": "一键发布全部"
-      },
+      "publishAll": "一键发布全部",
       "queue": {
         "title": "任务队列",
         "description": "支持多任务并发，按任务级别串行调度上传。",
