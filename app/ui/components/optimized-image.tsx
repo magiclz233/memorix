@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { cn } from '@/app/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface OptimizedImageProps {
   src: string;
@@ -82,9 +82,9 @@ export function OptimizedImage({
         placeholder={blurHash ? 'blur' : 'empty'}
         blurDataURL={
           blurHash
-            ? `data:image/svg+xml;base64,${Buffer.from(
+            ? `data:image/svg+xml;base64,${btoa(
                 `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#e4e4e7"/></svg>`,
-              ).toString('base64')}`
+              )}`
             : undefined
         }
       />

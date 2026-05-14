@@ -2,7 +2,7 @@
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useRef } from 'react';
-import { cn } from '@/app/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface VirtualScrollerProps<T> {
   /** 数据列表 */
