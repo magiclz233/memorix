@@ -37,22 +37,29 @@ export const users = pgTable('users', {
 });
 
 // 用户存储配置表：保存每个用户的存储源与凭证信息
-export const userStorages = pgTable('user_storages', {
-  // 主键 ID
-  id: serial('id').primaryKey(),
-  // 关联用户 ID（未设置外键约束）
-  userId: integer('user_id').notNull(),
-  // 存储类型（s3、qiniu、local、nas）
-  type: varchar('type', { length: 50 }).notNull(),
-  // 存储配置（JSONB，如 bucket、access_key、secret_key 等）
-  config: jsonb('config').notNull(),
-  // 创建时间
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  // 更新时间
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  // 软删除时间（可为空）
-  deletedAt: timestamp('deleted_at'),
-});
+export const userStorages = pgTable(
+  'user_storages',
+  {
+    // 主键 ID
+    id: serial('id').primaryKey(),
+    // 关联用户 ID（未设置外键约束）
+    userId: integer('user_id').notNull(),
+    // 存储类型（s3、qiniu、local、nas）
+    type: varchar('type', { length: 50 }).notNull(),
+    // 存储配置（JSONB，如 bucket、access_key、secret_key 等）
+    config: jsonb('config').notNull(),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // 更新时间
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    // 软删除时间（可为空）
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => ({
+    userIdIndex: index('user_storages_user_id_idx').on(table.userId),
+    typeIndex: index('user_storages_type_idx').on(table.type),
+  }),
+);
 
 // 文件表：媒体文件基础信息
 export const files = pgTable(
@@ -281,42 +288,57 @@ export const videoMetadata = pgTable(
 );
 
 // 存储配置表：后台管理员可配置的存储源
-export const storageConfigs = pgTable('storage_configs', {
-  // 主键 ID
-  id: serial('id').primaryKey(),
-  // 配置名称
-  name: varchar('name', { length: 255 }).notNull(),
-  // 存储类型
-  type: varchar('type', { length: 16 }).notNull(),
-  // 具体配置（JSONB）
-  config: jsonb('config').notNull(),
-  // 状态标记（如 enabled/disabled）
-  status: varchar('status', { length: 32 }).notNull(),
-});
+export const storageConfigs = pgTable(
+  'storage_configs',
+  {
+    // 主键 ID
+    id: serial('id').primaryKey(),
+    // 配置名称
+    name: varchar('name', { length: 255 }).notNull(),
+    // 存储类型
+    type: varchar('type', { length: 16 }).notNull(),
+    // 具体配置（JSONB）
+    config: jsonb('config').notNull(),
+    // 状态标记（如 enabled/disabled）
+    status: varchar('status', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    statusIndex: index('storage_configs_status_idx').on(table.status),
+    typeIndex: index('storage_configs_type_idx').on(table.type),
+  }),
+);
 
 // 作品集表（统一集合）
-export const collections = pgTable('collections', {
-  // 主键 ID
-  id: serial('id').primaryKey(),
-  // 作品集标题
-  title: varchar('title', { length: 255 }).notNull(),
-  // 作品集描述
-  description: text('description'),
-  // 作者（自由字符串）
-  author: varchar('author', { length: 255 }),
-  // 封面图片集（存储 file IDs 数组，最多 3 张）
-  coverImages: integer('cover_images').array(),
-  // 类型（mixed / photo / video）
-  type: varchar('type', { length: 16 }).notNull().default('mixed'),
-  // 发布状态（draft / published）
-  status: varchar('status', { length: 16 }).notNull().default('draft'),
-  // 创建/更新人（可空）
-  createdBy: integer('created_by'),
-  updatedBy: integer('updated_by'),
-  // 创建/更新时间
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const collections = pgTable(
+  'collections',
+  {
+    // 主键 ID
+    id: serial('id').primaryKey(),
+    // 作品集标题
+    title: varchar('title', { length: 255 }).notNull(),
+    // 作品集描述
+    description: text('description'),
+    // 作者（自由字符串）
+    author: varchar('author', { length: 255 }),
+    // 封面图片集（存储 file IDs 数组，最多 3 张）
+    coverImages: integer('cover_images').array(),
+    // 类型（mixed / photo / video）
+    type: varchar('type', { length: 16 }).notNull().default('mixed'),
+    // 发布状态（draft / published）
+    status: varchar('status', { length: 16 }).notNull().default('draft'),
+    // 创建/更新人（可空）
+    createdBy: integer('created_by'),
+    updatedBy: integer('updated_by'),
+    // 创建/更新时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    statusIndex: index('collections_status_idx').on(table.status),
+    typeIndex: index('collections_type_idx').on(table.type),
+    createdAtIndex: index('collections_created_at_idx').on(table.createdAt),
+  }),
+);
 
 // 作品集关联表：作品集与文件的多对多关系
 export const collectionMedia = pgTable(
@@ -339,54 +361,66 @@ export const collectionMedia = pgTable(
 );
 
 // Better Auth 核心表：会话
-export const authSessions = pgTable('session', {
-  // 会话 ID
-  id: serial('id').primaryKey(),
-  // 关联用户 ID（未设置外键约束）
-  userId: integer('user_id').notNull(),
-  // 会话过期时间
-  expiresAt: timestamp('expires_at').notNull(),
-  // 会话令牌
-  token: text('token').notNull().unique(),
-  // 访问 IP
-  ipAddress: text('ip_address'),
-  // 用户代理
-  userAgent: text('user_agent'),
-  // 创建时间
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  // 更新时间
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const authSessions = pgTable(
+  'session',
+  {
+    // 会话 ID
+    id: serial('id').primaryKey(),
+    // 关联用户 ID（未设置外键约束）
+    userId: integer('user_id').notNull(),
+    // 会话过期时间
+    expiresAt: timestamp('expires_at').notNull(),
+    // 会话令牌
+    token: text('token').notNull().unique(),
+    // 访问 IP
+    ipAddress: text('ip_address'),
+    // 用户代理
+    userAgent: text('user_agent'),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // 更新时间
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIndex: index('session_user_id_idx').on(table.userId),
+  }),
+);
 
 // Better Auth 核心表：第三方账号
-export const authAccounts = pgTable('account', {
-  // 账号记录 ID
-  id: serial('id').primaryKey(),
-  // 关联用户 ID（未设置外键约束）
-  userId: integer('user_id').notNull(),
-  // 供应商账号 ID（如 GitHub 用户 ID）
-  accountId: text('account_id').notNull(),
-  // 供应商标识（如 github）
-  providerId: text('provider_id').notNull(),
-  // OAuth access_token
-  accessToken: text('access_token'),
-  // OAuth refresh_token
-  refreshToken: text('refresh_token'),
-  // access_token 过期时间
-  accessTokenExpiresAt: timestamp('access_token_expires_at'),
-  // refresh_token 过期时间
-  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
-  // OAuth scope
-  scope: text('scope'),
-  // OpenID id_token
-  idToken: text('id_token'),
-  // 邮箱密码登录的哈希密码
-  password: text('password'),
-  // 创建时间
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  // 更新时间
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const authAccounts = pgTable(
+  'account',
+  {
+    // 账号记录 ID
+    id: serial('id').primaryKey(),
+    // 关联用户 ID（未设置外键约束）
+    userId: integer('user_id').notNull(),
+    // 供应商账号 ID（如 GitHub 用户 ID）
+    accountId: text('account_id').notNull(),
+    // 供应商标识（如 github）
+    providerId: text('provider_id').notNull(),
+    // OAuth access_token
+    accessToken: text('access_token'),
+    // OAuth refresh_token
+    refreshToken: text('refresh_token'),
+    // access_token 过期时间
+    accessTokenExpiresAt: timestamp('access_token_expires_at'),
+    // refresh_token 过期时间
+    refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+    // OAuth scope
+    scope: text('scope'),
+    // OpenID id_token
+    idToken: text('id_token'),
+    // 邮箱密码登录的哈希密码
+    password: text('password'),
+    // 创建时间
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // 更新时间
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIndex: index('account_user_id_idx').on(table.userId),
+  }),
+);
 
 // Better Auth 核心表：验证记录
 export const authVerifications = pgTable('verification', {

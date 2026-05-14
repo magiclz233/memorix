@@ -59,17 +59,27 @@ export async function getCached<T>(
 }
 
 /**
- * 删除缓存
+ * 使用 SCAN 迭代删除匹配模式的缓存键（避免 KEYS 的 O(N) 阻塞）
  * @param pattern 缓存键模式（支持通配符 *）
  */
 export async function deleteCached(pattern: string): Promise<void> {
   if (!redisClient) return;
 
   try {
-    const keys = await redisClient.keys(pattern);
-    if (keys.length > 0) {
-      await redisClient.del(...keys);
-    }
+    let cursor = '0';
+    do {
+      const [nextCursor, keys] = await redisClient.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        100,
+      );
+      cursor = nextCursor;
+      if (keys.length > 0) {
+        await redisClient.del(...keys);
+      }
+    } while (cursor !== '0');
   } catch (error) {
     console.warn('Redis delete error:', error);
   }

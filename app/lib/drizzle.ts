@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { config as appConfig } from './config';
 
 const connectionString =
   process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL!;
@@ -14,12 +15,9 @@ const ssl =
 
 const client = postgres(connectionString, {
   ssl,
-  // 最大连接数：20（生产环境）
-  max: parseInt(process.env.DB_POOL_MAX || '20'),
-  // 空闲超时：20 秒
-  idle_timeout: 20,
-  // 连接超时：10 秒
-  connect_timeout: 10,
+  max: appConfig.db.poolMax,
+  idle_timeout: appConfig.db.idleTimeout,
+  connect_timeout: appConfig.db.connectTimeout,
   // 使用预编译语句提升性能
   prepare: true,
   // 忽略 NOTICE 消息

@@ -6,9 +6,9 @@ import { RateLimitError } from './errors';
 const inMemoryStore = new Map<string, { count: number; resetAt: number }>();
 
 /**
- * 基础速率限制检查（内部使用）
+ * 基础速率限制检查
  */
-async function checkRateLimitInternal(
+export async function checkRateLimit(
   identifier: string,
   limit: number = 10,
   windowSeconds: number = 60,
@@ -121,7 +121,7 @@ export class RateLimiter {
     }
 
     // 降级到内存存储
-    const result = await checkRateLimitInternal(
+    const result = await checkRateLimit(
       `${endpoint}:${identifier}`,
       config.maxRequests,
       Math.ceil(config.windowMs / 1000),
