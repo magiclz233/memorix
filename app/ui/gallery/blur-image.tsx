@@ -24,9 +24,9 @@ export function BlurImage({
   const [isLoaded, setIsLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Only bypass Next.js optimization for external URLs, not local API routes
   const shouldBypassOptimization =
-    typeof src === 'string' &&
-    (src.startsWith('/api/local-files/') || src.startsWith('/api/media/thumb/'));
+    typeof src === 'string' && !src.startsWith('/');
 
   const hasExplicitSize = typeof width === 'number' && typeof height === 'number';
   const useFill = fill === true || !hasExplicitSize;
