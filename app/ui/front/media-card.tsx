@@ -11,6 +11,7 @@ import { useState } from 'react';
 type MediaCardProps = {
   item: MediaItem;
   showDate?: boolean;
+  priority?: boolean;
 };
 
 const formatDate = (value: string, locale: string) => {
@@ -25,7 +26,7 @@ const formatDate = (value: string, locale: string) => {
 
 import { SpotlightCard } from '@/components/ui/spotlight-card';
 
-export function MediaCard({ item, showDate }: MediaCardProps) {
+export function MediaCard({ item, showDate, priority = false }: MediaCardProps) {
   const locale = useLocale();
   const t = useTranslations('front.media');
   const messages = useMessages();
@@ -56,6 +57,7 @@ export function MediaCard({ item, showDate }: MediaCardProps) {
           fill
           sizes='(max-width: 768px) 100vw, 33vw'
           quality={80}
+          priority={priority}
           className='object-cover'
         />
       ) : (

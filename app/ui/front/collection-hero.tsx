@@ -87,10 +87,13 @@ export function CollectionHero({
         <div
           key={`${src}-${index}`}
           className={cn(
-            'absolute inset-0 bg-cover bg-center transition-opacity duration-[1200ms]',
+            'absolute inset-0 bg-cover bg-center transition-opacity',
             index === safeIndex ? 'opacity-100' : 'opacity-0',
           )}
-          style={{ backgroundImage: `url(${src})` }}
+          style={{
+            backgroundImage: `url(${src})`,
+            transitionDuration: '1200ms',
+          }}
         />
       ))}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

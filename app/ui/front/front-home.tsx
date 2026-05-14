@@ -232,10 +232,13 @@ export function FrontHome({ heroPhotos, featuredCollections }: FrontHomeProps) {
           <div
             key={src}
             className={cn(
-              'absolute inset-0 bg-cover bg-center transition-opacity duration-[1200ms] md:bg-fixed',
+              'absolute inset-0 bg-cover bg-center transition-opacity md:bg-fixed',
               index === safeIndex ? 'opacity-100' : 'opacity-0',
             )}
-            style={{ backgroundImage: `url(${src})` }}
+            style={{
+              backgroundImage: `url(${src})`,
+              transitionDuration: '1200ms',
+            }}
           />
         ))}
         <div className='absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/5' />

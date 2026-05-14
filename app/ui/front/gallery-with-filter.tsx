@@ -63,7 +63,7 @@ export function GalleryWithFilter({
   const [isFiltering, startTransition] = useTransition();
 
   const debouncedKeyword = useDebounce(keyword, 280);
-  const isFirstRequestRef = useRef(true);
+  const lastFilterKeyRef = useRef(`all|newest|${initialKeyword.trim()}`);
 
   const replaceQuery = useCallback(
     (patch: Record<string, string | null>) => {
@@ -76,7 +76,12 @@ export function GalleryWithFilter({
         }
       });
       const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      const nextUrl = query ? `${pathname}?${query}` : pathname;
+      const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
+
+      if (nextUrl !== currentUrl) {
+        router.replace(nextUrl, { scroll: false });
+      }
     },
     [pathname, router, searchParams],
   );
@@ -119,10 +124,11 @@ export function GalleryWithFilter({
   );
 
   useEffect(() => {
-    if (isFirstRequestRef.current) {
-      isFirstRequestRef.current = false;
+    const filterKey = `${mediaType}|${sortOrder}|${normalizedKeyword}`;
+    if (lastFilterKeyRef.current === filterKey) {
       return;
     }
+    lastFilterKeyRef.current = filterKey;
     void applyFilter(mediaType, sortOrder, normalizedKeyword);
   }, [applyFilter, mediaType, normalizedKeyword, sortOrder]);
 
