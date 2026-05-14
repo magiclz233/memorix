@@ -7,29 +7,31 @@
  */
 
 const CACHE_NAME = 'lumina-v1';
-const STATIC_ASSETS = [
-  '/',
-];
+const STATIC_ASSETS = ['/'];
 
 // 安装：预缓存静态资源
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting()),
   );
 });
 
 // 激活：清理旧缓存
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    }).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((cacheNames) =>
+        Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => caches.delete(name)),
+        ),
+      )
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -40,6 +42,11 @@ self.addEventListener('fetch', (event) => {
 
   // 只处理同源请求
   if (url.origin !== location.origin) return;
+
+  // Next 开发环境静态资源变化频繁，不应被 Service Worker 缓存。
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    if (url.pathname.startsWith('/_next/')) return;
+  }
 
   // 图片资源：Cache First
   if (
@@ -112,14 +119,16 @@ async function networkFirst(request) {
 async function staleWhileRevalidate(request) {
   const cached = await caches.match(request);
 
-  const fetchPromise = fetch(request).then((response) => {
-    if (response.ok) {
-      caches.open(CACHE_NAME).then((cache) => {
-        cache.put(request, response.clone());
-      });
-    }
-    return response;
-  }).catch(() => null);
+  const fetchPromise = fetch(request)
+    .then((response) => {
+      if (response.ok) {
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, response.clone());
+        });
+      }
+      return response;
+    })
+    .catch(() => null);
 
   return cached || fetchPromise;
 }
