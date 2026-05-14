@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "start": "next start",
     "lint": "eslint .",
     "db:migrate": "drizzle-kit migrate",
@@ -94,6 +94,9 @@
     "eslint-config-next": "^16.0.8"
   },
   "pnpm": {
+    "overrides": {
+      "caniuse-lite": "1.0.30001792"
+    },
     "onlyBuiltDependencies": [
       "sharp",
       "ffmpeg-static",
