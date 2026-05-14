@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Play, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
