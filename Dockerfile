@@ -2,22 +2,24 @@
 
 # ============ 阶段 1：安装依赖 ============
 FROM node:22-alpine AS deps
-RUN apk add --no-cache libc6-compat python3 make g++
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# 安装 pnpm
-RUN corepack enable pnpm
+# 安装 pnpm（固定 9.x：pnpm 12 起不再读 package.json 的 pnpm.overrides，会与 lockfile 冲突）
+RUN npm install -g pnpm@9.15.4
 
 # 复制依赖文件
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# --ignore-scripts：跳过 ffmpeg-static / ffprobe-static 的 GitHub 二进制下载
+# （运行镜像用系统 ffmpeg 代替）；sharp 的预编译包由 pnpm 按平台自动安装，无需安装脚本
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # ============ 阶段 2：构建应用 ============
 FROM node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-RUN corepack enable pnpm
+RUN npm install -g pnpm@9.15.4
 
 # 复制依赖
 COPY --from=deps /app/node_modules ./node_modules
@@ -30,12 +32,17 @@ ENV NODE_ENV=production
 # 构建应用
 RUN pnpm build
 
-# ============ 阶段 3：运行时 ============
+# ============ 阶段 3：运行时（默认构建目标，必须放在最后） ============
 FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# 系统 ffmpeg：alpine 是 musl，ffmpeg-static 的 glibc 二进制跑不起来，用 apk 装
+RUN apk add --no-cache ffmpeg libstdc++ libc6-compat
+ENV FFMPEG_PATH=/usr/bin/ffmpeg
+ENV FFPROBE_PATH=/usr/bin/ffprobe
 
 # 创建非 root 用户
 RUN addgroup --system --gid 1001 nodejs
@@ -52,9 +59,8 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# 创建上传目录
-RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
-RUN mkdir -p /app/logs && chown nextjs:nodejs /app/logs
+# 创建上传 / 日志 / 缩略图缓存目录
+RUN mkdir -p /app/uploads /app/logs /app/.cache && chown nextjs:nodejs /app/uploads /app/logs /app/.cache
 
 USER nextjs
 

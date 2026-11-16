@@ -1,0 +1,12 @@
+node_modules
+.next
+.cache
+.git
+logs
+uploads
+*.log
+.env
+.env.*
+*.tgz
+*.tar.gz
+docs

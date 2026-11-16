@@ -1,45 +1,64 @@
 version: '3.8'
 
+# 通用模板：密钥全部走环境变量，不要把真实值写进这个文件。
+# NAS 实际部署用的是 docker-compose.nas.yml（已加入 .gitignore，含真实密钥）。
+# 参考：共享目录以只读方式挂进容器，例如 /volume2/photos:/media/photos:ro，
+#       然后在后台「存储」里新增 local 存储，rootPath 填 /media/photos 后扫描。
 services:
+  # 一次性数据库迁移：建表后退出（drizzle 会记录已执行版本，重复运行安全）
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    image: memorix-migrator:local
+    environment:
+      - POSTGRES_URL=postgresql://postgres:${DB_PASSWORD:-postgres}@postgres:5432/lumina
+      # postgres.js 默认走 TLS，容器内 postgres 没有证书，必须关掉
+      - POSTGRES_SSL_MODE=disable
+    depends_on:
+      - postgres
+    restart: "no"
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    image: memorix-app:local
+    container_name: memorix-app
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/lumina
+      - POSTGRES_URL=postgresql://postgres:${DB_PASSWORD:-postgres}@postgres:5432/lumina
+      - POSTGRES_SSL_MODE=disable
       - REDIS_URL=redis://redis:6379
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_SECRET=${AUTH_SECRET:-change-me-in-production}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
       - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL:-http://localhost:3000}
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
+      - migrate
     volumes:
       - uploads:/app/uploads
       - logs:/app/logs
+      - cache:/app/.cache
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
 
   postgres:
     image: postgres:16-alpine
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
       - POSTGRES_DB=lumina
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -52,8 +71,6 @@ services:
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -66,3 +83,4 @@ volumes:
   redis_data:
   uploads:
   logs:
+  cache:

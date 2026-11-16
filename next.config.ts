@@ -44,8 +44,18 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const nextConfig: NextConfig = {
-  // 注意：Vercel 部署不需要 standalone，本地 Docker 部署时可开启
-  // output: 'standalone',
+  // Docker 部署需要 standalone 产物（Dockerfile 会 COPY .next/standalone）
+  output: 'standalone',
+  experimental: {
+    serverActions: {
+      // 外网经绿联 UGLink 反向代理，Origin 与容器内 Host 不一致，放行这些来源
+      allowedOrigins: [
+        'app-30001-3d2y.cn44.ugdocker.link',
+        'app-3000-3d2y.cn44.ugdocker.link',
+        '192.168.0.105:30001',
+      ],
+    },
+  },
   // libheif-js 和 pino 内部使用动态 require/worker 文件，不能被 Next 服务端打包安全静态分析。
   serverExternalPackages: ['heic-convert', 'heic-decode', 'libheif-js', 'pino'],
   // 隐藏 Next.js 版本信息
