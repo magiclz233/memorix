@@ -111,3 +111,17 @@
 
 ## 语言与注释
 - 沟通、提交信息、代码注释统一使用简体中文
+
+## Agent skills
+
+### Issue tracker
+
+规格与开发任务使用 GitHub Issues 管理。详见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+使用默认 triage 标签词汇。详见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+本仓库为 single-context；工程工作前读取根目录 `CONTEXT.md` 与相关 `docs/adr/`。详见 `docs/agents/domain.md`。
