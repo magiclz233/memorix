@@ -8,12 +8,11 @@ import {
   deleteUserStorage as legacyDeleteUserStorage,
   setStoragePublished as legacySetStoragePublished,
   scanStorage as legacyScanStorage,
-  type StorageConfigSchema,
 } from '../actions-legacy';
 import type { StorageScanMode } from '../storage-scan';
-import type { z } from 'zod';
+import type { StorageConfigInput } from '../storage-config-schema';
 
-export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>) {
+export async function saveUserStorage(input: StorageConfigInput) {
   return legacySaveUserStorage(input);
 }
 

@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 
 import { z } from 'zod';
 import path from 'path';
@@ -27,6 +27,7 @@ import { ApiError } from 'next/dist/server/api-utils';
 import { buildSystemSettingsKey, fetchPublicSystemSettings, type SystemSettings } from './data';
 import type { ContactItem } from './data-legacy';
 import { getStorageCacheRoot } from './storage';
+import { StorageConfigSchema } from './storage-config-schema';
 
 export type ActionState = {
   success: boolean;
@@ -244,20 +245,6 @@ export async function setUserRole(formData: FormData) {
     message: role === 'admin' ? t('setAdmin') : t('setUser'),
   };
 }
-
-export const StorageConfigSchema = z.object({
-  id: z.number().optional(),
-  type: z.enum(['local', 'nas', 'qiniu', 's3']),
-  rootPath: z.string().optional(),
-  alias: z.string().optional(),
-  endpoint: z.string().optional(),
-  bucket: z.string().optional(),
-  region: z.string().optional(),
-  accessKey: z.string().optional(),
-  secretKey: z.string().optional(),
-  prefix: z.string().optional(),
-  isDisabled: z.boolean().optional(),
-});
 
 const StorageCacheClearSchema = z.object({
   storageId: z.number().int().positive(),
