@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSwipeable } from 'react-swipeable';
 import { useTranslations } from 'next-intl';
-import { ChevronLeft, ChevronRight, Keyboard, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, Keyboard, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -87,24 +87,28 @@ export function PhotoDetailModal({
 }: PhotoDetailModalProps) {
   const t = useTranslations('front.galleryGrid');
 
-  // 浏览器返回支持
+  // 浏览器返回支持：打开灯箱时压入一条历史，返回时关闭。
+  // 关键：pushedRef 保证一次「打开会话」只 push 一次历史；灯箱内 prev/next
+  // 切换 selectedItem 不会再 push，否则后退要按很多次才能离开画廊（P1-5）。
+  const pushedRef = useRef(false);
+  const isOpen = Boolean(selectedItem);
   useEffect(() => {
-    if (!selectedItem) return;
-
-    const handlePopState = (event: PopStateEvent) => {
-      // 当用户点击浏览器返回按钮时关闭弹窗
-      onClose();
-    };
-
-    // 打开弹窗时添加一个历史记录
-    window.history.pushState({ modal: true }, '');
-    
+    if (!isOpen) {
+      pushedRef.current = false;
+      return;
+    }
+    const handlePopState = () => onClose();
     window.addEventListener('popstate', handlePopState);
-
+    if (!pushedRef.current) {
+      window.history.pushState({ modal: true }, '');
+      pushedRef.current = true;
+    }
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [selectedItem, onClose]);
+    // 只依赖 isOpen：切换图片不重跑，监听器保持稳定。onClose 变化极少，用 ref 兜住。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Lock body scroll
   useEffect(() => {
@@ -174,6 +178,8 @@ function PhotoDetailContent({
   const [isBuffering, setIsBuffering] = useState(false);
   const [isLivePreviewing, setIsLivePreviewing] = useState(false);
   const [viewMode, setViewMode] = useState<'fit' | 'frame'>('fit');
+  // 移动端信息面板抽屉：小屏下侧栏改为滑出抽屉，默认收起让主图占满视口。
+  const [showInfo, setShowInfo] = useState(false);
   const [footTitle, setFootTitle] = useState(item.title ?? '');
   const [footAuthor, setFootAuthor] = useState(item.author ?? '');
   const [footDate, setFootDate] = useState(toDateInputValue(item.dateShot));
@@ -696,6 +702,16 @@ function PhotoDetailContent({
             >
               {viewMode === 'fit' ? t('modal.viewFrame') : t('modal.viewOriginal')}
             </Button>
+            {/* 小屏专用：信息面板改为滑出抽屉，主图默认占满视口。 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowInfo((prev) => !prev)}
+              className="rounded-full bg-white/50 dark:bg-black/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/80 md:hidden"
+              aria-label={t('modal.toggleInfoAria')}
+            >
+              <Info className="h-4 w-4" />
+            </Button>
           </div>
         </div>
         <div className="flex-grow flex items-center justify-center relative h-full">
@@ -764,6 +780,15 @@ function PhotoDetailContent({
         />
       </div>
 
+      {/* 小屏抽屉遮罩：点按空白处收起信息面板。 */}
+      {showInfo && (
+        <button
+          type='button'
+          aria-label={t('modal.closeAria')}
+          className='absolute inset-0 z-[105] bg-black/40 md:hidden'
+          onClick={() => setShowInfo(false)}
+        />
+      )}
       <PhotoInfoSidebar
         item={item}
         isEditing={isEditing}
@@ -774,6 +799,8 @@ function PhotoDetailContent({
         onSaveTags={handleInlineSave}
         locale={locale}
         t={t}
+        mobileOpen={showInfo}
+        onClose={() => setShowInfo(false)}
       />
 
       <Dialog

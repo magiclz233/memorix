@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { db } from '../drizzle';
 import { collectionMedia, collections, files } from '../schema';
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { revalidatePathForAllLocales } from '../revalidate';
 import { auth } from '@/auth';
 import { headers } from 'next/headers';
@@ -247,7 +247,11 @@ export async function addMediaToCollection(
     .select({ id: files.id })
     .from(files)
     .where(
-      and(inArray(files.id, uniqueIds), inArray(files.mediaType, allowedTypes)),
+      and(
+        inArray(files.id, uniqueIds),
+        inArray(files.mediaType, allowedTypes),
+        isNull(files.deletedAt),
+      ),
     );
 
   if (allowedFiles.length !== uniqueIds.length) {

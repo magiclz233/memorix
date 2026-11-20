@@ -13,7 +13,22 @@ export const StorageConfigSchema = z.object({
   type: z.enum(['local', 'nas', 'qiniu', 's3']),
   rootPath: z.string().optional(),
   alias: z.string().optional(),
-  endpoint: z.string().optional(),
+  endpoint: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value) return true;
+        try {
+          const url = new URL(value);
+          // 只允许 http/https，挡掉 file:// / gopher:// / dict:// 等 SSRF 协议。
+          return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      },
+      { message: 'endpoint 必须是有效的 http(s) URL' },
+    ),
   bucket: z.string().optional(),
   region: z.string().optional(),
   accessKey: z.string().optional(),

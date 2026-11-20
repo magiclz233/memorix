@@ -30,6 +30,7 @@ import { signOutAction } from '@/app/lib/actions';
 const navItems = [
   { key: 'home', href: '/' },
   { key: 'gallery', href: '/gallery' },
+  { key: 'timeline', href: '/timeline' },
   { key: 'collections', href: '/collections' },
   { key: 'about', href: '/about' },
 ];

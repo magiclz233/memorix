@@ -46,6 +46,9 @@ export function AdvancedConfig({ value, onChange }: AdvancedConfigProps) {
       </CollapsibleTrigger>
 
       <CollapsibleContent className="space-y-6 pt-5 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+          {t('advancedConfigExperimental')}
+        </p>
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">

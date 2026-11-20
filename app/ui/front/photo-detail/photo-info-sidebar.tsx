@@ -19,6 +19,7 @@ import {
   Share2,
   Tag,
   Timer,
+  X,
 } from 'lucide-react';
 import type { GalleryItem } from '@/app/lib/gallery';
 import { showError, showSuccess } from '@/app/lib/toast-utils';
@@ -36,6 +37,10 @@ type PhotoInfoSidebarProps = {
   onSaveTags: () => void;
   locale: string;
   t: (key: string) => string;
+  /** 移动端抽屉是否展开（仅小屏生效，大屏恒显示） */
+  mobileOpen?: boolean;
+  /** 移动端抽屉关闭回调 */
+  onClose?: () => void;
 };
 
 const formatNumber = (val?: number | null, digits = 1) =>
@@ -125,6 +130,8 @@ export function PhotoInfoSidebar({
   onSaveTags,
   locale,
   t,
+  mobileOpen = false,
+  onClose,
 }: PhotoInfoSidebarProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const favorite = isFavorite(item.id);
@@ -205,7 +212,29 @@ export function PhotoInfoSidebar({
   };
 
   return (
-    <aside className='custom-scrollbar flex h-full w-[420px] flex-shrink-0 flex-col overflow-y-auto border-l border-gray-100 bg-white dark:border-zinc-800 dark:bg-zinc-950/90'>
+    <aside
+      className={[
+        'custom-scrollbar flex h-full flex-col overflow-y-auto border-l border-gray-100 bg-white dark:border-zinc-800 dark:bg-zinc-950/90',
+        // 大屏：正常文档流中的 420px 侧栏。
+        'md:relative md:w-[420px] md:flex-shrink-0 md:translate-x-0',
+        // 小屏：固定右侧滑出抽屉，默认移出视口；展开时滑入。
+        'fixed right-0 top-0 z-[110] w-[88vw] max-w-[420px] shadow-2xl transition-transform duration-300',
+        mobileOpen ? 'translate-x-0' : 'translate-x-full',
+      ].join(' ')}
+    >
+      {/* 小屏抽屉专用关闭按钮 */}
+      {onClose ? (
+        <div className='flex justify-end p-3 md:hidden'>
+          <button
+            type='button'
+            onClick={onClose}
+            aria-label={t('modal.closeAria')}
+            className='flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
+          >
+            <X className='h-5 w-5' />
+          </button>
+        </div>
+      ) : null}
       <div className='space-y-8 p-6'>
         <section className='flex items-start justify-between'>
           <h2 className='pr-4 text-lg font-bold leading-tight tracking-tight text-primary break-words dark:text-white'>
@@ -231,10 +260,10 @@ export function PhotoInfoSidebar({
               <Share2 className='h-5 w-5' />
             </button>
             <a
-              href={`/api/media/stream/${item.id}?download=true`}
-              download
+              href={`/api/download?id=${item.id}`}
               className='flex h-8 w-8 items-center justify-center text-gray-500 transition-colors hover:text-primary dark:hover:text-white'
               title={t('modal.download')}
+              aria-label={t('modal.download')}
             >
               <Download className='h-5 w-5' />
             </a>

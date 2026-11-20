@@ -9,7 +9,7 @@ import { redirect } from '@/i18n/navigation';
 import { stripLocalePrefix } from '@/i18n/paths';
 import { APIError } from 'better-auth/api';
 import { auth } from '@/auth';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { db } from './drizzle'; // 引入 db
 import {
@@ -22,11 +22,13 @@ import {
   userStorages,
   users,
 } from './schema'; // 引入表定义
-import { runStorageScan, runS3StorageScan, type StorageScanMode } from './storage-scan';
 import { ApiError } from 'next/dist/server/api-utils';
 import { buildSystemSettingsKey, fetchPublicSystemSettings, type SystemSettings } from './data';
+import { cleanHeroReferences, cleanCollectionCoverReferences } from './data/reference-cleanup';
 import type { ContactItem } from './data-legacy';
 import { getStorageCacheRoot } from './storage';
+import { resolveS3Client } from './s3-helper';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { StorageConfigSchema } from './storage-config-schema';
 
 export type ActionState = {
@@ -252,8 +254,7 @@ const StorageCacheClearSchema = z.object({
   days: z.number().int().positive().optional(),
 });
 
-const HERO_SETTING_KEY = 'hero_images';
-const MEDIA_TAGS_KEY = 'media_tags';
+const HERO_SETTING_KEY = 'hero_images';const MEDIA_TAGS_KEY = 'media_tags';
 const SYSTEM_SETTINGS_CAPABILITY_COUNT = 4;
 const SYSTEM_SETTINGS_EQUIPMENT_COUNT = 6;
 
@@ -537,105 +538,6 @@ export async function setStoragePublished(storageId: number, isPublished: boolea
   };
 }
 
-export async function scanStorage(
-  storageId: number,
-  mode: StorageScanMode = 'incremental',
-) {
-  const t = await getTranslations('actions.storage');
-  const user = await requireAdminUser();
-  const storage = await db.query.userStorages.findFirst({
-    where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
-  });
-
-  if (!storage) {
-    return { success: false, message: t('notFound') };
-  }
-
-  const storageConfig = (storage.config ?? {}) as {
-    rootPath?: string;
-    endpoint?: string | null;
-    region?: string | null;
-    bucket?: string | null;
-    accessKey?: string | null;
-    secretKey?: string | null;
-    prefix?: string | null;
-    isDisabled?: boolean;
-  };
-
-  if (storageConfig.isDisabled) {
-    return { success: false, message: t('configDisabled') };
-  }
-
-  try {
-    if (storage.type === 's3') {
-      if (!storageConfig.bucket || !storageConfig.accessKey || !storageConfig.secretKey) {
-        return { success: false, message: t('s3ConfigIncomplete') };
-      }
-      const { processed } = await runS3StorageScan({
-        storageId: storage.id,
-        config: {
-          endpoint: storageConfig.endpoint ?? null,
-          region: storageConfig.region ?? null,
-          bucket: storageConfig.bucket ?? null,
-          accessKey: storageConfig.accessKey ?? null,
-          secretKey: storageConfig.secretKey ?? null,
-          prefix: storageConfig.prefix ?? null,
-        },
-        mode,
-        onLog: (entry) => {
-          const text = t('scanPrefix', { message: entry.message });
-          if (entry.level === 'error') {
-            console.error(text);
-            return;
-          }
-          if (entry.level === 'warn') {
-            console.warn(text);
-            return;
-          }
-          console.info(text);
-        },
-      });
-      revalidatePathForAllLocales('/dashboard/media');
-      revalidatePathForAllLocales('/gallery');
-      return { success: true, message: t('scanSuccess', { count: processed }) };
-    }
-
-    if (storage.type !== 'local' && storage.type !== 'nas') {
-      return { success: false, message: t('scanUnsupported') };
-    }
-
-    const rootPath = storageConfig.rootPath;
-    if (!rootPath) {
-      return { success: false, message: t('noRootPath') };
-    }
-
-    const { processed } = await runStorageScan({
-      storageId: storage.id,
-      storageType: storage.type as 'local' | 'nas',
-      rootPath,
-      mode,
-      onLog: (entry) => {
-        const text = t('scanPrefix', { message: entry.message });
-        if (entry.level === 'error') {
-          console.error(text);
-          return;
-        }
-        if (entry.level === 'warn') {
-          console.warn(text);
-          return;
-        }
-        console.info(text);
-      },
-    });
-    revalidatePathForAllLocales('/dashboard/media');
-    revalidatePathForAllLocales('/gallery');
-    return { success: true, message: t('scanSuccess', { count: processed }) };
-  } catch (error) {
-    console.error('扫描目录失败：', error);
-    return { success: false, message: t('scanFailed') };
-  }
-}
-
 export async function setFilesPublished(fileIds: number[], isPublished: boolean) {
   const t = await getTranslations('actions.files');
   const user = await requireAdminUser();
@@ -710,6 +612,7 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
         inArray(files.id, fileIds),
         inArray(files.userStorageId, allowedStorageIds),
         eq(files.isPublished, true),
+        isNull(files.deletedAt),
       ),
     );
 
@@ -1229,44 +1132,65 @@ export async function deleteMediaFiles(fileIds: number[]) {
       return { success: false, message: t('noStorage') };
     }
 
+    // 安全：只用「已确认属于当前用户」的 id 执行后续所有删除。
+    // 原实现用原始 fileIds 删除，只要入参混入一个自己的 id 就能通过所有权校验，
+    // 进而删除事务里混入的他人文件（IDOR）。
+    const authorizedIds = filesToDelete.map((f) => f.id);
+
     // 开启数据库事务
     await db.transaction(async (tx) => {
       // 删除集合关联
       await tx
         .delete(collectionMedia)
-        .where(inArray(collectionMedia.fileId, fileIds));
+        .where(inArray(collectionMedia.fileId, authorizedIds));
 
       // 删除照片元数据
       await tx
         .delete(photoMetadata)
-        .where(inArray(photoMetadata.fileId, fileIds));
+        .where(inArray(photoMetadata.fileId, authorizedIds));
 
       // 删除视频元数据
       await tx
         .delete(videoMetadata)
-        .where(inArray(videoMetadata.fileId, fileIds));
+        .where(inArray(videoMetadata.fileId, authorizedIds));
 
       // 清理 Hero 照片引用
-      await cleanHeroReferences(tx, fileIds, user.id);
+      await cleanHeroReferences(tx, authorizedIds, user.id);
 
       // 清理集合封面引用
-      await cleanCollectionCoverReferences(tx, fileIds);
+      await cleanCollectionCoverReferences(tx, authorizedIds);
 
       // 删除文件记录
-      await tx.delete(files).where(inArray(files.id, fileIds));
+      await tx.delete(files).where(inArray(files.id, authorizedIds));
     });
 
     // 删除物理文件（在事务外执行，避免阻塞）
     const deletePromises = filesToDelete.map(async (file) => {
       try {
-        const storageConfig = file.storageConfig as { rootPath?: string };
         if (file.storageType === 'local' || file.storageType === 'nas') {
-          const basePath = storageConfig.rootPath || '';
+          const basePath = (file.storageConfig as { rootPath?: string } | null)?.rootPath || '';
           if (basePath) {
-            const absolutePath = path.join(basePath, file.path);
-            await fs.unlink(absolutePath).catch(() => {
-              // 忽略文件不存在的错误
-            });
+            const resolvedRoot = path.resolve(basePath);
+            const absolutePath = path.resolve(resolvedRoot, file.path);
+            // 防路径穿越：记录里的 path 必须仍位于 rootPath 内。
+            if (absolutePath.startsWith(resolvedRoot + path.sep)) {
+              await fs.unlink(absolutePath).catch(() => {
+                // 忽略文件不存在的错误
+              });
+            }
+          }
+        } else if (file.storageType === 's3') {
+          // S3 文件此前只删 DB 记录，桶对象残留会持续产生存储费用且可被重新扫回。
+          const config = (file.storageConfig ?? {}) as Record<string, string | null | undefined>;
+          if (config.bucket && config.accessKey && config.secretKey) {
+            try {
+              const client = resolveS3Client(config);
+              await client.send(
+                new DeleteObjectCommand({ Bucket: config.bucket, Key: file.path }),
+              );
+            } catch (error) {
+              console.error(`Failed to delete S3 object for file ${file.id}:`, error);
+            }
           }
         }
 
@@ -1283,7 +1207,7 @@ export async function deleteMediaFiles(fileIds: number[]) {
 
     await Promise.allSettled(deletePromises);
 
-    await Promise.all(fileIds.map((fileId) => saveMediaTagsForFile(user.id, fileId, [])));
+    await Promise.all(authorizedIds.map((fileId) => saveMediaTagsForFile(user.id, fileId, [])));
 
     // 重新验证相关页面
     revalidatePathForAllLocales('/dashboard/media');
@@ -1310,102 +1234,8 @@ export async function deleteMediaFiles(fileIds: number[]) {
  * @param deletedFileIds 已删除的文件 ID
  * @param userId 用户 ID
  */
-async function cleanHeroReferences(
-  tx: any,
-  deletedFileIds: number[],
-  userId: number
-) {
-  // 读取用户的 hero_images 设置
-  const heroSettings = await tx
-    .select({ value: userSettings.value })
-    .from(userSettings)
-    .where(
-      and(
-        eq(userSettings.userId, userId),
-        eq(userSettings.key, HERO_SETTING_KEY)
-      )
-    )
-    .limit(1);
-
-  if (heroSettings.length === 0) return;
-
-  const currentHeroIds = Array.isArray(heroSettings[0].value)
-    ? heroSettings[0].value.filter((id: any) => typeof id === 'number')
-    : [];
-
-  // 过滤掉已删除的文件 ID
-  const remainingHeroIds = currentHeroIds.filter(
-    (id: number) => !deletedFileIds.includes(id)
-  );
-
-  if (remainingHeroIds.length === 0) {
-    // 没有剩余的 Hero 照片，删除设置记录
-    await tx
-      .delete(userSettings)
-      .where(
-        and(
-          eq(userSettings.userId, userId),
-          eq(userSettings.key, HERO_SETTING_KEY)
-        )
-      );
-  } else if (remainingHeroIds.length !== currentHeroIds.length) {
-    // 有剩余的 Hero 照片，更新设置记录
-    await tx
-      .update(userSettings)
-      .set({
-        value: remainingHeroIds,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(userSettings.userId, userId),
-          eq(userSettings.key, HERO_SETTING_KEY)
-        )
-      );
-  }
-}
-
-/**
- * 清理集合封面引用
- * @param tx 事务对象
- * @param deletedFileIds 已删除的文件 ID
- */
-async function cleanCollectionCoverReferences(
-  tx: any,
-  deletedFileIds: number[]
-) {
-  // 查询所有包含已删除文件作为封面的集合
-  const affectedCollections = await tx
-    .select({
-      id: collections.id,
-      coverImages: collections.coverImages,
-    })
-    .from(collections);
-
-  for (const collection of affectedCollections) {
-    if (!Array.isArray(collection.coverImages)) continue;
-
-    const currentCovers = collection.coverImages.filter(
-      (id: any) => typeof id === 'number'
-    );
-
-    // 过滤掉已删除的文件 ID
-    const remainingCovers = currentCovers.filter(
-      (id: number) => !deletedFileIds.includes(id)
-    );
-
-    if (remainingCovers.length !== currentCovers.length) {
-      // 更新集合的 coverImages 字段
-      await tx
-        .update(collections)
-        .set({
-          coverImages: remainingCovers,
-          updatedAt: new Date(),
-        })
-        .where(eq(collections.id, collection.id));
-    }
-  }
-}
+// cleanHeroReferences / cleanCollectionCoverReferences 已抽到 app/lib/data/reference-cleanup.ts，
+// 供回收站彻底删除（P2-2）与旧删除路径共用。
 
 export async function setMediaTags(fileIds: number[], tags: string[]) {
   const t = await getTranslations('actions.files');

@@ -7,6 +7,10 @@ import { Readable } from 'stream';
 export type FileToZip = {
   absolutePath: string;
   fileName: string;
+  /** 原始文件的 MIME，单文件直出时用作 Content-Type，避免按文件名反查取错 */
+  mimeType?: string | null;
+  /** 发布状态，用于下载响应的缓存策略（私有 resource 不得进共享缓存） */
+  isPublished?: boolean;
 };
 
 /**

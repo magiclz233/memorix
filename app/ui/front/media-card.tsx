@@ -49,6 +49,8 @@ export function MediaCard({ item, showDate, priority = false }: MediaCardProps) 
       )}
       onMouseEnter={() => isLive && setIsPlaying(true)}
       onMouseLeave={() => setIsPlaying(false)}
+      // 触屏无 hover：点按卡片切换实况播放。视频非循环，onEnded 会自动停。
+      onClick={() => isLive && setIsPlaying((playing) => !playing)}
     >
       {hasImage ? (
         <Image
@@ -76,7 +78,9 @@ export function MediaCard({ item, showDate, priority = false }: MediaCardProps) 
           muted
           loop
           playsInline
+          preload='none'
           className='absolute inset-0 h-full w-full object-cover animate-in fade-in duration-300'
+          onEnded={() => setIsPlaying(false)}
         />
       ) : null}
 

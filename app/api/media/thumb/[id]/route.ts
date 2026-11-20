@@ -6,16 +6,17 @@ import os from 'os';
 import crypto from 'crypto';
 import sharp from 'sharp';
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { eq } from 'drizzle-orm';
 import { db } from '@/app/lib/drizzle';
-import { files, userStorages, users } from '@/app/lib/schema';
+import { files, userStorages } from '@/app/lib/schema';
+import { canAccessPrivateMedia } from '@/app/lib/share-access';
 import { auth } from '@/auth';
 import { generateVideoPoster } from '@/app/lib/video';
 import { generateImageThumbnail } from '@/app/lib/image-preview';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { resolveS3Client, s3BodyToReadable } from '@/app/lib/s3-helper';
 import { getStorageCacheRoot } from '@/app/lib/storage';
+import { mediaCacheHeaders } from '@/app/lib/media-cache';
 
 export const runtime = 'nodejs';
 
@@ -54,15 +55,14 @@ const getPlaceholderWebp = async () => {
   return placeholderWebpBytes;
 };
 
-const respondPlaceholderWebp = async () => {
+const respondPlaceholderWebp = async (isPublished: boolean) => {
   const bytes = await getPlaceholderWebp();
   return new NextResponse(new Uint8Array(bytes), {
     status: 200,
-    headers: {
+    headers: mediaCacheHeaders(isPublished, {
       'Content-Length': bytes.byteLength.toString(),
       'Content-Type': 'image/webp',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
+    }),
   });
 };
 
@@ -81,6 +81,7 @@ export async function GET(request: Request, { params }: Params) {
       mimeType: files.mimeType,
       mediaType: files.mediaType,
       isPublished: files.isPublished,
+      deletedAt: files.deletedAt,
       userId: userStorages.userId,
       storageId: userStorages.id,
       storageType: userStorages.type,
@@ -95,15 +96,32 @@ export async function GET(request: Request, { params }: Params) {
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  if (!item.isPublished) {
-    const session = await auth.api.getSession({ headers: await headers() });
-    const email = session?.user?.email;
-    if (!email) {
-      return new NextResponse('Unauthorized', { status: 403 });
+  // 回收站（软删）文件的缩略图：仅 owner 本人可预览（P2-2 回收站 UI 依赖）。
+  // 分享 token 与游客一律拿不到软删内容。
+  const isTrashed = item.deletedAt != null;
+  if (isTrashed) {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session?.user || Number(session.user.id) !== item.userId) {
+      return new NextResponse('Not Found', { status: 404 });
     }
-    const user = await db.query.users.findFirst({ where: eq(users.email, email) });
-    if (!user || user.id !== item.userId) {
-      return new NextResponse('Forbidden', { status: 403 });
+  }
+
+  // 软删文件强制私有缓存，避免公共缓存层残留已删除内容
+  const effectivePublished = item.isPublished && !isTrashed;
+
+  if (!effectivePublished) {
+    const requestUrl = new URL(request.url);
+    // 软删文件已通过 owner 校验，跳过分享鉴权
+    if (!isTrashed) {
+      const allowed = await canAccessPrivateMedia({
+        fileId,
+        ownerUserId: item.userId,
+        shareToken: requestUrl.searchParams.get('share'),
+        cookieHeader: request.headers.get('cookie'),
+      });
+      if (!allowed) {
+        return new NextResponse('Forbidden', { status: 403 });
+      }
     }
   }
 
@@ -119,11 +137,10 @@ export async function GET(request: Request, { params }: Params) {
     const stream = createReadStream(thumbPath);
     const response = new NextResponse(Readable.toWeb(stream) as BodyInit, {
       status: 200,
-      headers: {
+      headers: mediaCacheHeaders(effectivePublished, {
         'Content-Length': stat.size.toString(),
         'Content-Type': 'image/webp',
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
+      }),
     });
     try {
       const now = new Date();
@@ -178,7 +195,7 @@ export async function GET(request: Request, { params }: Params) {
         if (!thumb) {
           const ext = path.extname(originalTemp).toLowerCase();
           if (ext === '.heic' || ext === '.heif') {
-            return respondPlaceholderWebp();
+            return respondPlaceholderWebp(item.isPublished);
           }
           const originalResponse = await client.send(
             new GetObjectCommand({
@@ -190,9 +207,8 @@ export async function GET(request: Request, { params }: Params) {
           if (!originalStream) {
             return new NextResponse('File Not Found', { status: 404 });
           }
-          const headers = new Headers({
+          const headers = mediaCacheHeaders(item.isPublished, {
             'Content-Type': resolveContentType(item.path, item.mimeType),
-            'Cache-Control': 'public, max-age=31536000, immutable',
           });
           if (typeof originalResponse.ContentLength === 'number') {
             headers.set('Content-Length', originalResponse.ContentLength.toString());
@@ -240,7 +256,7 @@ export async function GET(request: Request, { params }: Params) {
 
   const ext = path.extname(originalPath).toLowerCase();
   if (ext === '.heic' || ext === '.heif') {
-    return respondPlaceholderWebp();
+    return respondPlaceholderWebp(item.isPublished);
   }
 
   try {
@@ -248,11 +264,10 @@ export async function GET(request: Request, { params }: Params) {
     const stream = createReadStream(originalPath);
     return new NextResponse(Readable.toWeb(stream) as BodyInit, {
       status: 200,
-      headers: {
+      headers: mediaCacheHeaders(item.isPublished, {
         'Content-Length': stat.size.toString(),
         'Content-Type': resolveContentType(originalPath, item.mimeType),
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
+      }),
     });
   } catch (error) {
     console.error('Thumb read failed:', error);

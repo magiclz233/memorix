@@ -9,7 +9,7 @@ import {
   metadataExtractionFailures,
   userStorages,
 } from './schema';
-import { eq, lt } from 'drizzle-orm';
+import { and, eq, isNull, lt } from 'drizzle-orm';
 import {
   getStorageCacheRoot,
   readPhotoMetadata,
@@ -41,7 +41,9 @@ export async function extractPhotoMetadata(
   const thumbnail = await generateImageThumbnail(absolutePath, thumbPath);
   const fileBlurHash = thumbnail?.blurHash ?? null;
 
-  const liveType = metadata?.motionPhoto ? 'google' : 'none';
+  // ADR-0003：'google' 是来源生态标识而非投递行为，已废弃。
+  // 统一映射到规范值：检测到内嵌动态段即为 'embedded'，否则 'none'。
+  const liveType = metadata?.motionPhoto ? 'embedded' : 'none';
 
   await db
     .insert(photoMetadata)
@@ -243,7 +245,8 @@ export async function retryFailedExtractions(maxAttempts: number = 5) {
   for (const failure of latestFailuresByFile.values()) {
     try {
       const file = await db.query.files.findFirst({
-        where: eq(files.id, failure.fileId),
+        // 软删记录（磁盘文件通常已不存在）不再重试，并让下面的 !file 分支清理对应 failure 记录。
+        where: and(eq(files.id, failure.fileId), isNull(files.deletedAt)),
       });
 
       if (!file) {

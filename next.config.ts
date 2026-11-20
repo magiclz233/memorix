@@ -3,6 +3,14 @@ import createNextIntlPlugin from 'next-intl/plugin';
 import dotenv from 'dotenv';
 import path from 'path';
 
+// 允许经 next/image 优化的远程域名白名单（逗号分隔，支持 S3/CDN）。
+// 默认留空：外部图走 <Image unoptimized> 或本地 /api/media/thumb 代理，
+// 绝不使用 hostname '**' 通配——那是 Image Optimization SSRF 的直接触发条件。
+const remoteImageHosts = (process.env.NEXT_PUBLIC_IMAGE_HOSTS ?? '')
+  .split(',')
+  .map((host) => host.trim())
+  .filter(Boolean);
+
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -48,12 +56,25 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   experimental: {
     serverActions: {
-      // 外网经绿联 UGLink 反向代理，Origin 与容器内 Host 不一致，放行这些来源
-      allowedOrigins: [
-        'app-30001-3d2y.cn44.ugdocker.link',
-        'app-3000-3d2y.cn44.ugdocker.link',
-        '192.168.0.105:30001',
-      ],
+      // 外网经反向代理时 Origin 与容器内 Host 不一致，从环境变量读取放行来源，
+      // 避免把内网 IP / 域名硬编码进构建产物（换地址就要重新 build）。
+      allowedOrigins: Array.from(
+        new Set(
+          (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? '')
+            .split(',')
+            .flatMap((value) => {
+              const origin = value.trim();
+              if (!origin) return [];
+              try {
+                // 同时放行完整 origin 与裸 host，兼容不同 Next 版本的匹配格式
+                const parsed = new URL(origin);
+                return [origin, parsed.host];
+              } catch {
+                return [origin];
+              }
+            }),
+        ),
+      ),
     },
   },
   // libheif-js 和 pino 内部使用动态 require/worker 文件，不能被 Next 服务端打包安全静态分析。
@@ -61,12 +82,10 @@ const nextConfig: NextConfig = {
   // 隐藏 Next.js 版本信息
   poweredByHeader: false,
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
+    remotePatterns: remoteImageHosts.map((hostname) => ({
+      protocol: 'https' as const,
+      hostname,
+    })),
     // 优先 AVIF，降级 WebP
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

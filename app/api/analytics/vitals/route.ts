@@ -7,10 +7,30 @@ import { RateLimiter, getClientIdentifier } from '@/app/lib/rate-limit';
 const logger = createLogger('analytics-vitals');
 
 /**
+ * 埋点端点对游客开放，但只接受来自本源浏览器的上报，防止外部脚本直接灌入伪造指标。
+ * 浏览器同源 fetch / sendBeacon 都会带 Origin 或 Sec-Fetch-Site: same-origin。
+ */
+function isBrowserTelemetry(request: NextRequest): boolean {
+  const site = request.headers.get('sec-fetch-site');
+  if (site === 'cross-site') return false;
+  if (site === 'same-origin' || site === 'same-site') return true;
+  const origin = request.headers.get('origin');
+  if (!origin) return false;
+  try {
+    return new URL(origin).host === request.nextUrl.host;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * 接收并存储 Web Vitals 指标
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!isBrowserTelemetry(request)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     // 速率限制：每 IP 每分钟最多 60 次
     const identifier = getClientIdentifier(request);
     await RateLimiter.check(identifier, 'analytics-vitals', {

@@ -2,13 +2,13 @@ import { createReadStream, promises as fs } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/app/lib/drizzle';
-import { files, userStorages, users } from '@/app/lib/schema';
-import { auth } from '@/auth';
+import { files, userStorages } from '@/app/lib/schema';
+import { canAccessPrivateMedia } from '@/app/lib/share-access';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { resolveS3Client, s3BodyToReadable } from '@/app/lib/s3-helper';
+import { mediaCacheHeaders } from '@/app/lib/media-cache';
 
 export const runtime = 'nodejs';
 
@@ -52,7 +52,7 @@ export async function GET(request: Request, { params }: Params) {
     })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(eq(files.id, fileId));
+    .where(and(eq(files.id, fileId), isNull(files.deletedAt)));
 
   const item = result[0];
   if (!item) {
@@ -60,13 +60,14 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   if (!item.isPublished) {
-    const session = await auth.api.getSession({ headers: await headers() });
-    const email = session?.user?.email;
-    if (!email) {
-      return new NextResponse('Unauthorized', { status: 403 });
-    }
-    const user = await db.query.users.findFirst({ where: eq(users.email, email) });
-    if (!user || user.id !== item.userId) {
+    const requestUrl = new URL(request.url);
+    const allowed = await canAccessPrivateMedia({
+      fileId: fileId,
+      ownerUserId: item.userId,
+      shareToken: requestUrl.searchParams.get('share'),
+      cookieHeader: request.headers.get('cookie'),
+    });
+    if (!allowed) {
       return new NextResponse('Forbidden', { status: 403 });
     }
   }
@@ -102,9 +103,8 @@ export async function GET(request: Request, { params }: Params) {
         item.path,
         item.mimeType ?? response.ContentType,
       );
-      const headers = new Headers({
+      const headers = mediaCacheHeaders(item.isPublished, {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000, immutable',
       });
       if (typeof response.ContentLength === 'number') {
         headers.set('Content-Length', response.ContentLength.toString());
@@ -136,11 +136,10 @@ export async function GET(request: Request, { params }: Params) {
     const stream = createReadStream(targetPath);
     return new NextResponse(Readable.toWeb(stream) as BodyInit, {
       status: 200,
-      headers: {
+      headers: mediaCacheHeaders(item.isPublished, {
         'Content-Length': stat.size.toString(),
         'Content-Type': resolveContentType(targetPath, item.mimeType),
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
+      }),
     });
   } catch (error) {
     console.error('Local file read failed:', error);

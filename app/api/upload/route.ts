@@ -12,6 +12,7 @@ import { resolveS3Client, normalizeS3Prefix } from '@/app/lib/s3-helper';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { checkRateLimit } from '@/app/lib/rate-limit';
 import { config as appConfig } from '@/app/lib/config';
+import { bufferSha256 } from '@/app/lib/hash-file';
 
 // 文件大小限制
 const MAX_FILE_SIZE = appConfig.upload.maxFileSize;
@@ -138,6 +139,8 @@ export async function POST(request: NextRequest) {
 
         let filePath: string;
         let absolutePath: string | null = null;
+        // P2-3 内容级去重：简单上传也补齐 SHA-256（buffer 已在内存，代价可忽略）
+        let fileHash: string | null = null;
 
         if (storage.type === 'local' || storage.type === 'nas') {
           // ── 本地 / NAS 存储 ──────────────────────────────────────────
@@ -153,6 +156,7 @@ export async function POST(request: NextRequest) {
           await fs.mkdir(path.dirname(absolutePath), { recursive: true });
           const buffer = Buffer.from(await file.arrayBuffer());
           await fs.writeFile(absolutePath, buffer);
+          fileHash = bufferSha256(buffer);
 
         } else if (storage.type === 's3' || storage.type === 'qiniu') {
           // ── S3 / 七牛云存储 ──────────────────────────────────────────
@@ -168,6 +172,7 @@ export async function POST(request: NextRequest) {
 
           const client = resolveS3Client(storageConfig);
           const buffer = Buffer.from(await file.arrayBuffer());
+          fileHash = bufferSha256(buffer);
 
           await client.send(new PutObjectCommand({
             Bucket: bucket,
@@ -190,6 +195,7 @@ export async function POST(request: NextRequest) {
             path: filePath,
             sourceType: storage.type,
             size: file.size,
+            fileHash,
             mimeType,
             mtime: new Date(),
             userStorageId: storageId,

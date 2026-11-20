@@ -2,13 +2,13 @@ import { createReadStream, promises as fs } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { db } from '@/app/lib/drizzle';
-import { files, photoMetadata, userStorages, users } from '@/app/lib/schema';
-import { eq } from 'drizzle-orm';
-import { auth } from '@/auth';
+import { files, photoMetadata, userStorages } from '@/app/lib/schema';
+import { and, eq, isNull } from 'drizzle-orm';
+import { canAccessPrivateMedia } from '@/app/lib/share-access';
 import { GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { resolveS3Client, s3BodyToReadable } from '@/app/lib/s3-helper';
+import { mediaCacheHeaders } from '@/app/lib/media-cache';
 
 export const runtime = 'nodejs';
 
@@ -81,31 +81,25 @@ export async function GET(request: Request, { params }: Params) {
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-    .where(eq(files.id, fileId));
+    .where(and(eq(files.id, fileId), isNull(files.deletedAt)));
 
   const item = result[0];
   if (!item) {
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  // Auth Check (Copied from local-files)
+  // 私有媒体：owner 本人或有效分享（token + 已解锁 cookie）二者居其一
   if (!item.isPublished) {
-    const session = await auth.api.getSession({
-      headers: await headers(),
+    const requestUrl = new URL(request.url);
+    const allowed = await canAccessPrivateMedia({
+      fileId,
+      ownerUserId: item.userId,
+      shareToken: requestUrl.searchParams.get('share'),
+      cookieHeader: request.headers.get('cookie'),
     });
-    const email = session?.user?.email;
-    if (!email) {
-      console.warn(`[Stream API] Unauthorized access attempt for ID ${id}`);
-      return new NextResponse('Unauthorized', { status: 403 });
-    }
-    // Simple check: if user is logged in, do they own the file?
-    // Optimization: query DB for user ID
-    const user = await db.query.users.findFirst({
-        where: eq(users.email, email),
-    });
-    if (!user || user.id !== item.userId) {
-        console.warn(`[Stream API] Forbidden access for ID ${id} by user ${email}`);
-        return new NextResponse('Forbidden', { status: 403 });
+    if (!allowed) {
+      console.warn(`[Stream API] Forbidden access for ID ${id}`);
+      return new NextResponse('Forbidden', { status: 403 });
     }
   }
 
@@ -239,7 +233,9 @@ export async function GET(request: Request, { params }: Params) {
       if (start >= videoSize) {
         return new NextResponse('Range Not Satisfiable', {
           status: 416,
-          headers: { 'Content-Range': `bytes */${videoSize}` },
+          headers: mediaCacheHeaders(item.isPublished, {
+            'Content-Range': `bytes */${videoSize}`,
+          }),
         });
       }
 
@@ -263,12 +259,12 @@ export async function GET(request: Request, { params }: Params) {
       }
       return new NextResponse(Readable.toWeb(body) as BodyInit, {
         status: 206,
-        headers: {
+        headers: mediaCacheHeaders(item.isPublished, {
           'Content-Range': `bytes ${start}-${end}/${videoSize}`,
           'Accept-Ranges': 'bytes',
           'Content-Length': chunksize.toString(),
           'Content-Type': contentType,
-        },
+        }),
       });
     }
 
@@ -286,11 +282,11 @@ export async function GET(request: Request, { params }: Params) {
     }
     return new NextResponse(Readable.toWeb(body) as BodyInit, {
       status: 200,
-      headers: {
+      headers: mediaCacheHeaders(item.isPublished, {
         'Content-Length': videoSize.toString(),
         'Content-Type': contentType,
         'Accept-Ranges': 'bytes',
-      },
+      }),
     });
   }
 
@@ -343,11 +339,14 @@ export async function GET(request: Request, { params }: Params) {
     let fd: fs.FileHandle | null = null;
     try {
       fd = await fs.open(targetPath, 'r');
-      const checkBuffer = Buffer.alloc(32);
       const readHeader = async (position: number) => {
         if (!fd) return false;
-        await fd.read(checkBuffer, 0, checkBuffer.length, position);
-        return isLikelyMp4Header(checkBuffer);
+        // 每次读都分配全新 buffer，并使用 bytesRead 截断：
+        // 复用同一 buffer + 忽略 bytesRead 时，若读到文件末尾不足 32 字节，
+        // 尾部会残留上一次读的内容，导致 ftyp 探测误判。
+        const buffer = Buffer.alloc(32);
+        const { bytesRead } = await fd.read(buffer, 0, buffer.length, position);
+        return isLikelyMp4Header(buffer.subarray(0, bytesRead));
       };
       
       // Check 1: Treat offset as Absolute Start
@@ -367,7 +366,7 @@ export async function GET(request: Request, { params }: Params) {
                  // but it's an embedded video, the XMP spec says MicroVideoOffset is "bytes from end".
                  // So "altOffset" is theoretically the correct start.
                  // We'll log a warning but TRY the relative offset, as it's the standard for XMP.
-                 console.warn(`[Stream API] Warning: No MP4 header found at absolute (${offset}) or relative (${altOffset}). Defaulting to relative (standard XMP behavior) for ID ${id}. Check hex: ${checkBuffer.toString('hex')}`);
+                 console.warn(`[Stream API] Warning: No MP4 header found at absolute (${offset}) or relative (${altOffset}). Defaulting to relative (standard XMP behavior) for ID ${id}.`);
                  offset = altOffset;
              }
          }
@@ -463,9 +462,11 @@ export async function GET(request: Request, { params }: Params) {
 
     if (start >= videoSize) {
       console.warn(`[Stream API] Range unsatisfiable for ID ${id}: ${range} (Size: ${videoSize})`);
-      return new NextResponse('Range Not Satisfiable', { 
+      return new NextResponse('Range Not Satisfiable', {
         status: 416,
-        headers: { 'Content-Range': `bytes */${videoSize}` }
+        headers: mediaCacheHeaders(item.isPublished, {
+          'Content-Range': `bytes */${videoSize}`,
+        }),
       });
     }
 
@@ -483,22 +484,22 @@ export async function GET(request: Request, { params }: Params) {
     
     return new NextResponse(Readable.toWeb(stream) as BodyInit, {
         status: 206,
-        headers: {
+        headers: mediaCacheHeaders(item.isPublished, {
             'Content-Range': `bytes ${start}-${end}/${videoSize}`,
             'Accept-Ranges': 'bytes',
             'Content-Length': chunksize.toString(),
             'Content-Type': contentType,
-        }
+        })
     });
   } else {
       const stream = createReadStream(targetPath, { start: offset });
       return new NextResponse(Readable.toWeb(stream) as BodyInit, {
           status: 200,
-          headers: {
+          headers: mediaCacheHeaders(item.isPublished, {
               'Content-Length': videoSize.toString(),
               'Content-Type': contentType,
               'Accept-Ranges': 'bytes',
-          }
+          })
       });
   }
 }

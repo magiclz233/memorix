@@ -55,23 +55,52 @@ const normalizeDate = (value?: string | Date | null) => {
   return parsed.toISOString();
 };
 
-export const buildGalleryItems = (records: GalleryRecord[]) =>
+/**
+ * 把内部媒体 API 的相对路径补上分享 token（P1-1）。
+ * 分享页的私有图靠这个 token + 解锁 cookie 通过投递端点的授权。
+ * 普通画廊不传 token，行为完全不变。
+ */
+const withShareToken = (src: string | null | undefined, shareToken?: string) => {
+  if (!src || !shareToken) return src ?? null;
+  if (!src.startsWith('/api/')) return src;
+  const separator = src.includes('?') ? '&' : '?';
+  return `${src}${separator}share=${encodeURIComponent(shareToken)}`;
+};
+
+export const buildGalleryItems = (
+  records: GalleryRecord[],
+  shareToken?: string,
+) =>
   records.reduce<GalleryItem[]>((acc, record) => {
     const title = record.title ?? record.path ?? 'front.gallery.unnamed';
     const mediaType = normalizeType(record.mediaType, record.mimeType);
     const isVideo = mediaType === 'video';
     const isAnimated = isAnimatedMedia(record.mediaType, record.mimeType);
-    const src =
-      record.thumbUrl ||
-      (isVideo || isAnimated ? `/api/media/thumb/${record.id}` : null) ||
-      (!isVideo ? record.url : null) ||
-      (!isVideo ? `/api/local-files/${record.id}` : null);
+    // 网格一律优先走缩略图路由：即使没有预生成 thumbUrl，也让 /api/media/thumb
+    // 按需生成并缓存小图，避免万张图库里网格直接拉取几十 MB 的原始文件。
+    // 但 HEIC/实况图 thumb 路由在缩略图生成失败时会返回 1×1 占位图，这类记录
+    // 必须保留原图回退，否则原本能显示的图会变成空白。
+    // 分享页：所有媒体都必须经过内部投递路由，以便用 token + 解锁 cookie 鉴权。
+    // 绝不能直接用 record.url / thumbUrl——它们可能是绝对 S3 地址，会绕过授权。
+    const rawSrc = shareToken
+      ? `/api/media/thumb/${record.id}`
+      : record.thumbUrl ||
+        (isVideo || isAnimated ? `/api/media/thumb/${record.id}` : null) ||
+        (!isVideo ? record.url : null) ||
+        (!isVideo ? `/api/local-files/${record.id}` : null) ||
+        `/api/media/thumb/${record.id}`;
+    const src = withShareToken(rawSrc, shareToken);
     if (!src) return acc;
     const shotAt = record.dateShot ?? record.mtime;
     const animatedUrl = isAnimated
-      ? record.url || `/api/local-files/${record.id}`
+      ? withShareToken(
+          shareToken ? `/api/local-files/${record.id}` : record.url || `/api/local-files/${record.id}`,
+          shareToken,
+        )
       : null;
-    const videoUrl = isVideo ? `/api/media/stream/${record.id}` : null;
+    const videoUrl = isVideo
+      ? withShareToken(`/api/media/stream/${record.id}`, shareToken)
+      : null;
     const width = record.resolutionWidth ?? record.videoWidth ?? null;
     const height = record.resolutionHeight ?? record.videoHeight ?? null;
     acc.push({

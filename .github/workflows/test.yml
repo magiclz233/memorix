@@ -7,8 +7,8 @@ on:
     branches: [main, develop]
 
 jobs:
-  unit-tests:
-    name: 单元测试
+  quality-gate:
+    name: 质量门禁（lint / typecheck / unit test）
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +22,7 @@ jobs:
       - name: 安装 pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: latest
+          version: 9.15.4
 
       - name: 获取 pnpm 缓存目录
         id: pnpm-cache
@@ -42,76 +42,24 @@ jobs:
         run: pnpm lint
 
       - name: TypeScript 类型检查
-        run: pnpm tsc --noEmit
+        run: pnpm exec tsc --noEmit
 
+      # 真实门禁：不再 continue-on-error。测试失败必须让 CI 变红（ADR-0004）。
       - name: 运行单元测试
-        run: pnpm test:unit --run
+        run: pnpm test:unit
+
+      - name: 生成覆盖率报告
+        run: pnpm test:coverage
         continue-on-error: true
 
       - name: 上传覆盖率报告
         uses: codecov/codecov-action@v4
         if: always()
         with:
-          files: ./coverage/coverage-final.json
+          files: ./coverage/coverage-summary.json
           fail_ci_if_error: false
 
-  integration-tests:
-    name: 集成测试
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: lumina_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 安装 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: 安装 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: latest
-
-      - name: 安装依赖
-        run: pnpm install --frozen-lockfile
-
-      - name: 执行数据库迁移
-        run: pnpm db:migrate
-        env:
-          POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/lumina_test
-          POSTGRES_SSL_MODE: disable
-
-      - name: 运行集成测试
-        run: pnpm test:integration --run
-        continue-on-error: true
-        env:
-          POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/lumina_test
-          POSTGRES_SSL_MODE: disable
-          REDIS_URL: redis://localhost:6379
-          BETTER_AUTH_SECRET: test-secret-key-at-least-32-characters
-          NODE_ENV: test
+# 说明：此前存在 integration-tests job，调用不存在的 `pnpm test:integration`
+# 并 continue-on-error，属于恒绿的假门禁，已移除。
+# ADR-0004 明确本阶段只做 Vitest 接口测试，不含浏览器 E2E / 集成测试。
+# 待对应测试真正落地后再新增相应 job，且一律不得 continue-on-error。
