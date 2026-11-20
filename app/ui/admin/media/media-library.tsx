@@ -355,7 +355,7 @@ export function MediaLibraryManager({
         fullSrc: resolveMediaFullSrc(item),
         videoUrl:
           item.mediaType === 'video' ? `/api/media/stream/${item.id}` : null,
-        animatedUrl: isAnimated ? `/api/media/stream/${item.id}` : null,
+        animatedUrl: isAnimated ? `/api/local-files/${item.id}` : null,
         isAnimated,
         duration: item.videoDuration ?? null,
         liveType: (item.liveType as 'none' | 'embedded' | 'paired') ?? 'none',

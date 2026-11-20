@@ -5,11 +5,11 @@
 
 | 项 | 值 |
 |---|---|
-| 文档版本 | v2.7（交接版） |
+| 文档版本 | v2.8（交接版） |
 | 更新日期 | 2026-11-20 |
-| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / `5793868` + 资源库发布/预览修复 `30c9d34`；NAS 已部署 `v20261120e`（2026-11-20），历史 1404 张已全部取消发布 |
+| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / `5793868` + 资源库发布/预览修复 `30c9d34` + 灯箱原图/分页翻页修复（本轮）；NAS 已部署 `v20261120e`（2026-11-20），历史 1404 张已全部取消发布 |
 | 已知使用场景 | **万张以上图片** + **外网可达**（绿联 UGLink 域名）+ 部署在 NAS |
-| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **128/128** ✅（21 个测试文件，2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
+| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **129/129** ✅（21 个测试文件，2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
 
 ---
 
@@ -291,17 +291,19 @@
 
 ### 2.11 资源库整库发布 / 分页 / 灯箱预览（2026-11-20）
 
-> 用户反馈资源库只能发布当前页、每页数量会跳回默认值，灯箱大图使用缩略图导致破图或过小。本轮把批量发布提升为整库操作，分页数量落 URL，并把灯箱切到原图流 + 按屏幕自适应。全套 **128/128** 单测（21 个文件），`tsc` / `eslint`（0 error）全绿。
+> 用户反馈资源库只能发布当前页、每页数量会跳回默认值，灯箱大图使用缩略图导致破图或过小。本轮把批量发布提升为整库操作，分页数量落 URL，并把灯箱切到原图流 + 按屏幕自适应。全套 **129/129** 单测（21 个文件），`tsc` / `eslint`（0 error）全绿。
 
 | 项 | 落地内容 | 关键文件 |
 |---|---|---|
 | 默认不发布 | `files.is_published` 默认 false；上传初始化/完成显式 false；扫描 insert 不写 true。历史已发布数据需一次性取消发布，不改变新数据默认行为 | `app/lib/schema.ts`、`app/api/upload/*` |
 | 整库发布/取消发布 | 新增 `setAllFilesPublished(isPublished)`：覆盖当前管理员全部 userStorages 下未删除文件，返回更新数量并写 `media.publish.all` / `media.unpublish.all` 审计；UI 工具栏“整库操作”+ AlertDialog 二次确认，与当前页选中项发布并存 | `app/lib/actions-legacy.ts`、`app/lib/actions/media.ts`、`app/ui/admin/media/media-library.tsx` |
 | 每页数量 | 白名单 12/24/48/96/200（非法回退 24）；`buildPageUrl` 保留 `limit`，翻页不再跳回 24；后台仍用 OFFSET | `app/lib/media-library-view.ts`、`app/[locale]/dashboard/media/page.tsx`、`media-library.tsx` |
-| 灯箱原图 | 网格缩略图统一走同源 `/api/media/thumb/:id`（避免 HTTPS 页面混用内网 HTTP `thumbUrl`）；灯箱新增 `fullSrc=/api/media/stream/:id`，分享场景带 token；视频/动图同样走 stream；`BlurImage` 对 `/api/` 图片跳过 Next 图片优化器，由浏览器带会话直接请求，避免优化器无 cookie 拉取私有媒体 401 | `app/lib/media-preview.ts`、`app/lib/gallery.ts`、`app/ui/gallery/blur-image.tsx`、`media-library.tsx` |
-| 自适应尺寸 | fit 模式移除 `max-h-[75vh]` shrink-wrap，改为容器内 `fill + object-contain`，按可用屏幕区域等比铺满；frame 模式保留相框但同样使用原图 | `app/ui/front/photo-detail/photo-media-canvas.tsx` |
+| 灯箱原图 | 网格缩略图统一走同源 `/api/media/thumb/:id`（避免 HTTPS 页面混用内网 HTTP `thumbUrl`）；灯箱图片原图走 `/api/local-files/:id`，视频走 `/api/media/stream/:id`，动图同样走 local-files，分享场景带 token（`stream` 路由只服务视频，图片会 404，是本轮黑屏根因）；`BlurImage` 对 `/api/` 图片跳过 Next 图片优化器，由浏览器带会话直接请求，避免优化器无 cookie 拉取私有媒体 401 | `app/lib/media-preview.ts`、`app/lib/gallery.ts`、`app/ui/gallery/blur-image.tsx`、`media-library.tsx` |
+| 分页翻页 | 媒体库分页增加上一页/下一页按钮（边界 disabled），与页码列表并存；`generatePagination` 在首页附近只显示 1/2/3 时可直接点 next | `app/[locale]/dashboard/media/page.tsx`、`messages/*.json` |
+| 自适应尺寸 | fit 模式移除 `max-h-[75vh]` shrink-wrap，改为容器内 `fill + object-contain`，按可用屏幕区域等比铺满；视频封面用缩略图，图片/动图用原图；frame 模式保留相框但同样使用原图 | `app/ui/front/photo-detail/photo-media-canvas.tsx` |
 | 存量数据 | 已在 NAS 执行：`BEFORE=1404 → UPDATE 1404 → AFTER=0`；gallery API 返回空列表；Redis `FLUSHDB` 清理缓存 | 运维记录见 §5.2 |
-| 验收 | 每页切换后翻页保持、整库发布/取消发布二次确认且覆盖全账号、灯箱大图不再使用缩略图且按屏幕自适应；tsc + lint + 128 单测全绿 | — |
+| 复核修复（2026-11-20） | 用户反馈分页无下一页、灯箱黑屏。根因：图片灯箱误用了只支持视频的 `media/stream`（404）；媒体库只渲染数字页码无 next。已改图片走 local-files、补上一页/下一页，并加 2 个 media-preview 单测 | `app/lib/media-preview.ts`、`app/[locale]/dashboard/media/page.tsx`、`app/ui/front/photo-detail/photo-media-canvas.tsx` |
+| 验收 | 每页切换后翻页保持、上一页/下一页可用、整库发布/取消发布二次确认且覆盖全账号、灯箱图片/视频均能打开且按屏幕自适应；tsc + lint + 129 单测全绿 | — |
 
 ---
 
@@ -544,7 +546,7 @@ pnpm lint             # eslint .
 pnpm build            # next build
 pnpm db:migrate       # drizzle-kit migrate
 pnpm tsc --noEmit     # 类型检查
-pnpm test:unit        # Vitest 单元测试（128 用例：21 个测试文件全绿，2026-11-20 复验）
+pnpm test:unit        # Vitest 单元测试（129 用例：21 个测试文件全绿，2026-11-20 复验）
 pnpm test:coverage    # 覆盖率报告
 pnpm test:watch       # 监听模式
 ```

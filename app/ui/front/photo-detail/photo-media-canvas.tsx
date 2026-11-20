@@ -116,7 +116,9 @@ export function PhotoMediaCanvas({
             const safeWidth = item.width || 1920;
             const safeHeight = item.height || 1080;
             const frameMode = viewMode === 'frame';
-            const previewSrc = item.fullSrc || item.src;
+            // 视频封面用缩略图；图片/动图用原图投递路由。
+            const previewSrc =
+              item.type === 'video' ? item.src : item.fullSrc || item.src;
             const animatedSrc = item.animatedUrl || previewSrc;
 
             const containerClass = frameMode

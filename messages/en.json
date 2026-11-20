@@ -824,6 +824,8 @@
         "goToStorage": "Go to Storage Configuration"
       },
       "pagination": "Page {current} of {total}",
+      "prevPage": "Previous",
+      "nextPage": "Next",
       "library": {
         "hero": "Hero",
         "view": "View",

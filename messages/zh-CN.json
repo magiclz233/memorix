@@ -824,6 +824,8 @@
         "goToStorage": "前往存储配置"
       },
       "pagination": "第 {current} / {total} 页",
+      "prevPage": "上一页",
+      "nextPage": "下一页",
       "library": {
         "hero": "首页展示",
         "view": "查看",

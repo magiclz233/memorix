@@ -15,6 +15,7 @@ import {
 } from '@/app/lib/media-library-view';
 import { MediaLibraryManager } from '@/app/ui/admin/media/media-library';
 import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 type PageProps = {
@@ -325,6 +326,25 @@ export default async function Page({ searchParams }: PageProps) {
             {t('pagination', { current: safePage, total: totalPages })}
           </span>
           <div className="flex items-center gap-2">
+            {safePage > 1 ? (
+              <Button asChild variant="outline" size="sm">
+                <Link
+                  href={buildPageUrl(safePage - 1)}
+                  aria-label={t('prevPage')}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                aria-label={t('prevPage')}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            )}
             {allPages.map((pageItem, index) => {
               const isActive = pageItem === safePage;
               const isEllipsis = pageItem === '...';
@@ -344,6 +364,25 @@ export default async function Page({ searchParams }: PageProps) {
                 </span>
               );
             })}
+            {safePage < totalPages ? (
+              <Button asChild variant="outline" size="sm">
+                <Link
+                  href={buildPageUrl(safePage + 1)}
+                  aria-label={t('nextPage')}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                aria-label={t('nextPage')}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       ) : null}

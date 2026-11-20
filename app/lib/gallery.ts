@@ -111,7 +111,12 @@ export const buildGalleryItems = (
       id: String(record.id),
       type: mediaType,
       src,
-      fullSrc: withShareToken(`/api/media/stream/${record.id}`, shareToken),
+      fullSrc: withShareToken(
+        isVideo
+          ? `/api/media/stream/${record.id}`
+          : `/api/local-files/${record.id}`,
+        shareToken,
+      ),
       videoUrl,
       animatedUrl,
       isAnimated,
