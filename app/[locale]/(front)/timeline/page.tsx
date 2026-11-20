@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { fetchGalleryTimelineBuckets, fetchPublishedMediaForGallery } from '@/app/lib/data';
 import { buildGalleryItems } from '@/app/lib/gallery';
+import { encodeGalleryCursor, galleryCursorFromRecord } from '@/app/lib/gallery-cursor';
 import { TimelineView } from '@/app/ui/front/timeline/timeline-view';
 import { GallerySkeleton } from '@/app/ui/front/gallery-skeleton';
 import { cn } from '@/lib/utils';
@@ -16,8 +17,20 @@ async function TimelineContent() {
     fetchPublishedMediaForGallery({ limit: PAGE_SIZE + 1, offset: 0 }),
   ]);
   const hasNext = records.length > PAGE_SIZE;
-  const items = buildGalleryItems(records.slice(0, PAGE_SIZE));
-  return <TimelineView buckets={buckets} initialItems={items} initialHasNext={hasNext} pageSize={PAGE_SIZE} />;
+  const pageRecords = records.slice(0, PAGE_SIZE);
+  const items = buildGalleryItems(pageRecords);
+  const lastRecord = pageRecords[pageRecords.length - 1];
+  const lastCursor = lastRecord ? galleryCursorFromRecord(lastRecord) : null;
+  const initialCursor = hasNext && lastCursor ? encodeGalleryCursor(lastCursor) : null;
+  return (
+    <TimelineView
+      buckets={buckets}
+      initialItems={items}
+      initialHasNext={hasNext}
+      initialCursor={initialCursor}
+      pageSize={PAGE_SIZE}
+    />
+  );
 }
 
 export default async function TimelinePage() {

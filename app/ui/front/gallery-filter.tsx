@@ -28,6 +28,7 @@ export function GalleryFilter({ items, pageSize = 24 }: GalleryFilterProps) {
     <GalleryWithFilter
       initialItems={initialItems}
       initialHasNext={false}
+      initialCursor={null}
       pageSize={pageSize}
     />
   );

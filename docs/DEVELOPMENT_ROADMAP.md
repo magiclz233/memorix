@@ -5,11 +5,11 @@
 
 | 项 | 值 |
 |---|---|
-| 文档版本 | v2.3（交接版） |
-| 更新日期 | 2026-11-19 |
-| 基线提交 | 第一轮 19 文件安全修复 + 第二轮 review 修复 + P0 全部收尾 + 批次 B（P1-1~5）+ **批次 C（P1-6 + P2 六项）**之后（见 §2）。⚠️ **上述全部改动截至 2026-11-19 尚未 git commit**，见 §0.5 交接须知 |
+| 文档版本 | v2.4（交接版） |
+| 更新日期 | 2026-11-20 |
+| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10（本轮）之后（见 §2）；本地 `master` 领先 `origin`，尚未 push |
 | 已知使用场景 | **万张以上图片** + **外网可达**（绿联 UGLink 域名）+ 部署在 NAS |
-| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error）/ Vitest **97/97** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
+| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **102/102** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
 
 ---
 
@@ -21,11 +21,11 @@
 |---|---|---|
 | **P0** | 安全 + 数据不可逆损失 + 万张图可用性 | **12 项全部完成**（两轮修复） |
 | **P1** | 分享链接、时间轴、虚拟滚动、筛选统一、搜索 DSL、任务队列 | **6 项全部完成**（批次 B：P1-1~5；批次 C：P1-6） |
-| **P2** | 批量交互、回收站、去重、CI/备份/部署加固、死代码清理、存储源管理、审计日志 | **已完成 9 项**（P2-1 主体 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9）；遗留 P2-10、P2-1 尾巴（见 §3.3） |
+| **P2** | 批量交互、回收站、去重、CI/备份/部署加固、死代码清理、存储源管理、审计日志、排序键索引化 | **已完成 10 项**（P2-1 主体 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9 / 10）；遗留 P2-1 尾巴（见 §3.3） |
 | **P3** | PWA、语义搜索增强层、地图相册等战略项 | 待评估 |
 | **不做** | 手机原生 App / 人脸 / E2EE / 存储大重构 | 明确否决，见 §3.6 |
 
-**下一步从哪开始**：P2-4 存储源管理、P2-5 审计日志接线已完成。剩余 P2：**P2-10 排序键可索引化**；P2-1 尚余「批量移动存储源」「命令面板」两个子项。详见 §3.3、§4 与 §4.1 任务卡。
+**下一步从哪开始**：P2-4 / P2-5 / P2-10 已完成。P2 仅剩 **P2-1 尾巴**（批量移动存储源、命令面板，可缓）；之后按评估制决定 P3。详见 §3.3、§4 与 §4.1 任务卡。
 
 ---
 
@@ -43,10 +43,10 @@
 
 **2. 工作区状态（截至 2026-11-20）**：
 
-- 批次 A/B/C 已按逻辑分组提交到 `master`：`8d9f83a`（批次 A 安全与数据正确性修复）/ `bac3a64`（批次 B 分享·时间轴·虚拟滚动·搜索 DSL）/ `bda8c09`（批次 C 扫描队列·回收站·去重·批量交互·运维加固）；工作区为干净基线，后续每项从独立分支开始；
+- 批次 A/B/C 已按逻辑分组提交到 `master`：`8d9f83a`（批次 A 安全与数据正确性修复）/ `bac3a64`（批次 B 分享·时间轴·虚拟滚动·搜索 DSL）/ `bda8c09`（批次 C 扫描队列·回收站·去重·批量交互·运维加固）；P2-4 `867a728`、P2-5 `07eec9d`、P2-10 本轮提交也已合入；本地 `master` 领先 `origin`，尚未 push；
 - `.workbuddy/`、`.zcode/` 是 AI 工作目录，非项目代码，不要提交也不要删除。
 
-**3. 首个任务**：P2-4、P2-5 已完成（见 §2.7、§2.8）；接下来做 **P2-10 排序键可索引化**（任务卡见 §4.1）。
+**3. 首个任务**：P2-4、P2-5、P2-10 已完成（见 §2.7-2.9）；P2 仅剩 **P2-1 尾巴**（批量移动存储源 / 命令面板，可缓），之后进入 P3 评估。
 
 **4. 开发纪律**（严格执行）：
 
@@ -101,8 +101,8 @@
 2. ~~**数据正确性缺口**：扫描长事务 + 外部文件消失即删、元数据提取失败无重试。~~ **✅ 软删 + 安全网 + 短事务已落地**；✅ 扫描已入任务队列（P1-6 批次 C），失败文件进队列错误列表可重试。
 3. ~~**万张图可用性缺口**：全量 DOM、无虚拟滚动、无日期分桶、搜索只有 `ILIKE '%kw%'`。~~ **✅ 批次 B 已修复**（窗口虚拟化 + 时间轴分桶 + pg_trgm/搜索 DSL）。
 4. ~~**产品能力缺口**：**分享链接**（只能发 `?media=id` 深链）、时间轴、搜索 DSL、PWA 离线。~~ **✅ 分享链接/时间轴/搜索 DSL 已落地**；PWA 离线仍属 P3（见 §3.4）。
-5. **后台工作流缺口**：无任务队列、无取消/进度/失败重试、批量操作无 Shift 连选/撤销、去重只覆盖一条上传路径。
-6. **工程缺口**：0 测试、CI 假绿、备份脚本漏掉真实媒体目录（只备 `./uploads`，没备 `/volume1~3`）、CI 只产 amd64 镜像、deploy.yml 在 standalone 容器跑 `pnpm db:migrate` 必失败。
+5. **后台工作流缺口**：P2 主体已完成（任务队列、回收站、去重、Shift 连选、存储源密钥加密、审计日志）；仅剩 P2-1 尾巴（批量移动存储源 / 命令面板，可缓）。
+6. **工程缺口**：测试/CI/备份/部署加固已落地（P0-10、P2-7/8/9）；剩余是 NAS 实机迁移与 EXPLAIN 验证，以及 P3 战略项。
 
 ---
 
@@ -255,6 +255,18 @@
 
 **遗留**：后台可视化审计页（低优先级，未做）。
 
+### 2.9 批次 C+：P2-10 排序键索引化（2026-11-20 完成）
+
+> 新增 `gallery-cursor` 5 个单测，全套 **102/102 通过**；`tsc` / `eslint`（0 error）全绿。迁移与 EXPLAIN 需在 NAS Postgres 执行（本机无 docker/psql）。
+
+| 项 | 落地内容 | 关键文件 |
+|---|---|---|
+| 排序列 | `files.sort_at`（timestamp，非空），由触发器维护 `coalesce(photo_metadata.date_shot, files.mtime, files.created_at)`；回填后建 `(sort_at DESC, id DESC)` btree | `drizzle/0018_add_sort_at.sql`、`app/lib/schema.ts` |
+| 查询改造 | 前台画廊、时间轴分桶、后台媒体库日期过滤/排序、首页/存储源/分享查询统一用 `files.sortAt`，删除运行时 coalesce | `app/lib/data-legacy.ts`、`app/lib/data/shares.ts` |
+| keyset 分页 | 画廊/时间轴改用 `(sort_at, id)` 游标（base64url `v1.<ms>.<id>`），`GET /api/gallery?cursor=`，响应 `nextCursor`；非法游标 400；后台小页面继续 OFFSET | `app/lib/gallery-cursor.ts`、`app/api/gallery/route.ts`、`app/ui/front/gallery-*`、`app/ui/front/timeline/timeline-view.tsx` |
+| 偏差记录 | ① 路线图要求生成列，但 `date_shot` 在 `photo_metadata`，Postgres 生成列不能跨表，改为普通列 + 两个触发器；② 用 `timestamp` 而非 `timestamptz`，与 files 现有时间列一致；③ 分享页仍按 share.fileIds 取数后再排序 | — |
+| 待部署验证 | 迁移 0018 需在万行 NAS 库执行；EXPLAIN 验收 SQL 见 §4.1 任务卡 3 | — |
+
 ---
 
 ## 3. 路线图（P0 → P3）
@@ -367,7 +379,7 @@
 | P2-7 | CI/CD 与 NAS 对齐：`deploy.yml` 别在 standalone 容器跑 `pnpm db:migrate`；补 arm64 镜像产物；`CRON_SECRET` 配置 | ✅ **完成**（migrate 服务 + QEMU 多架构 + CRON_SECRET） |
 | P2-8 | 备份修复：`backup-media.sh` 现在只备 `./uploads`，漏掉 `/volume1~3` 的真实媒体；把备份真正跑起来并验证恢复 | ✅ **完成**（多来源 + 自动探测 + 恢复自检，端到端验证过） |
 | P2-9 | 部署加固：compose 加 `depends_on` condition、`mem_limit`/`cpus` + `NODE_OPTIONS`（sharp/ffmpeg 无并发上限易 OOM）、json-file 日志轮转、`user: 0:0` 改非 root | ✅ **完成**（除 user 非 root——NAS 源目录 0:0+0770 所限，刻意保留 root，见 §2.6） |
-| P2-10 | 排序键可索引化：`coalesce(...)` 排序让已建索引失效，改可索引的 `sort_at` 生成列 + keyset 分页 | `data-legacy.ts`、`drizzle/*` 迁移 |
+| P2-10 ✅ | 排序键可索引化：`coalesce(...)` 排序让已建索引失效，改可索引的 `sort_at`（触发器维护）+ keyset 分页 | `data-legacy.ts`、`app/lib/gallery-cursor.ts`、`drizzle/0018_add_sort_at.sql` |
 
 ### 3.4 P3 — 长期 / 战略（先评估再启动）
 
@@ -397,7 +409,7 @@
 |---|---|---|---|
 | P0 | 12 | **12 全部** | 0 |
 | P1 | 6 | **6 全部** | 0 |
-| P2 | 10 | **9（P2-1 主体 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9）** | 1（P2-10）+ P2-1 尾巴 |
+| P2 | 10 | **10（P2-1 主体 + 2~10）** | P2-1 尾巴 |
 | P3 | 5 | 0 | 5（评估制） |
 
 ---
@@ -419,8 +431,8 @@
   →  P2-7/8/9 部署与备份  →  P2-6 死代码清理
 
 批次 C+（P2 尾巴）
-  P2-4 存储源管理  →  P2-5 审计日志 ✅  →  P2-10 排序键索引化
-  →  P2-1 尾巴（移动存储源 / 命令面板）
+  P2-4 存储源管理 ✅  →  P2-5 审计日志 ✅  →  P2-10 排序键索引化 ✅
+  →  P2-1 尾巴（移动存储源 / 命令面板，可缓）
 
 批次 D（战略评估）
   P3-1 PWA  →  P3-2 语义搜索增强层（带开关）  →  其余
@@ -450,15 +462,32 @@
 | 审计查看 | 本任务只落库 + 最简查询接口；后台可视化页可后补（低优先级） |
 | 验收 ✅ | 上述每类操作成功后写入 `audit_logs`（见 §2.8 覆盖表）；`recordAuditLog` 吞错告警，不阻塞主操作；查询接口 admin-only；全站写 API 鉴权盘点完成（见 §2.8，未鉴权写接口 0 个） |
 
-#### 任务卡 3：P2-10 排序键可索引化
+#### 任务卡 3：P2-10 排序键可索引化 ✅（2026-11-20 完成）
 
 | 维度 | 内容 |
 |---|---|
-| 入口文件 | `app/lib/data-legacy.ts`（`galleryDateExpr` 排序表达式）、`drizzle/`（新迁移 0018）、`schema.ts` |
-| 生成列 | 新迁移加 `sort_at timestamptz GENERATED ALWAYS AS (coalesce(captured_at, created_at)) STORED` + btree 索引 `(sort_at DESC, id DESC)`；Drizzle schema 同步加列定义（drizzle-orm 支持 generatedAlwaysAs） |
-| 查询改造 | 前台/后台排序、时间轴分桶、分享查询统一改用 `sortAt`；删除 `galleryDateExpr` 里的运行时 coalesce |
-| keyset 分页 | 大图库深翻页路径（网格/时间轴）改 `(sort_at, id) < (lastSortAt, lastId)` 游标分页；OFFSET 分页保留给后台小数据量页面即可 |
-| 验收 | `EXPLAIN` 实测排序走新索引（无 separate sort 节点）；keyset 分页与 OFFSET 结果一致；迁移在已有万行数据表上可执行（需 `NOT VALID` 或直接可用，验证耗时） |
+| 入口文件 | `app/lib/data-legacy.ts`（`galleryDateExpr` 排序表达式）、`drizzle/`（迁移 0018）、`app/lib/schema.ts`、`app/lib/gallery-cursor.ts` |
+| 排序列 | 实际加 `files.sort_at timestamp NOT NULL` + 触发器（files 插入/时间更新、photo_metadata 增删改）+ btree `(sort_at DESC, id DESC)`。**偏差**：`date_shot` 在 `photo_metadata`，Postgres 生成列不能跨表引用，故弃用 generatedAlwaysAs |
+| 迁移 | `drizzle/0018_add_sort_at.sql`：加列 → 回填（拍摄时间 → mtime → created_at）→ SET NOT NULL → 建触发器 → 建索引；journal 追加 0018 |
+| 查询改造 | 画廊/时间轴分桶、后台媒体库日期过滤与排序、首页/存储源/分享查询统一改用 `files.sortAt`；删除运行时 coalesce |
+| keyset 分页 | 大图库网格/时间轴改 `(sort_at, id)` 游标；`GET /api/gallery?cursor=` 返回 `nextCursor`，非法游标 400；后台媒体库等小页面继续 OFFSET |
+| 验收 | 单测覆盖游标 roundtrip/非法输入；`tsc` / `eslint` / 102 单测全绿。**待 NAS 实机**：`EXPLAIN (ANALYZE, BUFFERS)` 确认走 `files_sort_at_id_idx` 且无 `Sort` 节点；keyset 与 OFFSET 同页 id 序列比对一致 |
+
+**EXPLAIN 验收 SQL（部署后执行）**：
+
+```sql
+SET enable_seqscan = off;
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id
+FROM files
+WHERE is_published = true
+  AND deleted_at IS NULL
+  AND media_type IN ('image', 'video', 'animated')
+ORDER BY sort_at DESC, id DESC
+LIMIT 25;
+```
+
+预期出现 `Index Scan using files_sort_at_id_idx`（或 Index Only Scan），且计划中**没有** `Sort` 节点。
 
 #### 任务卡 4：P2-1 尾巴（可缓）
 
@@ -479,7 +508,7 @@ pnpm lint             # eslint .
 pnpm build            # next build
 pnpm db:migrate       # drizzle-kit migrate
 pnpm tsc --noEmit     # 类型检查
-pnpm test:unit        # Vitest 单元测试（97 用例：13 个测试文件全绿，2026-11-20 复验）
+pnpm test:unit        # Vitest 单元测试（102 用例：14 个测试文件全绿，2026-11-20 复验）
 pnpm test:coverage    # 覆盖率报告
 pnpm test:watch       # 监听模式
 ```
@@ -497,7 +526,7 @@ pnpm test:watch       # 监听模式
 | `CRON_SECRET` | 定时任务鉴权（回收站日清理等） | ✅ 已接入 compose（P2-7） |
 | `FFMPEG_PATH` | 指向系统 ffmpeg，绕开 ffmpeg-static 从 GitHub 下载（github.com 不通） | §5.3 |
 
-> **部署提醒（批次 B + C 全部 3 个新迁移必执行）**：`drizzle/0015_add_shares.sql`（分享表）、`drizzle/0016_add_search_indexes.sql`（搜索索引）、`drizzle/0017_add_scan_jobs.sql`（扫描任务表）。compose 的 `migrate` 服务会自动跑；手动方式见 ops-guide。
+> **部署提醒（批次 B + C + P2-10 全部 4 个新迁移必执行）**：`drizzle/0015_add_shares.sql`（分享表）、`drizzle/0016_add_search_indexes.sql`（搜索索引）、`drizzle/0017_add_scan_jobs.sql`（扫描任务表）、`drizzle/0018_add_sort_at.sql`（排序键与触发器）。compose 的 `migrate` 服务会自动跑；手动方式见 ops-guide。
 
 ### 5.3 本机验证环境坑（非代码问题）
 

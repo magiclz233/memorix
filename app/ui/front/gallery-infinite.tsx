@@ -23,13 +23,13 @@ const Gallery25 = dynamic(
 type GalleryResponse = {
   items: GalleryItem[];
   hasNext: boolean;
-  page: number;
+  nextCursor: string | null;
 };
 
 type GalleryInfiniteProps = {
   initialItems: GalleryItem[];
   hasNext: boolean;
-  initialPage: number;
+  initialCursor: string | null;
   pageSize: number;
   mediaType?: string;
   sortOrder?: string;
@@ -41,7 +41,7 @@ type GalleryInfiniteProps = {
 export function GalleryInfinite({
   initialItems,
   hasNext: initialHasNext,
-  initialPage,
+  initialCursor,
   pageSize,
   mediaType = 'all',
   sortOrder = 'newest',
@@ -51,7 +51,7 @@ export function GalleryInfinite({
 }: GalleryInfiniteProps) {
   const t = useTranslations('front.gallery');
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
-  const [page, setPage] = useState(initialPage);
+  const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [hasNext, setHasNext] = useState(initialHasNext);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -64,20 +64,20 @@ export function GalleryInfinite({
 
   useEffect(() => {
     setItems(initialItems);
-    setPage(initialPage);
+    setCursor(initialCursor);
     setHasNext(initialHasNext);
     setLoadError(false);
-  }, [initialItems, initialPage, initialHasNext, mediaType, sortOrder, keyword]);
+  }, [initialItems, initialCursor, initialHasNext, mediaType, sortOrder, keyword]);
 
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasNext) return;
+    // 没有游标说明服务端首屏已到末尾，或数据异常；都不该继续翻页。
+    if (isLoading || !hasNext || !cursor) return;
     setIsLoading(true);
     setLoadError(false);
 
-    const nextPage = page + 1;
     const params = new URLSearchParams({
-      page: String(nextPage),
       pageSize: String(pageSize),
+      cursor,
       mediaType,
       sortOrder,
     });
@@ -96,14 +96,14 @@ export function GalleryInfinite({
 
       const data = (await response.json()) as GalleryResponse;
       setItems((prev) => [...prev, ...data.items]);
-      setPage(data.page);
+      setCursor(data.nextCursor);
       setHasNext(data.hasNext);
     } catch {
       setLoadError(true);
     } finally {
       setIsLoading(false);
     }
-  }, [hasNext, isLoading, keyword, mediaType, page, pageSize, sortOrder]);
+  }, [cursor, hasNext, isLoading, keyword, mediaType, pageSize, sortOrder]);
 
   useEffect(() => {
     if (!hasNext || loadError) return;

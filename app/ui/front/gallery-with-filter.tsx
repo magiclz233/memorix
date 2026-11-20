@@ -25,6 +25,7 @@ type SortOrder = 'newest' | 'oldest';
 type GalleryWithFilterProps = {
   initialItems: GalleryItem[];
   initialHasNext: boolean;
+  initialCursor: string | null;
   pageSize: number;
   initialKeyword?: string;
   initialMediaType?: MediaType;
@@ -40,6 +41,7 @@ const mediaTypeFilters = [
 export function GalleryWithFilter({
   initialItems,
   initialHasNext,
+  initialCursor,
   pageSize,
   initialKeyword = '',
   initialMediaType = 'all',
@@ -57,6 +59,7 @@ export function GalleryWithFilter({
   const [keyword, setKeyword] = useState(initialKeyword);
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
   const [hasNext, setHasNext] = useState(initialHasNext);
+  const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [selectedId, setSelectedId] = useState<string | null>(
     searchParams.get('media'),
   );
@@ -114,9 +117,14 @@ export function GalleryWithFilter({
         try {
           const res = await fetch(`/api/gallery?${params.toString()}`, { cache: 'no-store' });
           if (!res.ok) return;
-          const data = await res.json();
+          const data = (await res.json()) as {
+            items: GalleryItem[];
+            hasNext: boolean;
+            nextCursor: string | null;
+          };
           setItems(data.items);
           setHasNext(data.hasNext);
+          setCursor(data.nextCursor ?? null);
           setSelectedId(null);
         } catch {
           // 静默失败，保留当前数据
@@ -212,7 +220,7 @@ export function GalleryWithFilter({
       ) : (
         <GalleryInfinite
           initialItems={items}
-          initialPage={1}
+          initialCursor={cursor}
           pageSize={pageSize}
           hasNext={hasNext}
           mediaType={mediaType}

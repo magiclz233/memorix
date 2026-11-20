@@ -15,6 +15,7 @@ type Props = {
   buckets: TimelineBucket[];
   initialItems: GalleryItem[];
   initialHasNext: boolean;
+  initialCursor: string | null;
   pageSize: number;
 };
 
@@ -45,7 +46,13 @@ function groupByMonth(items: GalleryItem[]): MonthGroup[] {
   return Array.from(map.values());
 }
 
-export function TimelineView({ buckets, initialItems, initialHasNext, pageSize }: Props) {
+export function TimelineView({
+  buckets,
+  initialItems,
+  initialHasNext,
+  initialCursor,
+  pageSize,
+}: Props) {
   const t = useTranslations('front.timeline');
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,7 +64,7 @@ export function TimelineView({ buckets, initialItems, initialHasNext, pageSize }
   const [month, setMonth] = useState<number | null>(initialMonth);
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
   const [hasNext, setHasNext] = useState(initialHasNext);
-  const [page, setPage] = useState(1);
+  const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [isFiltering, startTransition] = useTransition();
@@ -75,10 +82,10 @@ export function TimelineView({ buckets, initialItems, initialHasNext, pageSize }
   }, [buckets, year]);
 
   const buildParams = useCallback(
-    (targetPage: number) => {
+    (nextCursor: string) => {
       const params = new URLSearchParams({
-        page: String(targetPage),
         pageSize: String(pageSize),
+        cursor: nextCursor,
       });
       if (year) params.set('year', String(year));
       if (year && month) params.set('month', String(month));
@@ -108,10 +115,14 @@ export function TimelineView({ buckets, initialItems, initialHasNext, pageSize }
           if (nextYear && nextMonth) params.set('month', String(nextMonth));
           const res = await fetch(`/api/gallery?${params.toString()}`, { cache: 'no-store' });
           if (!res.ok) throw new Error('filter failed');
-          const data = (await res.json()) as { items: GalleryItem[]; hasNext: boolean };
+          const data = (await res.json()) as {
+            items: GalleryItem[];
+            hasNext: boolean;
+            nextCursor: string | null;
+          };
           setItems(data.items);
           setHasNext(data.hasNext);
-          setPage(1);
+          setCursor(data.nextCursor ?? null);
         } catch {
           setLoadError(true);
         }
@@ -124,29 +135,28 @@ export function TimelineView({ buckets, initialItems, initialHasNext, pageSize }
   const selectMonth = (nextMonth: number | null) => applyFilter(year, nextMonth);
 
   const loadMore = useCallback(async () => {
-    if (loading || !hasNext) return;
+    if (loading || !hasNext || !cursor) return;
     setLoading(true);
     setLoadError(false);
-    const nextPage = page + 1;
     try {
-      const res = await fetch(`/api/gallery?${buildParams(nextPage).toString()}`, {
+      const res = await fetch(`/api/gallery?${buildParams(cursor).toString()}`, {
         cache: 'no-store',
       });
       if (!res.ok) throw new Error('load failed');
       const data = (await res.json()) as {
         items: GalleryItem[];
         hasNext: boolean;
-        page: number;
+        nextCursor: string | null;
       };
       setItems((prev) => [...prev, ...data.items]);
       setHasNext(data.hasNext);
-      setPage(data.page);
+      setCursor(data.nextCursor);
     } catch {
       setLoadError(true);
     } finally {
       setLoading(false);
     }
-  }, [buildParams, hasNext, loading, page]);
+  }, [buildParams, cursor, hasNext, loading]);
 
   useEffect(() => {
     if (!hasNext || loadError || isFiltering) return;

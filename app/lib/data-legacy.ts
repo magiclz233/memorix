@@ -15,11 +15,13 @@ import {
   count,
   desc,
   eq,
+  gt,
   gte,
   ilike,
   inArray,
   isNotNull,
   isNull,
+  lt,
   lte,
   or,
   not,
@@ -330,7 +332,7 @@ export async function fetchStorageFiles(storageId: number) {
     .from(files)
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
     .where(and(eq(files.userStorageId, storageId), isNull(files.deletedAt)))
-    .orderBy(desc(files.mtime));
+    .orderBy(desc(files.sortAt));
 }
 
 export type MediaLibrarySort =
@@ -451,7 +453,7 @@ export async function fetchMediaLibraryPage({
   const hero = filters.hero ?? 'all';
   const sort = filters.sort ?? 'dateShotDesc';
 
-  const dateExpr = sql<Date>`coalesce(${photoMetadata.dateShot}, ${files.mtime}, ${files.createdAt})`;
+  const dateExpr = files.sortAt;
   const resolutionArea = sql<number>`coalesce(${photoMetadata.resolutionWidth}, ${videoMetadata.width}, 0) * coalesce(${photoMetadata.resolutionHeight}, ${videoMetadata.height}, 0)`;
   const widthExpr = sql<number>`coalesce(${photoMetadata.resolutionWidth}, ${videoMetadata.width})`;
   const heightExpr = sql<number>`coalesce(${photoMetadata.resolutionHeight}, ${videoMetadata.height})`;
@@ -769,7 +771,7 @@ export async function fetchPublishedPhotos(userId: number) {
         isNull(files.deletedAt),
       ),
     )
-    .orderBy(desc(files.mtime));
+    .orderBy(desc(files.sortAt));
 
   return records
     .filter(
@@ -1226,6 +1228,8 @@ export async function fetchHeroPhotosForHome(options?: { userId?: number; limit?
 type FetchGalleryOptions = {
   limit?: number;
   offset?: number;
+  /** keyset 分页游标（P2-10）；与 offset 二选一 */
+  cursor?: { sortAt: Date; id: number };
   mediaTypes?: Array<'image' | 'video' | 'animated'>;
   sortOrder?: 'newest' | 'oldest';
   keyword?: string;
@@ -1235,8 +1239,8 @@ type FetchGalleryOptions = {
   month?: number;
 };
 
-/** 画廊/时间轴统一使用的「拍摄时间」表达式，避免各处 coalesce 不一致 */
-const galleryDateExpr = sql<Date>`coalesce(${photoMetadata.dateShot}, ${files.mtime}, ${files.createdAt})`;
+/** 画廊/时间轴统一使用 files.sort_at（迁移 0018 的触发器与旧 coalesce 语义一致） */
+const galleryDateExpr = files.sortAt;
 
 export type TimelineBucket = {
   year: number;
@@ -1327,6 +1331,21 @@ export async function fetchPublishedMediaForGallery(
         sql`extract(month from ${galleryDateExpr}) = ${options.month}`,
       );
     }
+    // P2-10：keyset 分页用 (sort_at, id) 严格小于/大于游标，避免深翻页 Sort。
+    if (options.cursor) {
+      const { sortAt, id } = options.cursor;
+      const cursorCondition =
+        options.sortOrder === 'oldest'
+          ? or(
+              gt(files.sortAt, sortAt),
+              and(eq(files.sortAt, sortAt), gt(files.id, id)),
+            )
+          : or(
+              lt(files.sortAt, sortAt),
+              and(eq(files.sortAt, sortAt), lt(files.id, id)),
+            );
+      if (cursorCondition) conditions.push(cursorCondition);
+    }
     let query = db
       .select({
         id: files.id,
@@ -1338,6 +1357,7 @@ export async function fetchPublishedMediaForGallery(
         url: files.url,
         thumbUrl: files.thumbUrl,
         mtime: files.mtime,
+        sortAt: files.sortAt,
         blurHash: files.blurHash,
         resolutionWidth: photoMetadata.resolutionWidth,
         resolutionHeight: photoMetadata.resolutionHeight,
@@ -1371,7 +1391,9 @@ export async function fetchPublishedMediaForGallery(
       .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
       .where(and(...conditions))
       .orderBy(
-        options.sortOrder === 'oldest' ? asc(galleryDateExpr) : desc(galleryDateExpr),
+        ...(options.sortOrder === 'oldest'
+          ? [asc(files.sortAt), asc(files.id)]
+          : [desc(files.sortAt), desc(files.id)]),
       )
       .$dynamic();
     if (typeof options.limit === 'number') {
@@ -1418,6 +1440,7 @@ export async function fetchPublishedMediaById(id: number) {
       url: files.url,
       thumbUrl: files.thumbUrl,
       mtime: files.mtime,
+      sortAt: files.sortAt,
       blurHash: files.blurHash,
       resolutionWidth: photoMetadata.resolutionWidth,
       resolutionHeight: photoMetadata.resolutionHeight,
@@ -1476,7 +1499,7 @@ export async function fetchPublishedPhotosForHome(limit = 12) {
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
     .where(and(eq(files.isPublished, true), isNull(files.deletedAt)))
-    .orderBy(desc(files.mtime))
+    .orderBy(desc(files.sortAt))
     .limit(limit);
 
   return records

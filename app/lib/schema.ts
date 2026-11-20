@@ -85,6 +85,8 @@ export const files = pgTable(
     mimeType: varchar('mime_type', { length: 100 }),
     // 文件修改时间
     mtime: timestamp('mtime'),
+    // 排序时间（触发器维护：拍摄时间 → 文件时间 → 入库时间），见迁移 0018
+    sortAt: timestamp('sort_at').notNull().defaultNow(),
     // 原图 URL
     url: text('url'),
     // 缩略图 URL
@@ -137,6 +139,8 @@ export const files = pgTable(
       table.deletedAt,
       table.isPublished,
     ),
+    // 排序键（sort_at DESC, id DESC），画廊 keyset 分页使用
+    sortAtIdIndex: index('files_sort_at_id_idx').on(table.sortAt.desc(), table.id.desc()),
   }),
 );
 

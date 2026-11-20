@@ -123,6 +123,7 @@ export async function fetchSharedMedia(share: ShareRecord) {
       url: files.url,
       thumbUrl: files.thumbUrl,
       mtime: files.mtime,
+      sortAt: files.sortAt,
       blurHash: files.blurHash,
       resolutionWidth: photoMetadata.resolutionWidth,
       resolutionHeight: photoMetadata.resolutionHeight,
@@ -160,7 +161,8 @@ export async function fetchSharedMedia(share: ShareRecord) {
         eq(userStorages.userId, share.userId),
         isNull(files.deletedAt),
       ),
-    );
+    )
+    .orderBy(desc(files.sortAt));
 
   return records
     .filter(
@@ -191,6 +193,6 @@ export async function fetchSelectableMediaForUser(userId: number) {
         isNull(files.deletedAt),
       ),
     )
-    .orderBy(desc(files.mtime))
+    .orderBy(desc(files.sortAt))
     .limit(500);
 }

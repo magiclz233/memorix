@@ -1,6 +1,11 @@
 ﻿import { NextResponse } from 'next/server';
 import { fetchPublishedMediaForGallery } from '@/app/lib/data';
 import { buildGalleryItems } from '@/app/lib/gallery';
+import {
+  decodeGalleryCursor,
+  encodeGalleryCursor,
+  galleryCursorFromRecord,
+} from '@/app/lib/gallery-cursor';
 import { config as appConfig } from '@/app/lib/config';
 
 export const dynamic = 'force-dynamic';
@@ -46,12 +51,20 @@ export async function GET(request: Request) {
     mediaTypeParam === 'video' ? ['video'] :
     ['image', 'video', 'animated'];
 
+  // P2-10：大图库用 keyset 游标；显式传 cursor 时忽略 page/offset。
+  const rawCursor = url.searchParams.get('cursor');
+  const cursor = rawCursor ? decodeGalleryCursor(rawCursor) : null;
+  if (rawCursor && !cursor) {
+    return NextResponse.json({ error: 'invalid cursor' }, { status: 400 });
+  }
+
   const limit = pageSize + 1;
-  const offset = (page - 1) * pageSize;
+  const offset = cursor ? 0 : (page - 1) * pageSize;
 
   const records = await fetchPublishedMediaForGallery({
     limit,
     offset,
+    cursor: cursor ?? undefined,
     mediaTypes,
     sortOrder,
     keyword,
@@ -62,6 +75,9 @@ export async function GET(request: Request) {
   const hasNext = records.length > pageSize;
   const pageRecords = hasNext ? records.slice(0, pageSize) : records;
   const items = buildGalleryItems(pageRecords);
+  const lastRecord = pageRecords[pageRecords.length - 1];
+  const next = lastRecord ? galleryCursorFromRecord(lastRecord) : null;
+  const nextCursor = hasNext && next ? encodeGalleryCursor(next) : null;
 
-  return NextResponse.json({ items, hasNext, page });
+  return NextResponse.json({ items, hasNext, page, nextCursor });
 }

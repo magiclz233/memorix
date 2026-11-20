@@ -1,5 +1,9 @@
 ﻿import { fetchPublishedMediaById, fetchPublishedMediaForGallery } from '@/app/lib/data';
 import { buildGalleryItems } from '@/app/lib/gallery';
+import {
+  encodeGalleryCursor,
+  galleryCursorFromRecord,
+} from '@/app/lib/gallery-cursor';
 import { GalleryWithFilter } from '@/app/ui/front/gallery-with-filter';
 import { getFallbackItems } from '@/app/lib/front-data';
 
@@ -50,6 +54,10 @@ export async function GalleryContent({
     }
   }
 
+  const lastRecord = pageRecords[pageRecords.length - 1];
+  const lastCursor = lastRecord ? galleryCursorFromRecord(lastRecord) : null;
+  const initialCursor = hasNext && lastCursor ? encodeGalleryCursor(lastCursor) : null;
+
   let items = buildGalleryItems(pageRecords);
 
   if (!hasRecords && !keyword) {
@@ -60,6 +68,7 @@ export async function GalleryContent({
     <GalleryWithFilter
       initialItems={items}
       initialHasNext={hasNext}
+      initialCursor={initialCursor}
       pageSize={PAGE_SIZE}
       initialKeyword={keyword}
       initialMediaType={initialMediaType}
