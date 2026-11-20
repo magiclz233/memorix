@@ -18,6 +18,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/app/lib/drizzle';
 import { userStorages } from '@/app/lib/schema';
 import { revalidatePathForAllLocales } from '@/app/lib/revalidate';
+import { isPathWithinMediaRoots, warnIfMediaRootsUnset } from '@/app/lib/path-safety';
 
 /**
  * 扫描任务 runner（P1-6）。
@@ -144,6 +145,15 @@ async function executeScanJob(job: ScanJobRecord): Promise<void> {
         await finishScanJob(job.id, {
           status: 'failed',
           errorMessage: 'storage has no rootPath',
+        });
+        return;
+      }
+
+      warnIfMediaRootsUnset();
+      if (!isPathWithinMediaRoots(rootPath)) {
+        await finishScanJob(job.id, {
+          status: 'failed',
+          errorMessage: 'rootPath outside MEDIA_ROOTS',
         });
         return;
       }

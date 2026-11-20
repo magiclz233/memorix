@@ -1080,12 +1080,27 @@
           },
           "hints": {
             "permission": "Please ensure the server has permission to access this path.",
-            "nasMapping": "NAS Mapping Hint: If you mounted /volume2/ to /app/media/disk1 via Docker, enter /app/media/disk1/photos here to map /volume2/photos."
+            "nasMapping": "NAS Mapping Hint: If you mounted /volume2/ to /app/media/disk1 via Docker, enter /app/media/disk1/photos here to map /volume2/photos.",
+            "secretKeep": "Leave empty or keep **** to reuse the stored secret."
           },
           "save": "Save Config",
           "saving": "Saving...",
           "cancel": "Cancel",
-          "error": "Save failed"
+          "error": "Save failed",
+          "testConnection": "Test connection",
+          "testing": "Testing…",
+          "testSuccess": "Connection OK ({ms}ms)",
+          "testFailed": "Connection failed: {stage}",
+          "stages": {
+            "config": "incomplete configuration",
+            "path": "path unavailable",
+            "permission": "no read permission",
+            "timeout": "connection timeout",
+            "auth": "authentication failed",
+            "bucket": "bucket unavailable",
+            "network": "network unreachable",
+            "unknown": "unknown error"
+          }
         },
         "dependency": {
           "title": "Dependencies Exist",
@@ -1535,7 +1550,8 @@
       "cacheClearFailed": "Failed to clear cache, please try again.",
       "dependency": {
         "collection": "Collection: {title}"
-      }
+      },
+      "rootPathOutsideAllowed": "rootPath is outside the allowed MEDIA_ROOTS. Update the environment variable or choose another directory."
     },
     "scan": {
       "title": "Directory Scan",

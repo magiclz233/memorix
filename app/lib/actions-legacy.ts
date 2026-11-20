@@ -2,6 +2,8 @@
 
 import { z } from 'zod';
 import path from 'path';
+import { isPathWithinMediaRoots, warnIfMediaRootsUnset } from './path-safety';
+import { encryptSecret, isMaskedSecret } from './secret-box';
 import { promises as fs } from 'fs';
 import { revalidatePathForAllLocales, revalidateHomeCache } from './revalidate';
 import { headers } from 'next/headers';
@@ -278,7 +280,10 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
   }
 
   const rootPath = data.rootPath?.trim();
-  const existingConfig = (existingStorage?.config ?? {}) as { isDisabled?: boolean };
+  const existingConfig = (existingStorage?.config ?? {}) as {
+    isDisabled?: boolean;
+    secretKey?: string | null;
+  };
   const isDisabled =
     typeof data.isDisabled === 'boolean'
       ? data.isDisabled
@@ -288,6 +293,29 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
 
   if ((data.type === 'local' || data.type === 'nas') && !rootPath) {
     return { success: false, message: t('rootPathRequired') };
+  }
+
+  if ((data.type === 'local' || data.type === 'nas') && rootPath) {
+    warnIfMediaRootsUnset();
+    if (!isPathWithinMediaRoots(rootPath)) {
+      return { success: false, message: t('rootPathOutsideAllowed') };
+    }
+  }
+
+  // 密钥：新值加密入库；脱敏值（****xxxx）或留空表示沿用旧密钥。
+  // 旧数据是明文时顺手加密，避免明文长期留在库中。
+  let secretKey: string | null =
+    typeof existingConfig.secretKey === 'string' ? existingConfig.secretKey : null;
+  const incomingSecret = data.secretKey?.trim() ?? '';
+  try {
+    if (incomingSecret && !isMaskedSecret(incomingSecret)) {
+      secretKey = encryptSecret(incomingSecret);
+    } else if (secretKey) {
+      secretKey = encryptSecret(secretKey);
+    }
+  } catch (error) {
+    console.error('Failed to encrypt storage secret:', error);
+    return { success: false, message: t('saveFailed') };
   }
 
   const configBase =
@@ -301,7 +329,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
           bucket: data.bucket ?? null,
           region: data.region ?? null,
           accessKey: data.accessKey ?? null,
-          secretKey: data.secretKey ?? null,
+          secretKey,
           prefix: data.prefix ?? null,
           alias: data.alias ?? null,
         };

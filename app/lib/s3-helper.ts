@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
 import { S3Client } from '@aws-sdk/client-s3';
+import { decryptSecret } from './secret-box';
 
 export type S3Config = {
   endpoint?: string | null;
@@ -87,15 +88,17 @@ export const resolveS3Client = (config: S3Config) => {
     config.bucket,
   );
   const region = normalizeRegion(config.region, endpointHost);
+  // 密钥可能以 enc:v1: 密文入库；历史明文由 decryptSecret 原样返回。
+  const secretKey = config.secretKey ? decryptSecret(config.secretKey) : null;
   return new S3Client({
     region,
     endpoint,
     forcePathStyle,
     credentials:
-      config.accessKey && config.secretKey
+      config.accessKey && secretKey
         ? {
             accessKeyId: config.accessKey,
-            secretAccessKey: config.secretKey,
+            secretAccessKey: secretKey,
           }
         : undefined,
   });

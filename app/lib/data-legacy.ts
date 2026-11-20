@@ -29,6 +29,7 @@ import {
 import { unstable_cache } from 'next/cache';
 import { getCached } from './redis';
 import { parseSearchDSL, type ParsedSearch } from './search-dsl';
+import { maskSecret } from './secret-box';
 
 /**
  * P1-4：把解析后的搜索 DSL 字段转成 SQL 条件。
@@ -284,7 +285,7 @@ export async function fetchUsers() {
 }
 
 export async function fetchUserStorages(userId: number) {
-  return db
+  const rows = await db
     .select({
       id: userStorages.id,
       type: userStorages.type,
@@ -295,6 +296,21 @@ export async function fetchUserStorages(userId: number) {
     .from(userStorages)
     .where(eq(userStorages.userId, userId))
     .orderBy(desc(userStorages.updatedAt));
+
+  // 这是面向 UI / 客户端的读取入口：secretKey 只返回脱敏值。
+  // 需要原始密钥的服务端逻辑（扫描、上传、投递）直接查 userStorages。
+  return rows.map((row) => {
+    const config = (row.config ?? {}) as Record<string, unknown>;
+    return {
+      ...row,
+      config: {
+        ...config,
+        ...(typeof config.secretKey === 'string' && config.secretKey
+          ? { secretKey: maskSecret(config.secretKey) }
+          : {}),
+      },
+    };
+  });
 }
 
 export async function fetchStorageFiles(storageId: number) {

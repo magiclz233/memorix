@@ -84,6 +84,12 @@ function StorageForm({
   const [type, setType] = useState(storage?.type ?? 'local');
   const [formData, setFormData] = useState<StorageConfig>((storage?.config ?? {}) as StorageConfig);
   const [message, setMessage] = useState<string | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<
+    | { ok: true; latencyMs?: number }
+    | { ok: false; stage?: string; message?: string }
+    | null
+  >(null);
 
   const STORAGE_TYPES = [
     { value: 'local', label: tTypes('local') },
@@ -123,6 +129,34 @@ function StorageForm({
 
   const updateField = (key: keyof StorageConfig, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/storage/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: storage?.id,
+          type,
+          ...formData,
+        }),
+      });
+      const result = (await response.json()) as
+        | { ok: true; latencyMs?: number }
+        | { ok: false; stage?: string; message?: string; error?: string };
+      setTestResult(result as typeof testResult);
+      if ('error' in result && result.error) {
+        setMessage(result.error);
+      }
+    } catch {
+      setMessage(t('error'));
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const isCloud = type === 's3' || type === 'qiniu';
@@ -228,6 +262,7 @@ function StorageForm({
                 onChange={(e) => updateField('secretKey', e.target.value)}
                 type="password"
               />
+              <p className="text-xs text-zinc-500">{t('hints.secretKeep')}</p>
             </div>
           </div>
           <div className="grid gap-2">
@@ -242,6 +277,20 @@ function StorageForm({
         </>
       )}
 
+      {testResult?.ok && (
+        <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-600 dark:bg-emerald-900/20">
+          {t('testSuccess', { ms: testResult.latencyMs ?? 0 })}
+        </div>
+      )}
+
+      {testResult && !testResult.ok && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-500 dark:bg-red-900/20">
+          {t('testFailed', {
+            stage: t(`stages.${testResult.stage ?? 'unknown'}`),
+          })}
+        </div>
+      )}
+
       {message && (
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-500 dark:bg-red-900/20">
           {message}
@@ -249,6 +298,14 @@ function StorageForm({
       )}
 
       <DialogFooter>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={handleTestConnection}
+          disabled={isTesting || isPending}
+        >
+          {isTesting ? t('testing') : t('testConnection')}
+        </Button>
         <Button
           type="button"
           variant="outline"

@@ -9,7 +9,7 @@
 | 更新日期 | 2026-11-19 |
 | 基线提交 | 第一轮 19 文件安全修复 + 第二轮 review 修复 + P0 全部收尾 + 批次 B（P1-1~5）+ **批次 C（P1-6 + P2 六项）**之后（见 §2）。⚠️ **上述全部改动截至 2026-11-19 尚未 git commit**，见 §0.5 交接须知 |
 | 已知使用场景 | **万张以上图片** + **外网可达**（绿联 UGLink 域名）+ 部署在 NAS |
-| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error）/ Vitest **65/65** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
+| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error）/ Vitest **91/91** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
 
 ---
 
@@ -21,11 +21,11 @@
 |---|---|---|
 | **P0** | 安全 + 数据不可逆损失 + 万张图可用性 | **12 项全部完成**（两轮修复） |
 | **P1** | 分享链接、时间轴、虚拟滚动、筛选统一、搜索 DSL、任务队列 | **6 项全部完成**（批次 B：P1-1~5；批次 C：P1-6） |
-| **P2** | 批量交互、回收站、去重、CI/备份/部署加固、死代码清理 | **批次 C 完成 6 项**（P2-2/3/6/7/8/9 + P2-1 主体）；遗留 P2-4/5/10（见 §3.3） |
+| **P2** | 批量交互、回收站、去重、CI/备份/部署加固、死代码清理、存储源管理 | **已完成 8 项**（P2-1 主体 / 2 / 3 / 4 / 6 / 7 / 8 / 9）；遗留 P2-5、P2-10、P2-1 尾巴（见 §3.3） |
 | **P3** | PWA、语义搜索增强层、地图相册等战略项 | 待评估 |
 | **不做** | 手机原生 App / 人脸 / E2EE / 存储大重构 | 明确否决，见 §3.6 |
 
-**下一步从哪开始**：批次 C 已完成（任务队列 / 回收站 / 去重 / 批量交互 / CI·备份·部署加固 / 死代码清理）。剩余 P2：**P2-4 存储源管理**（测试连接、密钥加密）→ **P2-5 审计日志接线** → **P2-10 排序键可索引化**；P2-1 尚余「批量移动存储源」「命令面板」两个子项。详见 §3.3、§4 与 §4.1 任务卡。
+**下一步从哪开始**：P2-4 存储源管理已完成（测试连接 / 密钥加密 / MEDIA_ROOTS 白名单）。剩余 P2：**P2-5 审计日志接线** → **P2-10 排序键可索引化**；P2-1 尚余「批量移动存储源」「命令面板」两个子项。详见 §3.3、§4 与 §4.1 任务卡。
 
 ---
 
@@ -46,7 +46,7 @@
 - 批次 A/B/C 已按逻辑分组提交到 `master`：`8d9f83a`（批次 A 安全与数据正确性修复）/ `bac3a64`（批次 B 分享·时间轴·虚拟滚动·搜索 DSL）/ `bda8c09`（批次 C 扫描队列·回收站·去重·批量交互·运维加固）；工作区为干净基线，后续每项从独立分支开始；
 - `.workbuddy/`、`.zcode/` 是 AI 工作目录，非项目代码，不要提交也不要删除。
 
-**3. 首个任务**：批次 C+ 的 **P2-4 存储源管理**（任务卡见 §4.1），完成后按 P2-5 → P2-10 顺序推进。
+**3. 首个任务**：P2-4 存储源管理已完成（见 §2.7）；接下来做 **P2-5 审计日志接线**（任务卡见 §4.1），完成后按 P2-10 顺序推进。
 
 **4. 开发纪律**（严格执行）：
 
@@ -210,7 +210,22 @@
 | **P2-9 部署加固** | 两个 compose：`depends_on` 加条件（migrate `service_completed_successfully`、postgres/redis `service_healthy`）；app 加 `mem_limit`/`memswap_limit`/`cpus` + `NODE_OPTIONS=--max-old-space-size=1024`（sharp/ffmpeg 无并发上限防 OOM）；全服务 json-file 日志轮转（10m×3）。**刻意偏差**：NAS `user: 0:0` 保留 root——NAS 源目录 0:0+0770，改非 root 需先 chown 源目录，已在 compose 注释与本文档记录。 | `docker-compose.yml`、`docker-compose.nas.yml` |
 | **P2-6 死代码清理** | 删除 9 文件 + 1 路由：`virtual-gallery-grid.tsx`、`dynamic-imports.ts`、`optimized-image.tsx`、`front-gallery.tsx`、`use-csrf.ts`、`csrf.ts`、`/api/csrf-token`、`storage-adapter.ts`、`validations.ts`、`file-validator.ts`；cache-keys 的 csrfToken 条目一并移除。**保留例外**（曾列入清单但实际已接线）：`config-validator.ts`（instrumentation 启动校验在用）、`data/front.ts`（timeline API 经 barrel 在用）。 | 见左列 |
 
-**批次 C 之后剩余 P2**：P2-4 存储源管理（测试连接/密钥加密/rootPath 白名单）、P2-5 API 验权统一 + 审计日志接线、P2-10 排序键可索引化（`sort_at` 生成列 + keyset 分页）、P2-1 尾巴（批量移动存储源、命令面板）。
+**批次 C 之后剩余 P2**：P2-5 API 验权统一 + 审计日志接线、P2-10 排序键可索引化（`sort_at` 生成列 + keyset 分页）、P2-1 尾巴（批量移动存储源、命令面板）。P2-4 已完成，见 §2.7。
+
+---
+
+### 2.7 批次 C+：P2-4 存储源管理（2026-11-20 完成）
+
+> 新增 `secret-box` / `media-roots` / `storage-test` 三组测试（26 个），全套 **91/91 通过**；`tsc` / `eslint`（0 error）全绿。
+
+| 项 | 落地内容 | 关键文件 |
+|---|---|---|
+| 测试连接 | `POST /api/storage/test-connection`（admin + storage owner 校验，5s 超时）：S3 用 `listObjectsV2(MaxKeys=1)`，本地/NAS 用 `stat` + `access(R_OK)`；返回 `{ok, latencyMs}` 或 `{ok:false, stage, message}`，错误只保留错误码，不回显端点/凭据 | `app/api/storage/test-connection/route.ts`、`app/lib/storage-test.ts`、`app/ui/admin/storage/storage-modal.tsx` |
+| 密钥加密 | AES-256-GCM，密文格式 `enc:v1:<iv>:<tag>:<data>`；主密钥取 `MEDIA_SECRET_KEY`（32B base64），缺失时从 `BETTER_AUTH_SECRET` SHA-256 派生并告警；`resolveS3Client` 统一解密，历史明文兼容；`fetchUserStorages` 只向 UI 返回 `****last4`，编辑留空/脱敏值沿用旧密钥，并顺手加密历史明文 | `app/lib/secret-box.ts`、`app/lib/s3-helper.ts`、`app/lib/data-legacy.ts`、`app/lib/actions-legacy.ts` |
+| rootPath 白名单 | `MEDIA_ROOTS` 逗号分隔；保存与本地扫描前 resolve + 前缀匹配，越界拒绝；未配置保持现状并每次进程告警一次 | `app/lib/path-safety.ts`、`app/lib/actions-legacy.ts`、`app/lib/scan-job-runner.ts` |
+| 偏差记录 | 任务卡写 `POST /api/storage/test` + HeadBucket；实际路由为 `test-connection` + `listObjectsV2`——后者同时验证凭证与读权限，对 S3 兼容实现更稳 | — |
+
+**遗留**：无。P2-5 审计日志需覆盖本项的存储源增删改（下一步接线）。
 
 ---
 
@@ -318,7 +333,7 @@
 | P2-1 | 批量交互：Shift 连选（anchor 模型）、`cmdk` 命令面板、批量加标签/移动存储源 | ✅ **主体完成**（Shift 连选 + 批量标签 UI）；遗留：移动存储源、命令面板 |
 | P2-2 | 回收站 / 撤销：30 天软删保留 + 彻底删除（复用 P0-3 的 `deletedAt`），彻底删除时清理缩略图与 S3 对象 | ✅ **完成**（/dashboard/trash + 30 天日清理 + 物理清理链） |
 | P2-3 | 内容级去重：按 SHA-256 精确去重（现在仅分片上传写 `fileHash`，扫描/直接上传都不写）；近似重复只人工复核 + 元数据合并，别自动删 | ✅ **完成**（三条路径补 hash + /dashboard/dedup 人工复核） |
-| P2-4 | 存储源管理：测试连接（HeadBucket / `fs.stat`）、密钥加密不回显、`rootPath` 白名单 | `api/storage/*`、存储源配置表单 |
+| P2-4 ✅ | 存储源管理：测试连接（listObjectsV2 / `fs.stat`）、密钥加密不回显、`rootPath` 白名单 | `api/storage/*`、存储源配置表单 |
 | P2-5 | API 验权粒度统一 + 审计日志接线：`auditLogs` 表定义但零写入 | 全 API 路由；`auditLogs` 写入中间件 |
 | P2-6 | 死代码清理：`virtual-gallery-grid.tsx`、`optimized-image.tsx`、`front-gallery.tsx`、`use-csrf.ts`、`csrf.ts`、`storage-adapter.ts`、`validations.ts`、`file-validator.ts` 等——两套语义并存会持续制造冲突 | ✅ **完成**（删 9 文件 + csrf-token 路由；`config-validator.ts`/`data/front.ts` 经核实已接线，保留） |
 | P2-7 | CI/CD 与 NAS 对齐：`deploy.yml` 别在 standalone 容器跑 `pnpm db:migrate`；补 arm64 镜像产物；`CRON_SECRET` 配置 | ✅ **完成**（migrate 服务 + QEMU 多架构 + CRON_SECRET） |
@@ -354,7 +369,7 @@
 |---|---|---|---|
 | P0 | 12 | **12 全部** | 0 |
 | P1 | 6 | **6 全部** | 0 |
-| P2 | 10 | **7（P2-1 主体 / 2 / 3 / 6 / 7 / 8 / 9）** | 3（P2-4/5/10）+ P2-1 尾巴 |
+| P2 | 10 | **8（P2-1 主体 / 2 / 3 / 4 / 6 / 7 / 8 / 9）** | 2（P2-5/10）+ P2-1 尾巴 |
 | P3 | 5 | 0 | 5（评估制） |
 
 ---
@@ -387,7 +402,7 @@
 
 ### 4.1 批次 C+ 任务卡（给接手者的可执行明细）
 
-#### 任务卡 1：P2-4 存储源管理
+#### 任务卡 1：P2-4 存储源管理 ✅（2026-11-20 完成）
 
 | 维度 | 内容 |
 |---|---|
@@ -395,7 +410,7 @@
 | 测试连接 | 新增 action 或 `POST /api/storage/test`：S3 用 HeadBucket / listObjectsV2(maxKeys=1) 验证凭证与桶可达；本地/NAS 用 `fs.promises.stat(rootPath)` 验证存在与读权限。返回结构化结果（成功 / 失败阶段 / 原始错误信息脱敏）。**用最小超时（如 5s）防 UI 挂死** |
 | 密钥加密 | AES-256-GCM 加密后入库；密钥从独立环境变量 `MEDIA_SECRET_KEY`（推荐，32 字节 base64）派生，未配置时回退从 `BETTER_AUTH_SECRET` HKDF/scrypt 派生并在文档记录。**接口只返回脱敏值**（`****last4`）；编辑表单密钥字段留空 = 不修改原值。加密/解密抽成纯函数放 `app/lib/secret-box.ts` + Vitest 覆盖（roundtrip、错误密钥解密失败、脱敏函数） |
 | rootPath 白名单 | 新增环境变量 `MEDIA_ROOTS`（逗号分隔允许的挂载根，NAS 上如 `/nas/volume1,/nas/volume2`）；保存/扫描前 resolve 后 require 前缀匹配（复用 path-safety）。未配置时保持现有行为但打印告警 |
-| 验收 | 测试连接按钮真实可用且 5s 内返回；数据库 dump 中无明文密钥；配置接口响应不含完整密钥；越界 rootPath 保存被拒 |
+| 验收 ✅ | 测试连接按钮真实可用且 5s 内返回（`storage-test.ts` 超时 4.5s + 阶段分类测试）；入库前 AES-256-GCM 加密（`secret-box.test.ts` roundtrip/错误密钥）；UI 接口只返回 `****last4`；越界 rootPath 保存/扫描被拒（`media-roots.test.ts` 前缀匹配） |
 
 #### 任务卡 2：P2-5 API 验权统一 + 审计日志接线
 
@@ -436,7 +451,7 @@ pnpm lint             # eslint .
 pnpm build            # next build
 pnpm db:migrate       # drizzle-kit migrate
 pnpm tsc --noEmit     # 类型检查
-pnpm test:unit        # Vitest 单元测试（65 用例：9 个测试文件全绿，2026-11-19 复验）
+pnpm test:unit        # Vitest 单元测试（91 用例：12 个测试文件全绿，2026-11-20 复验）
 pnpm test:coverage    # 覆盖率报告
 pnpm test:watch       # 监听模式
 ```
@@ -449,6 +464,8 @@ pnpm test:watch       # 监听模式
 | `INIT_ADMIN_EMAIL` | **外网部署强烈建议配置**：首个用户的邮箱白名单，防止他人抢注成 admin；未配则兼容旧行为但打印告警 | P0-4 ✅ |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | proxy 同源校验 + Next `allowedOrigins`，逗号分隔完整 origin（UGLink 外网域名必配） | P0-4 / P0-5 |
 | `NEXT_PUBLIC_IMAGE_HOSTS` | `next/image` 远程域名白名单（默认空，别开 `**`） | P0-5 |
+| `MEDIA_SECRET_KEY` | 存储密钥加密主密钥（**32 字节 base64**）。未配置时回退从 `BETTER_AUTH_SECRET` 派生并告警；更换回退源会导致历史密文无法解密，生产建议显式配置 | P2-4 ✅ |
+| `MEDIA_ROOTS` | 本地/NAS 存储根白名单（逗号分隔，如 `/nas/volume1,/nas/volume2`）。保存与扫描前校验；未配置保持旧行为但告警 | P2-4 ✅ |
 | `CRON_SECRET` | 定时任务鉴权（回收站日清理等） | ✅ 已接入 compose（P2-7） |
 | `FFMPEG_PATH` | 指向系统 ffmpeg，绕开 ffmpeg-static 从 GitHub 下载（github.com 不通） | §5.3 |
 

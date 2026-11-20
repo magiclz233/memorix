@@ -1080,12 +1080,27 @@
           },
           "hints": {
             "permission": "请确保服务器有权限访问该路径。",
-            "nasMapping": "NAS 路径映射提示：如果 Docker 挂载了 /volume2/ 到 /app/media/disk1，此处请填写 /app/media/disk1/photos 以对应 /volume2/photos。"
+            "nasMapping": "NAS 路径映射提示：如果 Docker 挂载了 /volume2/ 到 /app/media/disk1，此处请填写 /app/media/disk1/photos 以对应 /volume2/photos。",
+            "secretKeep": "留空或保留 **** 表示不修改已存密钥。"
           },
           "save": "保存配置",
           "saving": "保存中...",
           "cancel": "取消",
-          "error": "保存失败"
+          "error": "保存失败",
+          "testConnection": "测试连接",
+          "testing": "测试中…",
+          "testSuccess": "连接成功（{ms}ms）",
+          "testFailed": "连接失败：{stage}",
+          "stages": {
+            "config": "配置不完整",
+            "path": "路径不可用",
+            "permission": "无读权限",
+            "timeout": "连接超时",
+            "auth": "认证失败",
+            "bucket": "Bucket 不可用",
+            "network": "网络不可达",
+            "unknown": "未知错误"
+          }
         },
         "dependency": {
           "title": "存在依赖项",
@@ -1535,7 +1550,8 @@
       "cacheClearFailed": "缓存清理失败，请稍后重试。",
       "dependency": {
         "collection": "作品集：{title}"
-      }
+      },
+      "rootPathOutsideAllowed": "rootPath 不在 MEDIA_ROOTS 允许范围内，请先配置环境变量或更换目录。"
     },
     "scan": {
       "title": "目录扫描",
