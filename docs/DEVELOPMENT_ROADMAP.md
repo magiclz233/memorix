@@ -5,9 +5,9 @@
 
 | 项 | 值 |
 |---|---|
-| 文档版本 | v2.6（交接版） |
+| 文档版本 | v2.7（交接版） |
 | 更新日期 | 2026-11-20 |
-| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / `5793868` + 资源库发布/预览修复（本轮）；NAS 已部署 `v20261120b`，本轮镜像待重建 |
+| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / `5793868` + 资源库发布/预览修复 `30c9d34`；NAS 已部署 `v20261120d`（2026-11-20），历史 1404 张已全部取消发布 |
 | 已知使用场景 | **万张以上图片** + **外网可达**（绿联 UGLink 域名）+ 部署在 NAS |
 | 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **128/128** ✅（21 个测试文件，2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
 
@@ -300,7 +300,7 @@
 | 每页数量 | 白名单 12/24/48/96/200（非法回退 24）；`buildPageUrl` 保留 `limit`，翻页不再跳回 24；后台仍用 OFFSET | `app/lib/media-library-view.ts`、`app/[locale]/dashboard/media/page.tsx`、`media-library.tsx` |
 | 灯箱原图 | 网格缩略图统一走同源 `/api/media/thumb/:id`（避免 HTTPS 页面混用内网 HTTP `thumbUrl`）；灯箱新增 `fullSrc=/api/media/stream/:id`，分享场景带 token；视频/动图同样走 stream | `app/lib/media-preview.ts`、`app/lib/gallery.ts`、`media-library.tsx` |
 | 自适应尺寸 | fit 模式移除 `max-h-[75vh]` shrink-wrap，改为容器内 `fill + object-contain`，按可用屏幕区域等比铺满；frame 模式保留相框但同样使用原图 | `app/ui/front/photo-detail/photo-media-canvas.tsx` |
-| 存量数据 | 部署后在 NAS 执行一次 `UPDATE files SET is_published=false, updated_at=now() WHERE deleted_at IS NULL AND is_published=true`（先 count，后 update，再验证 count=0），并清理 `gallery:list:*` 缓存 | 运维命令见 §5.2 |
+| 存量数据 | 已在 NAS 执行：`BEFORE=1404 → UPDATE 1404 → AFTER=0`；gallery API 返回空列表；Redis `FLUSHDB` 清理缓存 | 运维记录见 §5.2 |
 | 验收 | 每页切换后翻页保持、整库发布/取消发布二次确认且覆盖全账号、灯箱大图不再使用缩略图且按屏幕自适应；tsc + lint + 128 单测全绿 | — |
 
 ---
@@ -571,7 +571,7 @@ pnpm test:watch       # 监听模式
 - **Windows build**：standalone 输出创建 symlink 报 EPERM → 开 Windows 开发者模式或管理员运行。
 - **ffmpeg-static postinstall**：从 GitHub 下二进制，国内网络不通会卡住 → 配镜像或预置 `FFMPEG_PATH`，别让安装卡死。
 - **node_modules**：用 `pnpm install --ignore-scripts` 可跳过 ffmpeg-static 的 GitHub 下载快速装好（vitest/tsc/eslint 都可用，但 sharp 原生二进制需 postinstall——本地 build 会受影响；NAS 上用 `FFMPEG_PATH` + 正常 install 无此问题）。若 `.bin` 链接缺失，可用 `node node_modules/typescript/bin/tsc --noEmit` 等直接调用。
-- **NAS 服务**：2026-11-20 已部署，容器内健康检查 200；外网验证受 UGLink 登录门禁限制。
+- **NAS 服务**：2026-11-20 已部署 `memorix-app:v20261120d`（项目 `memorix-v3`，app-only，端口 30001）；容器内健康检查 200、`/api/gallery` 200 且返回空列表；外网验证受 UGLink 登录门禁限制。
 
 ### 5.4 开发流程
 
