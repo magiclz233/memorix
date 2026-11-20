@@ -4,6 +4,8 @@ export type GalleryItem = {
   id: string;
   type: 'photo' | 'video';
   src: string;
+  /** 灯箱原图地址；网格仍用 src 缩略图，避免灯箱复用缩略图导致破图/过小 */
+  fullSrc?: string | null;
   videoUrl?: string | null;
   animatedUrl?: string | null;
   isAnimated?: boolean;
@@ -109,6 +111,7 @@ export const buildGalleryItems = (
       id: String(record.id),
       type: mediaType,
       src,
+      fullSrc: withShareToken(`/api/media/stream/${record.id}`, shareToken),
       videoUrl,
       animatedUrl,
       isAnimated,

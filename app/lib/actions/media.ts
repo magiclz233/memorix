@@ -2,6 +2,7 @@
 
 import {
   setFilesPublished as legacySetFilesPublished,
+  setAllFilesPublished as legacySetAllFilesPublished,
   setHeroPhotos as legacySetHeroPhotos,
   updatePhotoDetails as legacyUpdatePhotoDetails,
   deleteMediaFiles as legacyDeleteMediaFiles,
@@ -22,6 +23,22 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
   // 清除画廊列表缓存和各文件详情缓存
   await cache.delPattern('gallery:list:*');
   await cache.del(fileIds.map((id) => CacheKeys.mediaDetail(id)));
+  return result;
+}
+
+export async function setAllFilesPublished(isPublished: boolean) {
+  const result = await legacySetAllFilesPublished(isPublished);
+  if (result.success) {
+    await recordAuditLogForCurrentUser({
+      action: isPublished ? 'media.publish.all' : 'media.unpublish.all',
+      resource: 'media',
+      changes: { isPublished, count: result.count },
+    });
+  }
+  // 全库操作无法预先知道受影响的 id，按 pattern 清理列表与详情缓存。
+  await cache.delPattern('gallery:list:*');
+  await cache.delPattern('media:detail:*');
+  await cache.del(CacheKeys.dashboardOverview());
   return result;
 }
 

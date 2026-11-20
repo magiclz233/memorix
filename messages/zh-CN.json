@@ -880,7 +880,19 @@
         "tagsDialogTitle": "为 {count} 个文件设置标签",
         "tagsDialogHint": "输入标签（逗号/空格分隔，最多 12 个）。标签会覆盖所选文件的原有标签。",
         "tagsPlaceholder": "例如：旅行, 2024, 精选",
-        "tagsApply": "应用"
+        "tagsApply": "应用",
+        "bulkActions": "整库操作",
+        "publishAll": "发布全部",
+        "unpublishAll": "全部取消发布",
+        "publishAllTitle": "发布整个资源库？",
+        "unpublishAllTitle": "取消发布整个资源库？",
+        "publishAllDesc": "将当前账号下全部未删除文件设为已发布，而不仅是当前页。",
+        "unpublishAllDesc": "将当前账号下全部未删除文件设为未发布，前台画廊将不再展示。",
+        "confirmBulkAction": "确认执行",
+        "bulkUpdating": "处理中...",
+        "bulkPublishSuccess": "已发布全部 {count} 个文件。",
+        "bulkUnpublishSuccess": "已取消发布全部 {count} 个文件。",
+        "bulkPublishFailed": "整库操作失败，请稍后重试。"
       }
     },
     "collections": {
@@ -1573,7 +1585,9 @@
       "heroRemoved": "已取消首页展示。",
       "invalid": "参数无效。",
       "updated": "图片信息已更新。",
-      "updateFailed": "更新失败，请稍后重试。"
+      "updateFailed": "更新失败，请稍后重试。",
+      "bulkPublished": "已发布全部 {count} 个文件。",
+      "bulkUnpublished": "已取消发布全部 {count} 个文件。"
     },
     "user": {
       "invalidId": "无效的用户 ID。",

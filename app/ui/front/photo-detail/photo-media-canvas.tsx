@@ -113,17 +113,15 @@ export function PhotoMediaCanvas({
           )}
         >
           {(() => {
-            const hasDimensions = !!(item.width && item.height);
             const safeWidth = item.width || 1920;
             const safeHeight = item.height || 1080;
             const frameMode = viewMode === 'frame';
-            const useShrinkWrap = !frameMode && hasDimensions;
+            const previewSrc = item.fullSrc || item.src;
+            const animatedSrc = item.animatedUrl || previewSrc;
 
-            const containerClass = useShrinkWrap
-              ? 'relative flex max-w-full max-h-full shadow-2xl rounded-sm overflow-hidden transition-all duration-300'
-              : frameMode
-                ? 'relative max-w-full max-h-full flex items-center justify-center'
-                : 'relative w-full h-full overflow-hidden bg-zinc-950';
+            const containerClass = frameMode
+              ? 'relative max-w-full max-h-full flex items-center justify-center'
+              : 'relative w-full h-full overflow-hidden bg-zinc-950';
 
             return (
               <div className={containerClass}>
@@ -132,7 +130,7 @@ export function PhotoMediaCanvas({
                     <div className='relative shadow-[0_4px_20px_-2px_rgba(0,0,0,0.15)]'>
                       {isAnimated ? (
                         <Image
-                          src={item.animatedUrl ?? ''}
+                          src={animatedSrc}
                           alt={isEditing ? footTitle || item.title : item.title}
                           width={safeWidth}
                           height={safeHeight}
@@ -143,7 +141,7 @@ export function PhotoMediaCanvas({
                         />
                       ) : (
                         <BlurImage
-                          src={item.src}
+                          src={previewSrc}
                           alt={isEditing ? footTitle || item.title : item.title}
                           blurHash={item.blurHash}
                           width={safeWidth}
@@ -259,41 +257,24 @@ export function PhotoMediaCanvas({
                     </div>
                   </div>
                 ) : (
-                  <div
-                    className={cn(
-                      'relative flex',
-                      useShrinkWrap ? 'w-auto h-auto' : 'w-full h-full',
-                    )}
-                  >
+                  <div className='relative h-full w-full'>
                     {isAnimated ? (
                       <Image
-                        src={item.animatedUrl ?? ''}
+                        src={animatedSrc}
                         alt={item.title}
                         unoptimized
-                        fill={!useShrinkWrap}
-                        width={useShrinkWrap ? (item.width || undefined) : undefined}
-                        height={useShrinkWrap ? (item.height || undefined) : undefined}
-                        className={cn(
-                          useShrinkWrap
-                            ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
-                            : 'object-contain',
-                        )}
+                        fill
+                        className='object-contain'
                         sizes='100vw'
                         priority
                       />
                     ) : (
                       <BlurImage
-                        src={item.src}
+                        src={previewSrc}
                         alt={item.title}
                         blurHash={item.blurHash}
-                        fill={!useShrinkWrap}
-                        width={useShrinkWrap ? (item.width || undefined) : undefined}
-                        height={useShrinkWrap ? (item.height || undefined) : undefined}
-                        className={cn(
-                          useShrinkWrap
-                            ? 'w-auto h-auto max-w-full max-h-[75vh] object-contain block'
-                            : 'object-contain',
-                        )}
+                        fill
+                        className='object-contain'
                         sizes='100vw'
                         priority
                       />

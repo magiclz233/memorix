@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useMessages, useTranslations } from 'next-intl';
@@ -20,6 +20,7 @@ import {
   Download,
   Trash2,
   Tags,
+  MoreHorizontal,
 } from 'lucide-react';
 
 import {
@@ -46,9 +47,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-import { setFilesPublished, setHeroPhotos, setMediaTags } from '@/app/lib/actions';
+import { setFilesPublished, setHeroPhotos, setMediaTags, setAllFilesPublished } from '@/app/lib/actions';
 import type { MediaLibraryItem } from '@/app/lib/data';
 import { resolveMessage } from '@/app/lib/i18n';
+import {
+  MEDIA_PAGE_SIZE_OPTIONS,
+  resolveMediaPageSize,
+} from '@/app/lib/media-library-view';
+import { resolveMediaFullSrc } from '@/app/lib/media-preview';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Gallery25 } from '@/components/gallery25';
@@ -60,6 +66,7 @@ import { SelectionBox } from '@/app/ui/components/selection-box';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -99,8 +106,10 @@ const formatResolution = (
   return `${width} x ${height}`;
 };
 
+// 网格用同源缩略图路由：thumbUrl 可能是扫描时写入的内网/HTTP 绝对地址，
+// 外网 HTTPS 页面会因混合内容直接破图。原图预览走 fullSrc，见 media-preview.ts。
 const resolveMediaSrc = (item: MediaLibraryItem) =>
-  item.thumbUrl || `/api/media/thumb/${item.id}` || item.url || `/api/local-files/${item.id}`;
+  `/api/media/thumb/${item.id}`;
 
 const clampColumnCount = (value: number) => Math.min(10, Math.max(3, value));
 
@@ -150,6 +159,8 @@ export function MediaLibraryManager({
   const [message, setMessage] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTargetIds, setDeleteTargetIds] = useState<number[]>([]);
+  const [bulkPublishTarget, setBulkPublishTarget] = useState<boolean | null>(null);
+  const [isBulkPublishing, setIsBulkPublishing] = useState(false);
   // P2-1 批量标签
   const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
   const [tagsInput, setTagsInput] = useState('');
@@ -185,7 +196,7 @@ export function MediaLibraryManager({
 
   const currentCategory = filters.category;
   const currentStorageId = filters.storageId;
-  const currentLimit = searchParams.get('limit') || '24';
+  const currentLimit = String(resolveMediaPageSize(searchParams.get('limit')));
 
   useEffect(() => {
     setSearchInput(filters.q);
@@ -340,13 +351,11 @@ export function MediaLibraryManager({
       return {
         id: item.id,
         type: (item.mediaType === 'video' ? 'video' : 'photo') as 'video' | 'photo',
-        src:
-          resolveMediaSrc(item) ||
-          item.url ||
-          `/api/local-files/${item.id}`,
+        src: resolveMediaSrc(item),
+        fullSrc: resolveMediaFullSrc(item),
         videoUrl:
           item.mediaType === 'video' ? `/api/media/stream/${item.id}` : null,
-        animatedUrl: isAnimated ? (item.url || `/api/local-files/${item.id}`) : null,
+        animatedUrl: isAnimated ? `/api/media/stream/${item.id}` : null,
         isAnimated,
         duration: item.videoDuration ?? null,
         liveType: (item.liveType as 'none' | 'embedded' | 'paired') ?? 'none',
@@ -448,6 +457,41 @@ export function MediaLibraryManager({
       
       // 刷新以同步服务端状态
       router.refresh();
+    });
+  };
+
+  const handleBulkPublish = (publish: boolean) => {
+    setBulkPublishTarget(publish);
+  };
+
+  const confirmBulkPublish = () => {
+    const publish = bulkPublishTarget;
+    if (publish === null) return;
+
+    setIsBulkPublishing(true);
+    startTransition(async () => {
+      try {
+        const result = await setAllFilesPublished(publish);
+        if (result.success) {
+          setOptimisticItems((prev) =>
+            prev.map((item) => ({ ...item, isPublished: publish })),
+          );
+          setSelectedIds(new Set());
+          showSuccessToast(
+            t(publish ? 'library.bulkPublishSuccess' : 'library.bulkUnpublishSuccess', {
+              count: result.count ?? 0,
+            }),
+          );
+        } else {
+          showErrorToast(result.message || t('library.bulkPublishFailed'));
+        }
+      } catch {
+        showErrorToast(t('library.bulkPublishFailed'));
+      } finally {
+        setIsBulkPublishing(false);
+        setBulkPublishTarget(null);
+        router.refresh();
+      }
     });
   };
 
@@ -853,16 +897,37 @@ export function MediaLibraryManager({
                   value={currentLimit}
                   onValueChange={(value) => handleLimitChange(value)}
                 >
-                  <DropdownMenuRadioItem value="24">
-                    {t('library.perPageOption', { count: 24 })}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="48">
-                    {t('library.perPageOption', { count: 48 })}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="96">
-                    {t('library.perPageOption', { count: 96 })}
-                  </DropdownMenuRadioItem>
+                  {MEDIA_PAGE_SIZE_OPTIONS.map((size) => (
+                    <DropdownMenuRadioItem key={size} value={String(size)}>
+                      {t('library.perPageOption', { count: size })}
+                    </DropdownMenuRadioItem>
+                  ))}
                 </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 text-zinc-500"
+                  title={t('library.bulkActions')}
+                  disabled={isBulkPublishing}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="hidden sm:inline">{t('library.bulkActions')}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => handleBulkPublish(true)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  {t('library.publishAll')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleBulkPublish(false)}>
+                  <EyeOff className="mr-2 h-4 w-4" />
+                  {t('library.unpublishAll')}
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -1203,6 +1268,48 @@ export function MediaLibraryManager({
         </div>
       )}
 
+
+      <AlertDialog
+        open={bulkPublishTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isBulkPublishing) setBulkPublishTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t(
+                bulkPublishTarget
+                  ? 'library.publishAllTitle'
+                  : 'library.unpublishAllTitle',
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                bulkPublishTarget
+                  ? 'library.publishAllDesc'
+                  : 'library.unpublishAllDesc',
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkPublishing}>
+              {t('library.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                confirmBulkPublish();
+              }}
+              disabled={isBulkPublishing}
+            >
+              {isBulkPublishing
+                ? t('library.bulkUpdating')
+                : t('library.confirmBulkAction')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

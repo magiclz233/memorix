@@ -9,6 +9,10 @@ import {
   type MediaLibrarySort,
 } from '@/app/lib/data';
 import { generatePagination } from '@/app/lib/utils';
+import {
+  DEFAULT_MEDIA_PAGE_SIZE,
+  resolveMediaPageSize,
+} from '@/app/lib/media-library-view';
 import { MediaLibraryManager } from '@/app/ui/admin/media/media-library';
 import { Button } from '@/components/ui/button';
 import { getTranslations } from 'next-intl/server';
@@ -118,7 +122,7 @@ export default async function Page({ searchParams }: PageProps) {
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const page = parseNumber(resolvedSearchParams?.page ?? '1') ?? 1;
-  const perPage = parseNumber(resolvedSearchParams?.limit) ?? 24;
+  const perPage = resolveMediaPageSize(resolvedSearchParams?.limit);
   const selectedStorageIds = parseStringArray(resolvedSearchParams?.storageId)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0);
@@ -271,6 +275,8 @@ export default async function Page({ searchParams }: PageProps) {
     if (resolvedSearchParams?.lens) params.set('lens', resolvedSearchParams.lens);
     if (hasGps !== 'all') params.set('hasGps', hasGps);
     if (sort !== 'dateShotDesc') params.set('sort', sort);
+    // 翻页时保留每页数量；否则用户切到 48/96 后点下一页又回到 24。
+    if (perPage !== DEFAULT_MEDIA_PAGE_SIZE) params.set('limit', String(perPage));
     params.set('page', pageNumber.toString());
     return `/dashboard/media?${params.toString()}`;
   };
@@ -286,7 +292,7 @@ export default async function Page({ searchParams }: PageProps) {
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           {t('description')}
         </p>
-      </header>
+      </header>
 
       {totalCount === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-10 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">

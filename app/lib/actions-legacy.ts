@@ -641,6 +641,46 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
   return { success: true, message: t('statusUpdated') };
 }
 
+/**
+ * 全库发布/取消发布：只动当前管理员自己存储源下未软删的文件。
+ * 与 setFilesPublished 的区别是不接收 fileIds，因此不受当前分页限制。
+ */
+export async function setAllFilesPublished(isPublished: boolean) {
+  const t = await getTranslations('actions.files');
+  const user = await requireAdminUser();
+
+  const storageIds = await db
+    .select({ id: userStorages.id })
+    .from(userStorages)
+    .where(eq(userStorages.userId, user.id));
+
+  const allowedStorageIds = storageIds.map((item) => item.id);
+  if (allowedStorageIds.length === 0) {
+    return { success: false, message: t('noStorage') };
+  }
+
+  const updated = await db
+    .update(files)
+    .set({ isPublished, updatedAt: new Date() })
+    .where(
+      and(
+        inArray(files.userStorageId, allowedStorageIds),
+        isNull(files.deletedAt),
+      ),
+    )
+    .returning({ id: files.id });
+
+  revalidatePathForAllLocales('/dashboard/media');
+  revalidatePathForAllLocales('/gallery');
+  return {
+    success: true,
+    count: updated.length,
+    message: isPublished
+      ? t('bulkPublished', { count: updated.length })
+      : t('bulkUnpublished', { count: updated.length }),
+  };
+}
+
 const normalizeIdList = (value: unknown) => {
   if (!Array.isArray(value)) return [];
   const ids = value

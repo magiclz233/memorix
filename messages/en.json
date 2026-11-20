@@ -880,7 +880,19 @@
         "tagsDialogTitle": "Set tags for {count} files",
         "tagsDialogHint": "Enter tags (comma/space separated, max 12). This replaces existing tags on the selected files.",
         "tagsPlaceholder": "e.g. travel, 2024, favorites",
-        "tagsApply": "Apply"
+        "tagsApply": "Apply",
+        "bulkActions": "Library actions",
+        "publishAll": "Publish all",
+        "unpublishAll": "Unpublish all",
+        "publishAllTitle": "Publish the entire library?",
+        "unpublishAllTitle": "Unpublish the entire library?",
+        "publishAllDesc": "Set every non-deleted file for this account to published, not just the current page.",
+        "unpublishAllDesc": "Set every non-deleted file for this account to unpublished. They will disappear from the public gallery.",
+        "confirmBulkAction": "Confirm",
+        "bulkUpdating": "Working...",
+        "bulkPublishSuccess": "Published all {count} files.",
+        "bulkUnpublishSuccess": "Unpublished all {count} files.",
+        "bulkPublishFailed": "Library-wide operation failed. Please try again."
       }
     },
     "collections": {
@@ -1573,7 +1585,9 @@
       "heroRemoved": "Hero status removed.",
       "invalid": "Invalid parameters.",
       "updated": "Photo details updated.",
-      "updateFailed": "Update failed, please try again."
+      "updateFailed": "Update failed, please try again.",
+      "bulkPublished": "Published all {count} files.",
+      "bulkUnpublished": "Unpublished all {count} files."
     },
     "user": {
       "invalidId": "Invalid User ID.",

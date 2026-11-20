@@ -5,11 +5,11 @@
 
 | 项 | 值 |
 |---|---|
-| 文档版本 | v2.5（交接版） |
+| 文档版本 | v2.6（交接版） |
 | 更新日期 | 2026-11-20 |
-| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / 本提交之后（见 §2）；本地 `master` 领先 `origin`，尚未 push |
+| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / `5793868` + 资源库发布/预览修复（本轮）；NAS 已部署 `v20261120b`，本轮镜像待重建 |
 | 已知使用场景 | **万张以上图片** + **外网可达**（绿联 UGLink 域名）+ 部署在 NAS |
-| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **123/123** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
+| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **128/128** ✅（21 个测试文件，2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
 
 ---
 
@@ -289,6 +289,20 @@
 
 **保留的已接受风险**：`MEDIA_ROOTS` 仍只做 lexical 前缀比较，不解析 symlink（管理员可信配置，path-safety 有注释）；`storage/test-connection` 不校验 MEDIA_ROOTS（仅 admin 可用）。
 
+### 2.11 资源库整库发布 / 分页 / 灯箱预览（2026-11-20）
+
+> 用户反馈资源库只能发布当前页、每页数量会跳回默认值，灯箱大图使用缩略图导致破图或过小。本轮把批量发布提升为整库操作，分页数量落 URL，并把灯箱切到原图流 + 按屏幕自适应。全套 **128/128** 单测（21 个文件），`tsc` / `eslint`（0 error）全绿。
+
+| 项 | 落地内容 | 关键文件 |
+|---|---|---|
+| 默认不发布 | `files.is_published` 默认 false；上传初始化/完成显式 false；扫描 insert 不写 true。历史已发布数据需一次性取消发布，不改变新数据默认行为 | `app/lib/schema.ts`、`app/api/upload/*` |
+| 整库发布/取消发布 | 新增 `setAllFilesPublished(isPublished)`：覆盖当前管理员全部 userStorages 下未删除文件，返回更新数量并写 `media.publish.all` / `media.unpublish.all` 审计；UI 工具栏“整库操作”+ AlertDialog 二次确认，与当前页选中项发布并存 | `app/lib/actions-legacy.ts`、`app/lib/actions/media.ts`、`app/ui/admin/media/media-library.tsx` |
+| 每页数量 | 白名单 12/24/48/96/200（非法回退 24）；`buildPageUrl` 保留 `limit`，翻页不再跳回 24；后台仍用 OFFSET | `app/lib/media-library-view.ts`、`app/[locale]/dashboard/media/page.tsx`、`media-library.tsx` |
+| 灯箱原图 | 网格缩略图统一走同源 `/api/media/thumb/:id`（避免 HTTPS 页面混用内网 HTTP `thumbUrl`）；灯箱新增 `fullSrc=/api/media/stream/:id`，分享场景带 token；视频/动图同样走 stream | `app/lib/media-preview.ts`、`app/lib/gallery.ts`、`media-library.tsx` |
+| 自适应尺寸 | fit 模式移除 `max-h-[75vh]` shrink-wrap，改为容器内 `fill + object-contain`，按可用屏幕区域等比铺满；frame 模式保留相框但同样使用原图 | `app/ui/front/photo-detail/photo-media-canvas.tsx` |
+| 存量数据 | 部署后在 NAS 执行一次 `UPDATE files SET is_published=false, updated_at=now() WHERE deleted_at IS NULL AND is_published=true`（先 count，后 update，再验证 count=0），并清理 `gallery:list:*` 缓存 | 运维命令见 §5.2 |
+| 验收 | 每页切换后翻页保持、整库发布/取消发布二次确认且覆盖全账号、灯箱大图不再使用缩略图且按屏幕自适应；tsc + lint + 128 单测全绿 | — |
+
 ---
 
 ## 3. 路线图（P0 → P3）
@@ -530,7 +544,7 @@ pnpm lint             # eslint .
 pnpm build            # next build
 pnpm db:migrate       # drizzle-kit migrate
 pnpm tsc --noEmit     # 类型检查
-pnpm test:unit        # Vitest 单元测试（123 用例：19 个测试文件全绿，2026-11-20 复验）
+pnpm test:unit        # Vitest 单元测试（128 用例：21 个测试文件全绿，2026-11-20 复验）
 pnpm test:coverage    # 覆盖率报告
 pnpm test:watch       # 监听模式
 ```
@@ -550,7 +564,7 @@ pnpm test:watch       # 监听模式
 
 > **部署提醒（批次 B + C + P2-10 全部 4 个新迁移必执行）**：`drizzle/0015_add_shares.sql`（分享表）、`drizzle/0016_add_search_indexes.sql`（搜索索引）、`drizzle/0017_add_scan_jobs.sql`（扫描任务表）、`drizzle/0018_add_sort_at.sql`（排序键与触发器）。compose 的 `migrate` 服务会自动跑；手动方式见 ops-guide。
 > **迁移 journal 注意**：新增迁移的 `when` 必须严格大于上一版本（drizzle 按时间戳判断是否执行）。本次 NAS 部署发现 0015–0018 旧时间戳小于 0014，migrate 打印成功但静默跳过，已修正并加单测。
-> **部署后一次性动作**：调用 `POST /api/storage/backfill-secrets?dryRun=1` 确认历史明文条数，再去掉 `dryRun` 执行（见 §2.7 / ops-guide）。
+> **部署后一次性动作**：调用 `POST /api/storage/backfill-secrets?dryRun=1` 确认历史明文条数，再去掉 `dryRun` 执行（见 §2.7 / ops-guide）；资源库历史发布数据按 §2.11 执行一次全量取消发布并清理 `gallery:list:*` 缓存。
 
 ### 5.3 本机验证环境坑（非代码问题）
 
