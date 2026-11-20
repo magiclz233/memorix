@@ -60,7 +60,7 @@
 
 - `pnpm install --ignore-scripts` 跳过 ffmpeg-static 的 GitHub 下载（该域名不通）；跑 `vitest`/`tsc`/`eslint` 无碍，本地完整 build 不行是环境问题，别试图在本机修好它；
 - 本机 build 失败（symlink EPERM）≠ 代码有问题，验证以 `tsc --noEmit` + lint + 单测为准；
-- NAS 部署验证需要在内网环境做（`/api/health`），本机探测超时是网络隔离。
+- NAS 已于 2026-11-20 部署（应用容器内 `/api/health` 200），外网 UGLink 域名有登录门禁，验证以容器内 `/api/health` 与 `/api/gallery` 为准。
 
 ---
 
@@ -128,7 +128,7 @@
 - ✅ ESLint（全部改动文件）EXIT 0
 - ✅ `next build`：静态页 55/55 生成成功（代码可编译）
 - ⚠️ **完整构建未跑完**：Windows 创建 symlink 报 EPERM（需开发者模式/管理员）；新依赖下 Turbopack 构建超时（ffmpeg-static postinstall 走 GitHub 下载被墙，node_modules 不完整）。**均为环境问题，非代码问题**——NAS 上用 `FFMPEG_PATH` 指向系统 ffmpeg 无此问题。
-- ⚠️ **NAS 服务 `192.168.0.105:30001/api/health` 探测超时**，部署验证需在网络内确认。
+- ✅ **NAS 服务已部署**：容器内 `/api/health` 200（database/redis/storage 均 up），`/api/gallery` 200；外网直连超时是网络隔离/UGLink 门禁。
 
 ### 2.3 第一轮刻意没做（不是遗漏）
 
@@ -272,7 +272,7 @@
 
 ### 2.10 Review 修复（2026-11-20）
 
-> 针对整体 review 的 8 个发现修复 1、3、4、5、6、7、8；#2 迁移顺序写入 ops-guide；symlink 与 test-connection 白名单作为已接受风险保留。全套 **123/123** 单测（19 个文件），`tsc` / `eslint`（0 error）全绿。
+> 针对整体 review 的 8 个发现修复 1、3、4、5、6、7、8；#2 迁移顺序写入 ops-guide；另修复部署时发现的迁移 journal 时间戳乱序；symlink 与 test-connection 白名单作为已接受风险保留。全套 **123/123** 单测（19 个文件），`tsc` / `eslint`（0 error）全绿。
 
 | 问题 | 修复 | 关键文件 |
 |---|---|---|
@@ -557,7 +557,7 @@ pnpm test:watch       # 监听模式
 - **Windows build**：standalone 输出创建 symlink 报 EPERM → 开 Windows 开发者模式或管理员运行。
 - **ffmpeg-static postinstall**：从 GitHub 下二进制，国内网络不通会卡住 → 配镜像或预置 `FFMPEG_PATH`，别让安装卡死。
 - **node_modules**：用 `pnpm install --ignore-scripts` 可跳过 ffmpeg-static 的 GitHub 下载快速装好（vitest/tsc/eslint 都可用，但 sharp 原生二进制需 postinstall——本地 build 会受影响；NAS 上用 `FFMPEG_PATH` + 正常 install 无此问题）。若 `.bin` 链接缺失，可用 `node node_modules/typescript/bin/tsc --noEmit` 等直接调用。
-- **NAS 服务**：`192.168.0.105:30001/api/health` 之前探测超时，部署验证先确认网络与服务状态。
+- **NAS 服务**：2026-11-20 已部署，容器内健康检查 200；外网验证受 UGLink 登录门禁限制。
 
 ### 5.4 开发流程
 
