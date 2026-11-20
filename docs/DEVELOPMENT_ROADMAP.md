@@ -9,7 +9,7 @@
 | 更新日期 | 2026-11-19 |
 | 基线提交 | 第一轮 19 文件安全修复 + 第二轮 review 修复 + P0 全部收尾 + 批次 B（P1-1~5）+ **批次 C（P1-6 + P2 六项）**之后（见 §2）。⚠️ **上述全部改动截至 2026-11-19 尚未 git commit**，见 §0.5 交接须知 |
 | 已知使用场景 | **万张以上图片** + **外网可达**（绿联 UGLink 域名）+ 部署在 NAS |
-| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error）/ Vitest **91/91** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
+| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error）/ Vitest **97/97** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
 
 ---
 
@@ -21,11 +21,11 @@
 |---|---|---|
 | **P0** | 安全 + 数据不可逆损失 + 万张图可用性 | **12 项全部完成**（两轮修复） |
 | **P1** | 分享链接、时间轴、虚拟滚动、筛选统一、搜索 DSL、任务队列 | **6 项全部完成**（批次 B：P1-1~5；批次 C：P1-6） |
-| **P2** | 批量交互、回收站、去重、CI/备份/部署加固、死代码清理、存储源管理 | **已完成 8 项**（P2-1 主体 / 2 / 3 / 4 / 6 / 7 / 8 / 9）；遗留 P2-5、P2-10、P2-1 尾巴（见 §3.3） |
+| **P2** | 批量交互、回收站、去重、CI/备份/部署加固、死代码清理、存储源管理、审计日志 | **已完成 9 项**（P2-1 主体 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9）；遗留 P2-10、P2-1 尾巴（见 §3.3） |
 | **P3** | PWA、语义搜索增强层、地图相册等战略项 | 待评估 |
 | **不做** | 手机原生 App / 人脸 / E2EE / 存储大重构 | 明确否决，见 §3.6 |
 
-**下一步从哪开始**：P2-4 存储源管理已完成（测试连接 / 密钥加密 / MEDIA_ROOTS 白名单）。剩余 P2：**P2-5 审计日志接线** → **P2-10 排序键可索引化**；P2-1 尚余「批量移动存储源」「命令面板」两个子项。详见 §3.3、§4 与 §4.1 任务卡。
+**下一步从哪开始**：P2-4 存储源管理、P2-5 审计日志接线已完成。剩余 P2：**P2-10 排序键可索引化**；P2-1 尚余「批量移动存储源」「命令面板」两个子项。详见 §3.3、§4 与 §4.1 任务卡。
 
 ---
 
@@ -46,7 +46,7 @@
 - 批次 A/B/C 已按逻辑分组提交到 `master`：`8d9f83a`（批次 A 安全与数据正确性修复）/ `bac3a64`（批次 B 分享·时间轴·虚拟滚动·搜索 DSL）/ `bda8c09`（批次 C 扫描队列·回收站·去重·批量交互·运维加固）；工作区为干净基线，后续每项从独立分支开始；
 - `.workbuddy/`、`.zcode/` 是 AI 工作目录，非项目代码，不要提交也不要删除。
 
-**3. 首个任务**：P2-4 存储源管理已完成（见 §2.7）；接下来做 **P2-5 审计日志接线**（任务卡见 §4.1），完成后按 P2-10 顺序推进。
+**3. 首个任务**：P2-4、P2-5 已完成（见 §2.7、§2.8）；接下来做 **P2-10 排序键可索引化**（任务卡见 §4.1）。
 
 **4. 开发纪律**（严格执行）：
 
@@ -90,7 +90,7 @@
 | 3.8 CSRF 防护 `csrf.ts` | middleware 零调用，`use-csrf.ts` 只取 token 不注入头；本轮改用 proxy 同源校验兜底 | 见 §2、P2-7 |
 | 14.2 `config-validator.ts` 启动校验 | 死代码，BETTER_AUTH_SECRET 缺失仅警告不拦截 | 见 P0-8 |
 | 1.6 `validations.ts` / 3.4 `file-validator.ts` | 未接线（死代码） | 见 P2-6 |
-| `auditLogs` 表 | 定义了但**零写入** | 见 P2-5 |
+| `auditLogs` 表 | 已接线写入（P2-5），不再是零写入 | 见 P2-5 ✅ |
 | `improvement-suggestions.md` 15 条 | 11 条已实现（Redis、路径校验、扫描分批、分片上传、索引、错误处理、EXIF 脱敏、日志等），该文档已失去指导价值 | 归档，勿再照做 |
 
 ### 1.3 当前缺口清单（缺什么）
@@ -210,7 +210,7 @@
 | **P2-9 部署加固** | 两个 compose：`depends_on` 加条件（migrate `service_completed_successfully`、postgres/redis `service_healthy`）；app 加 `mem_limit`/`memswap_limit`/`cpus` + `NODE_OPTIONS=--max-old-space-size=1024`（sharp/ffmpeg 无并发上限防 OOM）；全服务 json-file 日志轮转（10m×3）。**刻意偏差**：NAS `user: 0:0` 保留 root——NAS 源目录 0:0+0770，改非 root 需先 chown 源目录，已在 compose 注释与本文档记录。 | `docker-compose.yml`、`docker-compose.nas.yml` |
 | **P2-6 死代码清理** | 删除 9 文件 + 1 路由：`virtual-gallery-grid.tsx`、`dynamic-imports.ts`、`optimized-image.tsx`、`front-gallery.tsx`、`use-csrf.ts`、`csrf.ts`、`/api/csrf-token`、`storage-adapter.ts`、`validations.ts`、`file-validator.ts`；cache-keys 的 csrfToken 条目一并移除。**保留例外**（曾列入清单但实际已接线）：`config-validator.ts`（instrumentation 启动校验在用）、`data/front.ts`（timeline API 经 barrel 在用）。 | 见左列 |
 
-**批次 C 之后剩余 P2**：P2-5 API 验权统一 + 审计日志接线、P2-10 排序键可索引化（`sort_at` 生成列 + keyset 分页）、P2-1 尾巴（批量移动存储源、命令面板）。P2-4 已完成，见 §2.7。
+**批次 C 之后剩余 P2**：P2-10 排序键可索引化（`sort_at` 生成列 + keyset 分页）、P2-1 尾巴（批量移动存储源、命令面板）。P2-4、P2-5 已完成，见 §2.7、§2.8。
 
 ---
 
@@ -226,6 +226,34 @@
 | 偏差记录 | 任务卡写 `POST /api/storage/test` + HeadBucket；实际路由为 `test-connection` + `listObjectsV2`——后者同时验证凭证与读权限，对 S3 兼容实现更稳 | — |
 
 **遗留**：无。P2-5 审计日志需覆盖本项的存储源增删改（下一步接线）。
+
+### 2.8 批次 C+：P2-5 审计日志接线（2026-11-20 完成）
+
+> 新增 `audit-log-values` 纯函数测试（6 个），全套 **97/97 通过**；`tsc` / `eslint`（0 error）全绿。
+
+| 项 | 落地内容 | 关键文件 |
+|---|---|---|
+| 写入 helper | `recordAuditLog` 落 `audit_logs`（action / resource / resourceId / userId / changes / ip / userAgent），写库失败只告警；`recordAuditLogForCurrentUser` 供 Server Action 包装层使用 | `app/lib/audit-log.ts`、`app/lib/audit-log-values.ts` |
+| 覆盖范围 | 回收站移入 / 恢复 / 彻底删除；分享创建 / 吊销；存储源创建 / 更新 / 启停 / 删除；批量发布 / Hero / 标签 / 旧物理删除 | `app/lib/actions/trash.ts`、`app/api/shares/*`、`app/lib/actions-legacy.ts`、`app/lib/actions/media.ts` |
+| 查询接口 | `GET /api/audit-logs?limit=&before=&action=&resource=`：仅管理员，join users 返回操作者邮箱，`Cache-Control: no-store`，`before` 做 id 前翻页 | `app/api/audit-logs/route.ts` |
+| 偏差记录 | 任务卡字段 `actorId/targetType/targetId/detail` 与现有表结构不一致，按代码用 `userId/resource/resourceId/changes`；不记录密钥、密码、分享 token | — |
+
+**API 鉴权盘点（2026-11-20）**：全站 26 个 `route.ts`，含写方法的 14 个均已有校验——
+
+| 路由 | 鉴权方式 |
+|---|---|
+| `upload`、`upload/init`、`upload/complete`、`upload/chunk` | admin session + 每用户限流 + 存储源 owner 校验 |
+| `storage/test-connection` | `requireAdminUser` + 存储源 owner |
+| `shares` POST、`shares/[id]` DELETE | session + `filterOwnedFileIds` / share owner |
+| `shares/[token]/unlock` POST | 有意公开：token 格式 + 有效期/吊销校验 + 密码校验，成功才下发 httpOnly cookie |
+| `scan-jobs` POST、`scan-jobs/[id]/retry`、`scan-jobs/[id]/cancel` | admin session + 存储源 owner |
+| `download` POST | session + `resolveFiles` 强制 `userStorages.userId = userId` |
+| `analytics/vitals`、`analytics/errors` POST | 有意公开：`Sec-Fetch-Site`/`Origin` 同源校验 + 每 IP 限流 |
+
+公开读接口 `gallery`、`gallery/timeline`、`health` 均为设计内公开内容；未鉴权写接口数量为 **0**。遗留风险：`shares/[token]/unlock` 未见按 IP/token 的限流，建议后续补上（暂记 P3/待办，不阻塞 P2-5 验收）。
+
+
+**遗留**：后台可视化审计页（低优先级，未做）。
 
 ---
 
@@ -334,7 +362,7 @@
 | P2-2 | 回收站 / 撤销：30 天软删保留 + 彻底删除（复用 P0-3 的 `deletedAt`），彻底删除时清理缩略图与 S3 对象 | ✅ **完成**（/dashboard/trash + 30 天日清理 + 物理清理链） |
 | P2-3 | 内容级去重：按 SHA-256 精确去重（现在仅分片上传写 `fileHash`，扫描/直接上传都不写）；近似重复只人工复核 + 元数据合并，别自动删 | ✅ **完成**（三条路径补 hash + /dashboard/dedup 人工复核） |
 | P2-4 ✅ | 存储源管理：测试连接（listObjectsV2 / `fs.stat`）、密钥加密不回显、`rootPath` 白名单 | `api/storage/*`、存储源配置表单 |
-| P2-5 | API 验权粒度统一 + 审计日志接线：`auditLogs` 表定义但零写入 | 全 API 路由；`auditLogs` 写入中间件 |
+| P2-5 ✅ | API 验权粒度统一 + 审计日志接线：`auditLogs` 已覆盖敏感操作，并提供管理员查询接口 | `app/lib/audit-log.ts`、`app/api/audit-logs/route.ts` |
 | P2-6 | 死代码清理：`virtual-gallery-grid.tsx`、`optimized-image.tsx`、`front-gallery.tsx`、`use-csrf.ts`、`csrf.ts`、`storage-adapter.ts`、`validations.ts`、`file-validator.ts` 等——两套语义并存会持续制造冲突 | ✅ **完成**（删 9 文件 + csrf-token 路由；`config-validator.ts`/`data/front.ts` 经核实已接线，保留） |
 | P2-7 | CI/CD 与 NAS 对齐：`deploy.yml` 别在 standalone 容器跑 `pnpm db:migrate`；补 arm64 镜像产物；`CRON_SECRET` 配置 | ✅ **完成**（migrate 服务 + QEMU 多架构 + CRON_SECRET） |
 | P2-8 | 备份修复：`backup-media.sh` 现在只备 `./uploads`，漏掉 `/volume1~3` 的真实媒体；把备份真正跑起来并验证恢复 | ✅ **完成**（多来源 + 自动探测 + 恢复自检，端到端验证过） |
@@ -369,7 +397,7 @@
 |---|---|---|---|
 | P0 | 12 | **12 全部** | 0 |
 | P1 | 6 | **6 全部** | 0 |
-| P2 | 10 | **8（P2-1 主体 / 2 / 3 / 4 / 6 / 7 / 8 / 9）** | 2（P2-5/10）+ P2-1 尾巴 |
+| P2 | 10 | **9（P2-1 主体 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9）** | 1（P2-10）+ P2-1 尾巴 |
 | P3 | 5 | 0 | 5（评估制） |
 
 ---
@@ -391,7 +419,7 @@
   →  P2-7/8/9 部署与备份  →  P2-6 死代码清理
 
 批次 C+（P2 尾巴）
-  P2-4 存储源管理  →  P2-5 审计日志  →  P2-10 排序键索引化
+  P2-4 存储源管理  →  P2-5 审计日志 ✅  →  P2-10 排序键索引化
   →  P2-1 尾巴（移动存储源 / 命令面板）
 
 批次 D（战略评估）
@@ -412,7 +440,7 @@
 | rootPath 白名单 | 新增环境变量 `MEDIA_ROOTS`（逗号分隔允许的挂载根，NAS 上如 `/nas/volume1,/nas/volume2`）；保存/扫描前 resolve 后 require 前缀匹配（复用 path-safety）。未配置时保持现有行为但打印告警 |
 | 验收 ✅ | 测试连接按钮真实可用且 5s 内返回（`storage-test.ts` 超时 4.5s + 阶段分类测试）；入库前 AES-256-GCM 加密（`secret-box.test.ts` roundtrip/错误密钥）；UI 接口只返回 `****last4`；越界 rootPath 保存/扫描被拒（`media-roots.test.ts` 前缀匹配） |
 
-#### 任务卡 2：P2-5 API 验权统一 + 审计日志接线
+#### 任务卡 2：P2-5 API 验权统一 + 审计日志接线 ✅（2026-11-20 完成）
 
 | 维度 | 内容 |
 |---|---|
@@ -420,7 +448,7 @@
 | 验权盘点 | 系统过一遍 API 路由清单，确认写操作均经 `auth()` 会话校验 + owner/admin 判定；Server Actions 注意 Next.js 的 action 也可被直接 POST，防伪造 id 的模式参照 P0-7（只用已鉴权集合执行写操作） |
 | 审计接线 | 抽 `recordAuditLog({ actorId, action, targetType, targetId, detail })` helper（写库失败只告警不阻塞主流程）；**先覆盖不可逆/敏感操作**：删除与彻底删除、回收站恢复、分享创建/吊销、存储源增删改、批量操作。不追求全量埋点 |
 | 审计查看 | 本任务只落库 + 最简查询接口；后台可视化页可后补（低优先级） |
-| 验收 | 上述每类操作后 `auditLogs` 有记录；未鉴权写 API 数量为 0（可写脚本扫路由断言）；审计写入失败不影响主操作 |
+| 验收 ✅ | 上述每类操作成功后写入 `audit_logs`（见 §2.8 覆盖表）；`recordAuditLog` 吞错告警，不阻塞主操作；查询接口 admin-only；全站写 API 鉴权盘点完成（见 §2.8，未鉴权写接口 0 个） |
 
 #### 任务卡 3：P2-10 排序键可索引化
 
@@ -451,7 +479,7 @@ pnpm lint             # eslint .
 pnpm build            # next build
 pnpm db:migrate       # drizzle-kit migrate
 pnpm tsc --noEmit     # 类型检查
-pnpm test:unit        # Vitest 单元测试（91 用例：12 个测试文件全绿，2026-11-20 复验）
+pnpm test:unit        # Vitest 单元测试（97 用例：13 个测试文件全绿，2026-11-20 复验）
 pnpm test:coverage    # 覆盖率报告
 pnpm test:watch       # 监听模式
 ```

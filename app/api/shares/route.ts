@@ -13,6 +13,7 @@ import {
   hashSharePassword,
   isValidShareToken,
 } from '@/app/lib/share-token';
+import { recordAuditLog } from '@/app/lib/audit-log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -125,6 +126,20 @@ export async function POST(request: Request) {
     expiresAt,
     role,
     allowDownload,
+  });
+
+  await recordAuditLog({
+    userId,
+    action: 'share.create',
+    resource: 'share',
+    resourceId: share.id,
+    changes: {
+      fileCount: ownedIds.length,
+      role,
+      allowDownload,
+      hasPassword: Boolean(password),
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+    },
   });
 
   return NextResponse.json(

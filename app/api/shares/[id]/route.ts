@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { fetchUserByEmail } from '@/app/lib/data';
 import { getShareById, revokeShare } from '@/app/lib/data/shares';
+import { recordAuditLog } from '@/app/lib/audit-log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,5 +36,18 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 
   const ok = await revokeShare(shareId, userId);
+  if (ok) {
+    await recordAuditLog({
+      userId,
+      action: 'share.revoke',
+      resource: 'share',
+      resourceId: shareId,
+      changes: {
+        name: share.name,
+        fileCount: Array.isArray(share.fileIds) ? share.fileIds.length : 0,
+        role: share.role,
+      },
+    });
+  }
   return NextResponse.json({ ok });
 }

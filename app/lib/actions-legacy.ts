@@ -32,6 +32,7 @@ import { getStorageCacheRoot } from './storage';
 import { resolveS3Client } from './s3-helper';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { StorageConfigSchema } from './storage-config-schema';
+import { recordAuditLog } from './audit-log';
 
 export type ActionState = {
   success: boolean;
@@ -268,6 +269,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
   }
 
   const user = await requireAdminUser();
+  const actorId = Number(user.id);
   const data = parsed.data;
   const existingStorage = data.id
     ? await db.query.userStorages.findFirst({
@@ -345,6 +347,15 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
           updatedAt: new Date(),
         })
         .where(and(eq(userStorages.id, data.id), eq(userStorages.userId, user.id)));
+      if (Number.isInteger(actorId) && actorId > 0) {
+        await recordAuditLog({
+          userId: actorId,
+          action: 'storage.update',
+          resource: 'storage',
+          resourceId: data.id,
+          changes: { type: data.type, alias: data.alias ?? null, isDisabled },
+        });
+      }
       revalidatePathForAllLocales('/dashboard/storage');
       revalidatePathForAllLocales('/dashboard/media');
       return { success: true, message: t('updated'), storageId: data.id };
@@ -358,6 +369,17 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
         config,
       })
       .returning({ id: userStorages.id });
+
+    const createdId = inserted[0]?.id;
+    if (createdId && Number.isInteger(actorId) && actorId > 0) {
+      await recordAuditLog({
+        userId: actorId,
+        action: 'storage.create',
+        resource: 'storage',
+        resourceId: createdId,
+        changes: { type: data.type, alias: data.alias ?? null },
+      });
+    }
 
     revalidatePathForAllLocales('/dashboard/storage');
     revalidatePathForAllLocales('/dashboard/media');
@@ -375,6 +397,7 @@ export async function saveUserStorage(input: z.infer<typeof StorageConfigSchema>
 export async function setUserStorageDisabled(storageId: number, isDisabled: boolean) {
   const t = await getTranslations('actions.storage');
   const user = await requireAdminUser();
+  const actorId = Number(user.id);
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
@@ -393,6 +416,15 @@ export async function setUserStorageDisabled(storageId: number, isDisabled: bool
     })
     .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
 
+  if (Number.isInteger(actorId) && actorId > 0) {
+    await recordAuditLog({
+      userId: actorId,
+      action: isDisabled ? 'storage.disable' : 'storage.enable',
+      resource: 'storage',
+      resourceId: storageId,
+      changes: { isDisabled },
+    });
+  }
   revalidatePathForAllLocales('/dashboard/storage');
   revalidatePathForAllLocales('/dashboard/media');
   revalidatePathForAllLocales('/gallery');
@@ -502,6 +534,7 @@ export async function checkStorageDependencies(storageId: number) {
 export async function deleteUserStorage(storageId: number) {
   const t = await getTranslations('actions.storage');
   const user = await requireAdminUser();
+  const actorId = Number(user.id);
   const storage = await db.query.userStorages.findFirst({
     where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
   });
@@ -532,6 +565,15 @@ export async function deleteUserStorage(storageId: number) {
       .where(and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)));
   });
 
+  if (Number.isInteger(actorId) && actorId > 0) {
+    await recordAuditLog({
+      userId: actorId,
+      action: 'storage.delete',
+      resource: 'storage',
+      resourceId: storageId,
+      changes: { type: storage.type },
+    });
+  }
   revalidatePathForAllLocales('/dashboard/storage');
   revalidatePathForAllLocales('/dashboard/media');
   revalidatePathForAllLocales('/gallery');

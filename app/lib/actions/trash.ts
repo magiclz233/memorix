@@ -11,6 +11,7 @@ import {
   restoreFromTrash,
   softDeleteMedia,
 } from '@/app/lib/data/trash';
+import { recordAuditLog } from '@/app/lib/audit-log';
 
 /**
  * 回收站 server actions（P2-2）。
@@ -49,6 +50,12 @@ export async function moveMediaToTrash(fileIds: number[]) {
     return { success: false, message: t('nothingMoved') };
   }
 
+  await recordAuditLog({
+    userId,
+    action: 'media.trash',
+    resource: 'media',
+    changes: { fileIds: moved, count: moved.length },
+  });
   revalidateAll();
   return { success: true, message: t('moved', { count: moved.length }) };
 }
@@ -70,6 +77,12 @@ export async function restoreTrashedMedia(fileIds: number[]) {
     return { success: false, message: t('nothingRestored') };
   }
 
+  await recordAuditLog({
+    userId,
+    action: 'media.restore',
+    resource: 'media',
+    changes: { fileIds: restored, count: restored.length },
+  });
   revalidateAll();
   return { success: true, message: t('restored', { count: restored.length }) };
 }
@@ -91,6 +104,12 @@ export async function purgeTrashedMedia(fileIds: number[]) {
     return { success: false, message: t('nothingPurged') };
   }
 
+  await recordAuditLog({
+    userId,
+    action: 'media.purge',
+    resource: 'media',
+    changes: { fileIds: purged, count: purged.length },
+  });
   revalidateAll();
   return { success: true, message: t('purged', { count: purged.length }) };
 }
