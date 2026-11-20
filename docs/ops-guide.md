@@ -39,8 +39,18 @@
 # 在服务器上执行
 cd /opt/lumina
 docker-compose pull
+docker-compose build migrate
+# 先迁移（0015–0018）再切应用代码，避免代码查询 files.sort_at 时列还不存在
+docker-compose run --rm migrate
 docker-compose up -d --no-deps app
-docker-compose exec app pnpm db:migrate
+```
+
+部署完成后，登录后台并在浏览器控制台执行一次历史明文存储密钥回填（先 dry-run 看条数）：
+
+```js
+fetch('/api/storage/backfill-secrets?dryRun=1', { method: 'POST' }).then((r) => r.json()).then(console.log)
+// 确认 wouldUpdate 条数后，去掉 ?dryRun=1 再执行
+fetch('/api/storage/backfill-secrets', { method: 'POST' }).then((r) => r.json()).then(console.log)
 ```
 
 ---

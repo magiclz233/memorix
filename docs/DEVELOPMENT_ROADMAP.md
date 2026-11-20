@@ -223,9 +223,10 @@
 | 测试连接 | `POST /api/storage/test-connection`（admin + storage owner 校验，5s 超时）：S3 用 `listObjectsV2(MaxKeys=1)`，本地/NAS 用 `stat` + `access(R_OK)`；返回 `{ok, latencyMs}` 或 `{ok:false, stage, message}`，错误只保留错误码，不回显端点/凭据 | `app/api/storage/test-connection/route.ts`、`app/lib/storage-test.ts`、`app/ui/admin/storage/storage-modal.tsx` |
 | 密钥加密 | AES-256-GCM，密文格式 `enc:v1:<iv>:<tag>:<data>`；主密钥取 `MEDIA_SECRET_KEY`（32B base64），缺失时从 `BETTER_AUTH_SECRET` SHA-256 派生并告警；`resolveS3Client` 统一解密，历史明文兼容；`fetchUserStorages` 只向 UI 返回 `****last4`，编辑留空/脱敏值沿用旧密钥，并顺手加密历史明文 | `app/lib/secret-box.ts`、`app/lib/s3-helper.ts`、`app/lib/data-legacy.ts`、`app/lib/actions-legacy.ts` |
 | rootPath 白名单 | `MEDIA_ROOTS` 逗号分隔；保存与本地扫描前 resolve + 前缀匹配，越界拒绝；未配置保持现状并每次进程告警一次 | `app/lib/path-safety.ts`、`app/lib/actions-legacy.ts`、`app/lib/scan-job-runner.ts` |
+| 存量回填 | `POST /api/storage/backfill-secrets`（admin，`?dryRun=1` 预演）：扫描 `user_storages.config.secretKey`，只加密明文，密文/脱敏值/空值跳过，幂等；写审计 `storage.secrets.backfill`（仅计数） | `app/api/storage/backfill-secrets/route.ts`、`app/lib/storage-secret-backfill.ts` |
 | 偏差记录 | 任务卡写 `POST /api/storage/test` + HeadBucket；实际路由为 `test-connection` + `listObjectsV2`——后者同时验证凭证与读权限，对 S3 兼容实现更稳 | — |
 
-**遗留**：无。P2-5 审计日志需覆盖本项的存储源增删改（下一步接线）。
+**遗留**：无。历史明文需部署后调用一次回填接口（见 ops-guide）；未调用前旧行仍是明文。
 
 ### 2.8 批次 C+：P2-5 审计日志接线（2026-11-20 完成）
 
@@ -238,12 +239,13 @@
 | 查询接口 | `GET /api/audit-logs?limit=&before=&action=&resource=`：仅管理员，join users 返回操作者邮箱，`Cache-Control: no-store`，`before` 做 id 前翻页 | `app/api/audit-logs/route.ts` |
 | 偏差记录 | 任务卡字段 `actorId/targetType/targetId/detail` 与现有表结构不一致，按代码用 `userId/resource/resourceId/changes`；不记录密钥、密码、分享 token | — |
 
-**API 鉴权盘点（2026-11-20）**：全站 26 个 `route.ts`，含写方法的 14 个均已有校验——
+**API 鉴权盘点（2026-11-20）**：全站 27 个 `route.ts`，含写方法的 15 个均已有校验——
 
 | 路由 | 鉴权方式 |
 |---|---|
 | `upload`、`upload/init`、`upload/complete`、`upload/chunk` | admin session + 每用户限流 + 存储源 owner 校验 |
 | `storage/test-connection` | `requireAdminUser` + 存储源 owner |
+| `storage/backfill-secrets` | `requireAdminUser`；一次性回填，仅计数，不回显密钥 |
 | `shares` POST、`shares/[id]` DELETE | session + `filterOwnedFileIds` / share owner |
 | `shares/[token]/unlock` POST | 有意公开：token 格式 + 有效期/吊销校验 + 密码校验，成功才下发 httpOnly cookie |
 | `scan-jobs` POST、`scan-jobs/[id]/retry`、`scan-jobs/[id]/cancel` | admin session + 存储源 owner |
