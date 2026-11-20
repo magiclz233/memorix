@@ -9,7 +9,7 @@
 | 更新日期 | 2026-11-20 |
 | 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / 本提交之后（见 §2）；本地 `master` 领先 `origin`，尚未 push |
 | 已知使用场景 | **万张以上图片** + **外网可达**（绿联 UGLink 域名）+ 部署在 NAS |
-| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **122/122** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
+| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **123/123** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
 
 ---
 
@@ -272,7 +272,7 @@
 
 ### 2.10 Review 修复（2026-11-20）
 
-> 针对整体 review 的 8 个发现修复 1、3、4、5、6、7、8；#2 迁移顺序写入 ops-guide；symlink 与 test-connection 白名单作为已接受风险保留。全套 **122/122** 单测（18 个文件），`tsc` / `eslint`（0 error）全绿。
+> 针对整体 review 的 8 个发现修复 1、3、4、5、6、7、8；#2 迁移顺序写入 ops-guide；symlink 与 test-connection 白名单作为已接受风险保留。全套 **123/123** 单测（19 个文件），`tsc` / `eslint`（0 error）全绿。
 
 | 问题 | 修复 | 关键文件 |
 |---|---|---|
@@ -285,6 +285,7 @@
 | unlock 可暴力尝试 | IP+token 10 次/分钟，超限 429 + `Retry-After: 60`；Redis 不可用降级内存 | `app/api/shares/[id]/unlock/route.ts` |
 | 部署启动 slug 冲突 | `shares/[id]/route.ts` 与 `shares/[token]/unlock` 同级动态段名不同，Next 启动报错；unlock 并入 `[id]/unlock`，参数改 `id`（URL 不变） | `app/api/shares/[id]/unlock/route.ts` |
 | 迁移顺序 | ops-guide 手动部署改为先 `build migrate` + `run --rm migrate`，再 `up -d app`；部署后调用密钥回填 | `docs/ops-guide.md` |
+| 迁移 journal 时间戳 | 0015–0018 的 `when` 小于已执行的 0014，drizzle 只执行时间戳更大的迁移，导致 migrate 打印成功但静默跳过；改为 1776418347268–271 严格递增，并新增 journal 单测防回归 | `drizzle/meta/_journal.json`、`app/lib/__tests__/migration-journal.test.ts` |
 
 **保留的已接受风险**：`MEDIA_ROOTS` 仍只做 lexical 前缀比较，不解析 symlink（管理员可信配置，path-safety 有注释）；`storage/test-connection` 不校验 MEDIA_ROOTS（仅 admin 可用）。
 
@@ -492,7 +493,7 @@
 | 迁移 | `drizzle/0018_add_sort_at.sql`：加列 → 回填（拍摄时间 → mtime → created_at）→ SET NOT NULL → 建触发器 → 建索引；journal 追加 0018 |
 | 查询改造 | 画廊/时间轴分桶、后台媒体库日期过滤与排序、首页/存储源/分享查询统一改用 `files.sortAt`；删除运行时 coalesce |
 | keyset 分页 | 大图库网格/时间轴改 `(sort_at, id)` 游标；`GET /api/gallery?cursor=` 返回 `nextCursor`，非法游标 400；后台媒体库等小页面继续 OFFSET |
-| 验收 | 单测覆盖游标 roundtrip/非法输入；`tsc` / `eslint` / 122 单测全绿。**待 NAS 实机**：`EXPLAIN (ANALYZE, BUFFERS)` 确认走 `files_sort_at_id_idx` 且无 `Sort` 节点；keyset 与 OFFSET 同页 id 序列比对一致 |
+| 验收 | 单测覆盖游标 roundtrip/非法输入；`tsc` / `eslint` / 123 单测全绿。**待 NAS 实机**：`EXPLAIN (ANALYZE, BUFFERS)` 确认走 `files_sort_at_id_idx` 且无 `Sort` 节点；keyset 与 OFFSET 同页 id 序列比对一致 |
 
 **EXPLAIN 验收 SQL（部署后执行）**：
 
@@ -529,7 +530,7 @@ pnpm lint             # eslint .
 pnpm build            # next build
 pnpm db:migrate       # drizzle-kit migrate
 pnpm tsc --noEmit     # 类型检查
-pnpm test:unit        # Vitest 单元测试（122 用例：18 个测试文件全绿，2026-11-20 复验）
+pnpm test:unit        # Vitest 单元测试（123 用例：19 个测试文件全绿，2026-11-20 复验）
 pnpm test:coverage    # 覆盖率报告
 pnpm test:watch       # 监听模式
 ```
@@ -548,6 +549,7 @@ pnpm test:watch       # 监听模式
 | `FFMPEG_PATH` | 指向系统 ffmpeg，绕开 ffmpeg-static 从 GitHub 下载（github.com 不通） | §5.3 |
 
 > **部署提醒（批次 B + C + P2-10 全部 4 个新迁移必执行）**：`drizzle/0015_add_shares.sql`（分享表）、`drizzle/0016_add_search_indexes.sql`（搜索索引）、`drizzle/0017_add_scan_jobs.sql`（扫描任务表）、`drizzle/0018_add_sort_at.sql`（排序键与触发器）。compose 的 `migrate` 服务会自动跑；手动方式见 ops-guide。
+> **迁移 journal 注意**：新增迁移的 `when` 必须严格大于上一版本（drizzle 按时间戳判断是否执行）。本次 NAS 部署发现 0015–0018 旧时间戳小于 0014，migrate 打印成功但静默跳过，已修正并加单测。
 > **部署后一次性动作**：调用 `POST /api/storage/backfill-secrets?dryRun=1` 确认历史明文条数，再去掉 `dryRun` 执行（见 §2.7 / ops-guide）。
 
 ### 5.3 本机验证环境坑（非代码问题）

@@ -45,6 +45,8 @@ docker-compose run --rm migrate
 docker-compose up -d --no-deps app
 ```
 
+> **迁移 journal 时间戳必须严格递增**：drizzle 只执行 `when` 大于库中最后一条记录的迁移。本次部署发现 0015–0018 的旧时间戳小于 0014，migrate 打印成功但静默跳过；已修正并用单测防回归。新增迁移后先确认 `drizzle/meta/_journal.json` 的 `when` 有序。
+
 部署完成后，登录后台并在浏览器控制台执行一次历史明文存储密钥回填（先 dry-run 看条数）：
 
 ```js
