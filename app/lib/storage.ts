@@ -4,6 +4,14 @@ import type { Dirent, Stats } from 'fs';
 import exifr from 'exifr';
 import sharp from 'sharp';
 
+/** 扫描被取消时抛出（P1-6 任务队列的协作式取消信号） */
+export class ScanCancelledError extends Error {
+  constructor() {
+    super('scan cancelled');
+    this.name = 'ScanCancelledError';
+  }
+}
+
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -111,6 +119,7 @@ function getVideoMimeType(fileName: string) {
 export async function scanMediaFiles(
   rootPath: string,
   onEvent?: (event: ScanWalkEvent) => void,
+  shouldCancel?: () => boolean | Promise<boolean>,
 ) {
   const normalizedRoot = path.resolve(rootPath);
   const rootStat = await fs.stat(normalizedRoot);
@@ -122,6 +131,11 @@ export async function scanMediaFiles(
   onEvent?.({ kind: 'dir', path: normalizedRoot });
 
   while (stack.length > 0) {
+    // 协作式取消（P1-6）：每个目录轮询一次取消标记，
+    // 万级目录的遍历也能秒级响应取消请求。
+    if (await shouldCancel?.()) {
+      throw new ScanCancelledError();
+    }
     const current = stack.pop();
     if (!current) break;
 

@@ -16,7 +16,8 @@
       "home": "Home",
       "gallery": "Gallery",
       "collections": "Portfolio",
-      "about": "About"
+      "about": "About",
+      "timeline": "Timeline"
     },
     "account": {
       "loggedIn": "Signed in",
@@ -158,7 +159,8 @@
       "searchPlaceholder": "Search title, author, place, or tags",
       "searchAria": "Search gallery content",
       "clearSearch": "Clear search",
-      "noResults": "No matching content. Try a shorter keyword."
+      "noResults": "No matching content. Try a shorter keyword.",
+      "searchHint": "Supports fields: type:video camera:sony year:2024"
     },
     "media": {
       "photo": "Photo",
@@ -451,7 +453,8 @@
         "download": "Download",
         "mapUnavailable": "Map failed to load. Please try again later.",
         "tagsPlaceholder": "Enter tags separated by commas",
-        "tagsEmpty": "No tags yet"
+        "tagsEmpty": "No tags yet",
+        "toggleInfoAria": "Show/hide photo information"
       },
       "playback": {
         "failed": "Playback failed",
@@ -513,6 +516,93 @@
       "badges": {
         "video": "VIDEO",
         "animated": "GIF"
+      }
+    },
+    "share": {
+      "page": {
+        "eyebrow": "SHARED ALBUM",
+        "title": "Shared Album",
+        "description": "A collection of moments prepared just for you.",
+        "count": "{count} items",
+        "passwordTitle": "Protected share",
+        "passwordDescription": "This share requires a password to view.",
+        "passwordPlaceholder": "Enter access password",
+        "unlockButton": "View album",
+        "unlocking": "Verifying…",
+        "wrongPassword": "Incorrect password, please try again.",
+        "unavailableTitle": "Link unavailable",
+        "unavailableDescription": "This share may have expired, been revoked, or the link is invalid.",
+        "download": "Download original",
+        "lightboxHint": "Use ← → to navigate, Esc to close"
+      },
+      "admin": {
+        "title": "Share links",
+        "description": "Generate external links with password, expiry and permissions for selected photos.",
+        "newShare": "New share",
+        "formTitle": "Create share link",
+        "selectFiles": "Select photos",
+        "selectedCount": "{count} selected",
+        "nameLabel": "Name (optional)",
+        "namePlaceholder": "e.g. Client selection",
+        "passwordLabel": "Access password (optional)",
+        "passwordPlaceholder": "Leave empty for public access",
+        "expiryLabel": "Expiry",
+        "expiryNever": "Never expires",
+        "expiryDays": "{days} days",
+        "roleLabel": "Permission",
+        "roleViewer": "View only",
+        "roleEditor": "Can download",
+        "allowDownload": "Allow original download",
+        "create": "Create link",
+        "creating": "Creating…",
+        "createSuccess": "Share link created",
+        "createFailed": "Failed to create, please retry",
+        "copyLink": "Copy link",
+        "copied": "Copied",
+        "revoke": "Revoke",
+        "revokeConfirm": "Revoke this share link? It will stop working immediately.",
+        "revokeSuccess": "Revoked",
+        "revokeFailed": "Failed to revoke",
+        "noShares": "No share links yet",
+        "noFiles": "No photos to share. Publish some photos in the media library first.",
+        "hasPassword": "Password",
+        "noPassword": "No password",
+        "views": "{count} views",
+        "expiresAt": "Expires {date}",
+        "neverExpires": "Never expires",
+        "warningTitle": "Security notice",
+        "warningBody": "Anyone with the link (and password, if set) can view the selected photos. Set a sensible expiry and password, and do not share private content with untrusted people.",
+        "cancel": "Cancel"
+      }
+    },
+    "timeline": {
+      "eyebrow": "TIMELINE / ARCHIVE",
+      "title": "Timeline",
+      "description": "Browse your archive by year and month.",
+      "allYears": "All years",
+      "allMonths": "Full year",
+      "year": "{year}",
+      "month": "{month}",
+      "count": "{count} items",
+      "jumpToYear": "Jump to {year}",
+      "loading": "Loading…",
+      "allLoaded": "All content loaded",
+      "loadError": "Failed to load, please retry.",
+      "retry": "Retry",
+      "empty": "No published photos in this period.",
+      "months": {
+        "1": "Jan",
+        "2": "Feb",
+        "3": "Mar",
+        "4": "Apr",
+        "5": "May",
+        "6": "Jun",
+        "7": "Jul",
+        "8": "Aug",
+        "9": "Sep",
+        "10": "Oct",
+        "11": "Nov",
+        "12": "Dec"
       }
     }
   },
@@ -578,7 +668,10 @@
       "foundAnimated": "Found {count} animated images...",
       "readFailed": "Failed to read directory",
       "complete": "Scan complete, found {count} files.",
-      "processed": "Processed {processed}/{total} items"
+      "processed": "Processed {processed}/{total} items",
+      "clearedMissing": "Cleared {count} stale records",
+      "softDeletedMissing": "Marked {count} missing files as deleted (recoverable from trash)",
+      "scanSafetyAbort": "Scan result looks abnormal (found {found}, existing {existing}); skipped cleanup to protect data"
     },
     "sidebar": {
       "overview": "Overview",
@@ -590,7 +683,10 @@
       "userManagement": "Users",
       "adminConsole": "Admin Console",
       "signOut": "Exit",
-      "backToFront": "Back"
+      "backToFront": "Back",
+      "shares": "Shares",
+      "trash": "Trash",
+      "dedup": "Duplicates"
     },
     "overview": {
       "title": "Overview",
@@ -774,7 +870,17 @@
         "unnamed": "Unnamed",
         "published": "Published",
         "unpublished": "Unpublished",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "shiftRangeHint": "Shift+click for range selection",
+        "tags": "Tags",
+        "tagsSelected": "Set tags for selected files",
+        "tagsEmpty": "Enter at least one tag.",
+        "tagsSuccess": "Tags updated.",
+        "tagsFailed": "Failed to update tags.",
+        "tagsDialogTitle": "Set tags for {count} files",
+        "tagsDialogHint": "Enter tags (comma/space separated, max 12). This replaces existing tags on the selected files.",
+        "tagsPlaceholder": "e.g. travel, 2024, favorites",
+        "tagsApply": "Apply"
       }
     },
     "collections": {
@@ -1055,7 +1161,15 @@
           "empty": "No images yet. Click 'Scan Now' to read directory.",
           "scanFailed": "Scan failed or connection interrupted.",
           "scanInterrupted": "Scan connection interrupted.",
-          "complete": "Scan complete."
+          "complete": "Scan complete.",
+          "enqueued": "Scan queued. It will run in the background.",
+          "alreadyActive": "A scan is already running for this storage. Progress reattached.",
+          "cancel": "Cancel scan",
+          "cancelRequested": "Cancel requested, stopping…",
+          "cancelledDone": "Scan cancelled",
+          "retry": "Retry scan",
+          "retryFailed": "Retry failed, please try again later.",
+          "failedItems": "{count} files failed to process"
         },
         "actions": {
           "selectAll": "Select All",
@@ -1227,7 +1341,8 @@
         "selectStorageFirst": "Please select storage first",
         "formats": "Supports JPG, PNG, MP4 and more",
         "selectFile": "Select Files"
-      }
+      },
+      "advancedConfigExperimental": "Concurrency is active; duplicate handling and post-processing options are experimental and not yet executed by the server in this version."
     },
     "settings": {
       "profile": {
@@ -1325,6 +1440,40 @@
           "deleting": "Deleting..."
         }
       }
+    },
+    "trash": {
+      "title": "Trash",
+      "description": "Deleted media is kept for 30 days and can be restored anytime; expired items are purged by the daily cleanup job.",
+      "empty": "Trash is empty",
+      "emptyHint": "Items deleted from the media library land here first.",
+      "selectAll": "Select all on this page",
+      "selectedCount": "{count} selected",
+      "restoreSelected": "Restore selected",
+      "purgeSelected": "Delete selected permanently",
+      "restore": "Restore",
+      "purge": "Delete permanently",
+      "prevPage": "Previous",
+      "nextPage": "Next",
+      "pageIndicator": "Page {page} of {total}",
+      "purgeConfirmTitle": "Confirm permanent deletion",
+      "purgeConfirmBody": "Permanent deletion removes the original files (NAS/S3/local), thumbnails and all metadata. This cannot be undone.",
+      "purgeConfirmCount": "About to permanently delete {count} items.",
+      "cancel": "Cancel",
+      "purgeConfirmAction": "Delete permanently"
+    },
+    "dedup": {
+      "title": "Deduplication",
+      "description": "Detects files with identical SHA-256 content. Detection and human review only — nothing is deleted automatically.",
+      "noDuplicates": "No duplicate files found",
+      "noDuplicatesHint": "New uploads and scans compute content hashes automatically; run a full scan to backfill historical files.",
+      "summaryGroups": "{count} duplicate groups",
+      "summaryFiles": "{count} redundant files",
+      "summaryBytes": "≈ {size} reclaimable",
+      "manualReviewNote": "Nothing is deleted automatically. Review each group before acting.",
+      "copyHash": "Copy hash",
+      "groupCount": "{count} files",
+      "keepOldestTrashRest": "Keep oldest, trash the rest",
+      "keepBadge": "Keep"
     }
   },
   "actions": {
@@ -1433,6 +1582,15 @@
       "success": "Password changed, please sign in with new password.",
       "failed": "Password change failed.",
       "verifyCurrent": "Password change failed, please verify current password."
+    },
+    "trash": {
+      "noneSelected": "Please select files first.",
+      "nothingMoved": "No files were moved to trash.",
+      "moved": "Moved {count} items to trash.",
+      "nothingRestored": "No files to restore.",
+      "restored": "Restored {count} items.",
+      "nothingPurged": "No files to purge.",
+      "purged": "Permanently deleted {count} items."
     }
   }
 }

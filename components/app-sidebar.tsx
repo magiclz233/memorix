@@ -5,11 +5,14 @@ import { useTranslations } from 'next-intl';
 import {
   FolderKanban,
   HardDrive,
+  Trash2,
+  Fingerprint,
   Image,
   LayoutDashboard,
   Home,
   LogOut,
   Settings,
+  Share2,
   UploadCloud,
   Users,
 } from 'lucide-react';
@@ -53,6 +56,9 @@ export function AdminSidebar({
     { title: t('collections'), url: '/dashboard/collections', icon: FolderKanban },
     { title: t('upload'), url: '/dashboard/upload', icon: UploadCloud },
     { title: t('storage'), url: '/dashboard/storage', icon: HardDrive },
+    { title: t('shares'), url: '/dashboard/shares', icon: Share2 },
+    { title: t('trash'), url: '/dashboard/trash', icon: Trash2 },
+    { title: t('dedup'), url: '/dashboard/dedup', icon: Fingerprint },
     { title: t('systemSettings'), url: '/dashboard/settings/system', icon: Settings },
     { title: t('userManagement'), url: '/dashboard/settings/users', icon: Users },
   ];

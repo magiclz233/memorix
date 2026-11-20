@@ -7,9 +7,7 @@ import {
   checkStorageDependencies as legacyCheckStorageDependencies,
   deleteUserStorage as legacyDeleteUserStorage,
   setStoragePublished as legacySetStoragePublished,
-  scanStorage as legacyScanStorage,
 } from '../actions-legacy';
-import type { StorageScanMode } from '../storage-scan';
 import type { StorageConfigInput } from '../storage-config-schema';
 
 export async function saveUserStorage(input: StorageConfigInput) {
@@ -38,8 +36,4 @@ export async function deleteUserStorage(storageId: number) {
 
 export async function setStoragePublished(storageId: number, isPublished: boolean) {
   return legacySetStoragePublished(storageId, isPublished);
-}
-
-export async function scanStorage(storageId: number, mode: StorageScanMode = 'incremental') {
-  return legacyScanStorage(storageId, mode);
 }

@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Download,
   Trash2,
+  Tags,
 } from 'lucide-react';
 
 import {
@@ -45,7 +46,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-import { setFilesPublished, setHeroPhotos } from '@/app/lib/actions';
+import { setFilesPublished, setHeroPhotos, setMediaTags } from '@/app/lib/actions';
 import type { MediaLibraryItem } from '@/app/lib/data';
 import { resolveMessage } from '@/app/lib/i18n';
 import { Button } from '@/components/ui/button';
@@ -149,6 +150,9 @@ export function MediaLibraryManager({
   const [message, setMessage] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTargetIds, setDeleteTargetIds] = useState<number[]>([]);
+  // P2-1 批量标签
+  const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
+  const [tagsInput, setTagsInput] = useState('');
   const [contextMenuItemId, setContextMenuItemId] = useState<number | null>(null);
   
   // 乐观更新状态
@@ -390,6 +394,30 @@ export function MediaLibraryManager({
     });
   };
 
+  // P2-1 Shift 连选（anchor 模型）：锚点 = 最近一次单独点击的项目。
+  // shift+点击 → 选中锚点到当前项的整段（替换选区）；普通点击 → 单选切换并更新锚点。
+  const lastSelectedIdRef = useRef<number | null>(null);
+  const shiftClickRef = useRef(false);
+
+  const selectMedia = (id: number, options: { range?: boolean } = {}) => {
+    if (!selectableIds.includes(id)) return;
+    const anchorId = lastSelectedIdRef.current;
+
+    if (options.range && anchorId != null && selectableIds.includes(anchorId)) {
+      const anchorIndex = selectableIds.indexOf(anchorId);
+      const currentIndex = selectableIds.indexOf(id);
+      const [start, end] =
+        anchorIndex <= currentIndex ? [anchorIndex, currentIndex] : [currentIndex, anchorIndex];
+      const rangeIds = selectableIds.slice(start, end + 1);
+      setSelectedIds(new Set(rangeIds));
+      lastSelectedIdRef.current = id;
+      return;
+    }
+
+    toggleSelect(id);
+    lastSelectedIdRef.current = id;
+  };
+
   const handlePublish = (publish: boolean, targetIds?: number[]) => {
     const idsToUpdate = targetIds || Array.from(selectedIds);
     
@@ -490,14 +518,15 @@ export function MediaLibraryManager({
     setOptimisticItems((prev) => prev.filter((item) => !deleteTargetIds.includes(item.id)));
 
     try {
-      const { deleteMediaFiles } = await import('@/app/lib/actions');
-      const result = await deleteMediaFiles(deleteTargetIds);
+      // P2-2：删除 = 移入回收站（软删），彻底删除只在回收站内触发
+      const { moveMediaToTrash } = await import('@/app/lib/actions');
+      const result = await moveMediaToTrash(deleteTargetIds);
 
       if (result.success) {
         setSelectedIds(new Set());
         setDeleteTargetIds([]);
         router.refresh();
-        updateToast(toastId, 'success', t('library.deleteSuccess'));
+        updateToast(toastId, 'success', result.message || t('library.deleteSuccess'));
       } else {
         // 删除失败，恢复数据
         setOptimisticItems(items);
@@ -511,6 +540,42 @@ export function MediaLibraryManager({
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  // P2-1 批量打标签（setMediaTags 已有 action，此前未接 UI）
+  const handleBatchTags = () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) {
+      showErrorToast(t('library.selectFirst'));
+      return;
+    }
+
+    const tags = tagsInput
+      .split(/[,，;；\s]+/)
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
+    if (tags.length === 0) {
+      showErrorToast(t('library.tagsEmpty'));
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await setMediaTags(ids, tags);
+        if (result.success) {
+          showSuccessToast(result.message || t('library.tagsSuccess'));
+          setTagsDialogOpen(false);
+          setTagsInput('');
+          router.refresh();
+        } else {
+          showErrorToast(result.message || t('library.tagsFailed'));
+        }
+      } catch (error) {
+        console.error('Batch tags error:', error);
+        showErrorToast(t('library.tagsFailed'));
+      }
+    });
   };
 
   const handleBatchDownload = async () => {
@@ -868,6 +933,17 @@ export function MediaLibraryManager({
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-8 gap-1.5 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  onClick={() => setTagsDialogOpen(true)}
+                  title={t('library.tagsSelected')}
+                >
+                  <Tags className="h-4 w-4" />
+                  <span className="hidden sm:inline">{t('library.tags')}</span>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-8 gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
                   onClick={() => handleBatchDelete()}
                   disabled={isDeleting}
@@ -1050,9 +1126,16 @@ export function MediaLibraryManager({
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => toggleSelect(item.id)}
+                              onClickCapture={(e) => {
+                                // P2-1：捕获 shift 修饰键，交给 onChange 做范围连选
+                                shiftClickRef.current = e.shiftKey;
+                              }}
+                              onChange={() =>
+                                selectMedia(item.id, { range: shiftClickRef.current })
+                              }
                               disabled={item.storage.isDisabled}
                               className="h-5 w-5 cursor-pointer accent-indigo-600"
+                              title={t('library.shiftRangeHint')}
                             />
                           </div>
 
@@ -1143,6 +1226,38 @@ export function MediaLibraryManager({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* P2-1 批量标签 */}
+      <Dialog open={tagsDialogOpen} onOpenChange={setTagsDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('library.tagsDialogTitle', { count: selectedIds.size })}</DialogTitle>
+            <DialogDescription>{t('library.tagsDialogHint')}</DialogDescription>
+          </DialogHeader>
+          <input
+            value={tagsInput}
+            onChange={(e) => setTagsInput(e.target.value)}
+            placeholder={t('library.tagsPlaceholder')}
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-900"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleBatchTags();
+              }
+            }}
+          />
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" className="rounded-full" onClick={() => setTagsDialogOpen(false)}>
+              {t('library.cancel')}
+            </Button>
+            <Button
+              className="rounded-full bg-indigo-600 hover:bg-indigo-700"
+              onClick={handleBatchTags}
+            >
+              {t('library.tagsApply')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Gallery25
         items={galleryItemsForLightbox}
         showGrid={false}

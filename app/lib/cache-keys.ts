@@ -32,8 +32,6 @@ export const CacheKeys = {
   // 会话: session:{token}
   session: (token: string) => `session:${token}`,
 
-  // CSRF Token: csrf:{userId}
-  csrfToken: (userId: number) => `csrf:${userId}`,
 
   // 上传任务: upload:task:{uploadId}
   uploadTask: (uploadId: string) => `upload:task:${uploadId}`,
@@ -64,7 +62,6 @@ export const CacheTTL = {
   storageConfig: 3600,       // 1 小时
   rateLimit: 60,             // 1 分钟
   session: 86400,            // 24 小时
-  csrfToken: 3600,           // 1 小时
   uploadTask: 86400,         // 24 小时
   instantUpload: 604800,     // 7 天
   frontHero: 300,            // 5 分钟

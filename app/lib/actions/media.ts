@@ -43,3 +43,14 @@ export async function deleteMediaFiles(fileIds: number[]) {
   ]);
   return result;
 }
+
+export async function setMediaTags(fileIds: number[], tags: string[]) {
+  const { setMediaTags: legacySetMediaTags } = await import('../actions-legacy');
+  const result = await legacySetMediaTags(fileIds, tags);
+  // 标签影响列表展示与搜索
+  await Promise.all([
+    cache.delPattern('gallery:list:*'),
+    cache.del(fileIds.map((id) => CacheKeys.mediaDetail(id))),
+  ]);
+  return result;
+}

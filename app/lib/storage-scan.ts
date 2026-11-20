@@ -1,4 +1,4 @@
-import { eq, sql, inArray, and } from 'drizzle-orm';
+import { eq, sql, inArray, and, isNull } from 'drizzle-orm';
 import { promises as fs, createWriteStream } from 'fs';
 import path from 'path';
 import os from 'os';
@@ -7,7 +7,13 @@ import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
 import { db } from './drizzle';
 import { files, photoMetadata, videoMetadata } from './schema';
-import { getStorageCacheRoot, readPhotoMetadata, scanMediaFiles, type ScanWalkEvent } from './storage';
+import {
+  getStorageCacheRoot,
+  readPhotoMetadata,
+  scanMediaFiles,
+  ScanCancelledError,
+  type ScanWalkEvent,
+} from './storage';
 import { detectAnimatedImage, generateImageThumbnail } from './image-preview';
 import { generateVideoPoster, probeVideoMetadata } from './video';
 import { getTranslations } from 'next-intl/server';
@@ -22,6 +28,8 @@ import {
   isNoSuchKeyError,
   type S3Config,
 } from './s3-helper';
+import { isSuspiciousDeletion } from './scan-safety';
+import { streamFileSha256 } from './hash-file';
 
 export type StorageScanLogLevel = 'info' | 'warn' | 'error';
 
@@ -60,15 +68,6 @@ const safeRm = async (targetPath: string, options: Parameters<typeof fs.rm>[1]) 
       return;
     }
   }
-};
-
-const removeThumbCacheFiles = async (thumbRoot: string, ids: number[]) => {
-  if (ids.length === 0) return;
-  await Promise.all(
-    ids.map((id) =>
-      safeRm(path.join(thumbRoot, `${id}.webp`), { force: true }),
-    ),
-  );
 };
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
@@ -113,6 +112,23 @@ type StorageScanOptions = {
   mode?: StorageScanMode;
   onLog?: (entry: StorageScanLog) => void;
   onProgress?: (progress: StorageScanProgress) => void;
+  /** 协作式取消：批间轮询，返回 true 时尽快中止（P1-6 任务队列） */
+  shouldCancel?: () => boolean | Promise<boolean>;
+  /** 单文件失败回调（扫描继续，不中断整场扫描） */
+  onError?: (entry: { path: string; message: string }) => void;
+};
+
+// ScanCancelledError 定义在 ./storage（storage.ts 的遍历器直接抛出），
+// 这里重导出保持对外 API 兼容。
+export { ScanCancelledError } from './storage';
+
+export type ScanRunResult = {
+  processed: number;
+  total: number;
+  /** 是否被取消中止（未跑完全量） */
+  cancelled: boolean;
+  /** 处理失败被跳过的文件数 */
+  failed: number;
 };
 
 type S3StorageConfig = S3Config;
@@ -123,6 +139,10 @@ type S3StorageScanOptions = {
   mode?: StorageScanMode;
   onLog?: (entry: StorageScanLog) => void;
   onProgress?: (progress: StorageScanProgress) => void;
+  /** 协作式取消：批间轮询，返回 true 时尽快中止（P1-6 任务队列） */
+  shouldCancel?: () => boolean | Promise<boolean>;
+  /** 单文件失败回调（扫描继续，不中断整场扫描） */
+  onError?: (entry: { path: string; message: string }) => void;
 };
 
 type S3MediaFileInfo = {
@@ -434,6 +454,8 @@ export async function runStorageScan({
   mode = 'incremental',
   onLog,
   onProgress,
+  shouldCancel,
+  onError,
 }: StorageScanOptions) {
   const t = await getTranslations('dashboard.scan');
   const log = (level: StorageScanLogLevel, message: string) => {
@@ -476,7 +498,7 @@ export async function runStorageScan({
     if (event.kind === 'error') {
       log('warn', `${event.message ?? t('readFailed')}: ${event.path}`);
     }
-  });
+  }, () => shouldCancel?.() ?? false);
 
   log('info', t('complete', { count: fileList.length }));
 
@@ -511,11 +533,16 @@ export async function runStorageScan({
   );
 
   let processed = 0;
+  let failedCount = 0;
   const thumbRoot = getStorageCacheRoot(storageId);
   await fs.mkdir(thumbRoot, { recursive: true });
 
-  // 分批处理，避免长时间锁表
-  const BATCH_SIZE = 100;
+  // 分批处理：每批一个短事务。
+  // 每批处理里会对每个文件跑 ffprobe/sharp（generateVideoPoster / generateImageThumbnail），
+  // 这些都是秒级 CPU/IO 密集操作。批大小 100 会让单个事务持续数十秒、长期占用连接池，
+  // 且任一文件失败会回滚整批。降到 1 = 每文件一个短事务，彻底消除长事务。
+  // 代价是事务数量增加，但 Postgres 短事务开销远低于长事务持有连接的风险。
+  const BATCH_SIZE = 1;
 
   // 1. 先获取现有文件列表（不在事务中）
   const existingFiles = await db
@@ -526,51 +553,65 @@ export async function runStorageScan({
       mtime: files.mtime,
       mimeType: files.mimeType,
       mediaType: files.mediaType,
+      fileHash: files.fileHash,
       liveType: photoMetadata.liveType,
       pairedPath: photoMetadata.pairedPath,
     })
     .from(files)
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-    .where(eq(files.userStorageId, storageId));
+    .where(and(eq(files.userStorageId, storageId), isNull(files.deletedAt)));
 
   const scannedPathSet = new Set(filteredFileList.map((f) => f.relativePath));
   const existingFileMap = new Map(existingFiles.map((file) => [file.path, file]));
 
-  // 2. 删除不存在的文件（分批处理）
+  // 取消检查点：进入写库阶段前（遍历阶段已由 scanMediaFiles 内部检查）
+  if (await shouldCancel?.()) {
+    throw new ScanCancelledError();
+  }
+
+  // 2. 删除不存在的文件（软删除 + 安全网）
+  //     NAS 子目录临时断连 / 权限错误会让 scanMediaFiles 跳过该目录，
+  //     若直接把这些"没扫到"的记录物理删除，会造成不可逆的数据丢失。
   const filesToDelete = existingFiles.filter(
     (f) => !scannedPathSet.has(f.path),
   );
-  const pathsToDelete = filesToDelete.map((f) => f.path);
   const idsToDelete = filesToDelete.map((f) => f.id);
+  const looksAbnormal = isSuspiciousDeletion(
+    filteredFileList.length,
+    existingFiles.length,
+    filesToDelete.length,
+  );
 
-  if (pathsToDelete.length > 0) {
+  if (looksAbnormal) {
+    log(
+      'error',
+      t('scanSafetyAbort', { found: filteredFileList.length, existing: existingFiles.length }),
+    );
+  } else if (idsToDelete.length > 0) {
     const deleteBatchSize = 1000;
-    for (let i = 0; i < pathsToDelete.length; i += deleteBatchSize) {
-      const batch = pathsToDelete.slice(i, i + deleteBatchSize);
+    const deletedAt = new Date();
+    for (let i = 0; i < idsToDelete.length; i += deleteBatchSize) {
       const idBatch = idsToDelete.slice(i, i + deleteBatchSize);
-
-      await db.transaction(async (tx) => {
-        if (idBatch.length > 0) {
-          await tx
-            .delete(photoMetadata)
-            .where(inArray(photoMetadata.fileId, idBatch));
-          await tx
-            .delete(videoMetadata)
-            .where(inArray(videoMetadata.fileId, idBatch));
-          await removeThumbCacheFiles(thumbRoot, idBatch);
-        }
-        await tx
-          .delete(files)
-          .where(and(eq(files.userStorageId, storageId), inArray(files.path, batch)));
-      });
+      await db
+        .update(files)
+        .set({ deletedAt })
+        .where(and(eq(files.userStorageId, storageId), inArray(files.id, idBatch)));
     }
-    log('info', t('clearedMissing', { count: pathsToDelete.length }));
+    log('info', t('softDeletedMissing', { count: idsToDelete.length }));
   }
 
   // 3. 更新或插入文件（分批处理）
   for (let i = 0; i < filteredFileList.length; i += BATCH_SIZE) {
+    // 取消检查点：每个批（BATCH_SIZE=1 即每文件）轮询一次
+    if (await shouldCancel?.()) {
+      throw new ScanCancelledError();
+    }
     const batch = filteredFileList.slice(i, i + BATCH_SIZE);
 
+    // 按批容错（BATCH_SIZE=1 即按文件）：单个文件的 ffprobe/sharp/EXIF 失败
+    // 不拖垮整场扫描，记录失败并继续（P1-6：失败列表可见，支持重试）。
+    // catch 必须在事务之外——语句一旦失败，事务已进入 aborted 状态。
+    try {
     await db.transaction(async (tx) => {
       for (const file of batch) {
         const existing = existingFileMap.get(file.relativePath);
@@ -608,13 +649,17 @@ export async function runStorageScan({
           existing?.mtime?.getTime() === file.mtime.getTime();
 
         if (mode === 'incremental' && isSameFile) {
-          processed += 1;
+          // 进度计数统一由事务回调末尾的 processed += 1 负责
+          // （原先这里 +1、末尾又 +1，增量模式下未变更文件被双计数）
           if (processed % 50 === 0 || processed === filteredFileList.length) {
             onProgress?.({ stage: 'save', processed, total: filteredFileList.length });
             log('info', t('processed', { processed, total: filteredFileList.length }));
           }
           continue;
         }
+
+        // P2-3 内容级去重：新文件 / 变更文件 / full 重扫补齐 SHA-256（流式，内存恒定）
+        const fileHash = await streamFileSha256(file.absolutePath);
 
         const [saved] = await tx
           .insert(files)
@@ -627,6 +672,7 @@ export async function runStorageScan({
             mtime: file.mtime,
             userStorageId: storageId,
             mediaType: resolvedMediaType,
+            fileHash,
             blurHash: null,
             updatedAt: new Date(),
           })
@@ -639,7 +685,11 @@ export async function runStorageScan({
               mtime: file.mtime,
               sourceType: storageType,
               mediaType: resolvedMediaType,
+              // 哈希失败（读取异常）时保留旧值，不覆盖为 null
+              ...(fileHash ? { fileHash } : {}),
               updatedAt: new Date(),
+              // 文件重新出现时从软删除中恢复
+              deletedAt: null,
             },
           })
           .returning({ id: files.id });
@@ -813,6 +863,13 @@ export async function runStorageScan({
       }
     }
   });
+    } catch (batchError) {
+      failedCount += 1;
+      const failedPath = batch[0]?.relativePath ?? 'unknown';
+      const message = batchError instanceof Error ? batchError.message : String(batchError);
+      log('warn', `skip: ${failedPath} (${message})`);
+      onError?.({ path: failedPath, message });
+    }
   }
 
   // 4. 最后更新 URL（单独事务）
@@ -824,7 +881,7 @@ export async function runStorageScan({
     })
     .where(eq(files.userStorageId, storageId));
 
-  return { processed, total: filteredFileList.length };
+  return { processed, total: filteredFileList.length, cancelled: false, failed: failedCount };
 }
 
 export async function runS3StorageScan({
@@ -833,6 +890,8 @@ export async function runS3StorageScan({
   mode = 'incremental',
   onLog,
   onProgress,
+  shouldCancel,
+  onError,
 }: S3StorageScanOptions) {
   const t = await getTranslations('dashboard.scan');
   const log = (level: StorageScanLogLevel, message: string) => {
@@ -883,13 +942,14 @@ export async function runS3StorageScan({
   );
 
   let processed = 0;
+  let s3FailedCount = 0;
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'memorix-s3-'));
   const thumbRoot = getStorageCacheRoot(storageId);
   await fs.mkdir(thumbRoot, { recursive: true });
 
   try {
-    // 分批处理，避免长时间锁表
-    const BATCH_SIZE = 100;
+    // 同本地扫描：每个文件一个短事务，避免 ffprobe/sharp 长时间占用连接池。
+    const BATCH_SIZE = 1;
 
     // 1. 先获取现有文件列表（不在事务中）
     const existingFiles = await db
@@ -903,42 +963,45 @@ export async function runS3StorageScan({
         liveType: photoMetadata.liveType,
         pairedPath: photoMetadata.pairedPath,
       })
-      .from(files)
-      .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-      .where(eq(files.userStorageId, storageId));
+    .from(files)
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .where(and(eq(files.userStorageId, storageId), isNull(files.deletedAt)));
 
     const scannedPathSet = new Set(filteredFileList.map((f) => f.key));
     const existingFileMap = new Map(existingFiles.map((file) => [file.path, file]));
 
-    // 2. 删除不存在的文件（分批处理）
+    // 取消检查点：进入写库阶段前（P1-6）
+    if (await shouldCancel?.()) {
+      throw new ScanCancelledError();
+    }
+
+    // 2. 删除不存在的文件（软删除 + 安全网）
     const filesToDelete = existingFiles.filter(
       (f) => !scannedPathSet.has(f.path),
     );
-    const pathsToDelete = filesToDelete.map((f) => f.path);
     const idsToDelete = filesToDelete.map((f) => f.id);
+    const looksAbnormal = isSuspiciousDeletion(
+      filteredFileList.length,
+      existingFiles.length,
+      filesToDelete.length,
+    );
 
-    if (pathsToDelete.length > 0) {
+    if (looksAbnormal) {
+      log(
+        'error',
+        t('scanSafetyAbort', { found: filteredFileList.length, existing: existingFiles.length }),
+      );
+    } else if (idsToDelete.length > 0) {
       const deleteBatchSize = 1000;
-      for (let i = 0; i < pathsToDelete.length; i += deleteBatchSize) {
-        const batch = pathsToDelete.slice(i, i + deleteBatchSize);
+      const deletedAt = new Date();
+      for (let i = 0; i < idsToDelete.length; i += deleteBatchSize) {
         const idBatch = idsToDelete.slice(i, i + deleteBatchSize);
-
-        await db.transaction(async (tx) => {
-          if (idBatch.length > 0) {
-            await tx
-              .delete(photoMetadata)
-              .where(inArray(photoMetadata.fileId, idBatch));
-            await tx
-              .delete(videoMetadata)
-              .where(inArray(videoMetadata.fileId, idBatch));
-            await removeThumbCacheFiles(thumbRoot, idBatch);
-          }
-          await tx
-            .delete(files)
-            .where(and(eq(files.userStorageId, storageId), inArray(files.path, batch)));
-        });
+        await db
+          .update(files)
+          .set({ deletedAt })
+          .where(and(eq(files.userStorageId, storageId), inArray(files.id, idBatch)));
       }
-      log('info', t('clearedMissing', { count: pathsToDelete.length }));
+      log('info', t('softDeletedMissing', { count: idsToDelete.length }));
     }
 
     const advance = () => {
@@ -951,6 +1014,10 @@ export async function runS3StorageScan({
 
     // 3. 更新或插入文件（分批处理）
     for (let i = 0; i < filteredFileList.length; i += BATCH_SIZE) {
+      // 取消检查点：每批轮询一次（P1-6）
+      if (await shouldCancel?.()) {
+        throw new ScanCancelledError();
+      }
       const batch = filteredFileList.slice(i, i + BATCH_SIZE);
 
       await db.transaction(async (tx) => {
@@ -1007,7 +1074,7 @@ export async function runS3StorageScan({
           existing?.mtime?.getTime() === file.mtime.getTime();
 
         if (mode === 'incremental' && isSameFile) {
-          advance();
+          // 计数统一由循环末尾的 advance() 负责（原先双计数）
           continue;
         }
 
@@ -1035,6 +1102,8 @@ export async function runS3StorageScan({
               sourceType: 's3',
               mediaType: resolvedMediaType,
               updatedAt: new Date(),
+              // 文件重新出现时从软删除中恢复
+              deletedAt: null,
             },
           })
           .returning({ id: files.id });
@@ -1049,6 +1118,12 @@ export async function runS3StorageScan({
 
           try {
             await downloadS3Object(client, bucket, file.key, tempPath);
+            // P2-3：对象已下载到本地，顺路补齐内容哈希
+            const downloadedFileHash = await streamFileSha256(tempPath);
+            await tx
+              .update(files)
+              .set({ fileHash: downloadedFileHash, updatedAt: new Date() })
+              .where(and(eq(files.id, saved.id), isNull(files.fileHash)));
 
             if (resolvedMediaType === 'video') {
               await tx
@@ -1206,10 +1281,19 @@ export async function runS3StorageScan({
             const detail = isNoSuchKeyError(error)
               ? 'S3 object not found'
               : 'S3 processing failed';
+            const failMessage =
+              error instanceof Error ? `${detail}: ${error.message}` : detail;
             log('warn', `${detail}, skip: s3://${bucket}/${file.key}`);
-            await tx.delete(photoMetadata).where(eq(photoMetadata.fileId, saved.id));
-            await tx.delete(videoMetadata).where(eq(videoMetadata.fileId, saved.id));
-            await tx.delete(files).where(eq(files.id, saved.id));
+            s3FailedCount += 1;
+            onError?.({ path: file.key, message: failMessage });
+            // 不物理删除：这条记录可能是刚刚从软删状态恢复的，一次临时 S3
+            // 抖动（NoSuchKey / ffmpeg 异常）就抹掉它和元数据，正是要消除的
+            // 不可逆数据丢失。改为软删，保留元数据与可恢复性；下次扫描对象
+            // 回来时 onConflictDoUpdate 会清 deletedAt 自动恢复。
+            await tx
+              .update(files)
+              .set({ deletedAt: new Date(), updatedAt: new Date() })
+              .where(eq(files.id, saved.id));
             advance();
             continue;
           } finally {
@@ -1234,5 +1318,5 @@ export async function runS3StorageScan({
     await safeRm(tempRoot, { recursive: true, force: true });
   }
 
-  return { processed, total: filteredFileList.length };
+  return { processed, total: filteredFileList.length, cancelled: false, failed: s3FailedCount };
 }

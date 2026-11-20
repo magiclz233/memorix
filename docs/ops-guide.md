@@ -81,15 +81,31 @@ ls -la /backups/database/
 DATABASE_URL="postgresql://..." ./scripts/restore-database.sh /backups/database/lumina_20240101_120000.sql.gz
 ```
 
-### 媒体文件备份
+### 媒体文件备份（P2-8 修复版）
+
+备份脚本支持多来源：未指定 `MEDIA_SOURCES` 时自动探测容器内挂载
+（`/media/photos`、`/nas/volume1~3`、`/app/uploads`）。
 
 ```bash
-# 手动执行备份
-MEDIA_DIR="./uploads" ./scripts/backup-media.sh
+# 容器内执行（自动探测全部挂载的媒体目录）
+docker exec memorix-app /app/scripts/backup-media.sh
 
-# 备份文件位置
+# 宿主机执行，显式指定来源（含 NAS 真实媒体，不再只备 uploads）
+MEDIA_SOURCES="/volume2/photos /volume1 /volume2 /volume3" \
+  ./scripts/backup-media.sh
+
+# 备份文件位置（每个来源一个包 + SHA256 校验文件）
 ls -la /backups/media/
 ```
+
+**恢复单个备份包**（先校验再解包）：
+
+```bash
+sha256sum -c /backups/media/photos_20240101.tar.gz.sha256
+tar -xzf /backups/media/photos_20240101.tar.gz -C <源目录的父目录>
+```
+
+脚本内置恢复自检（`tar -tzf` 条目数 > 0），空包会直接报错退出。
 
 ---
 
