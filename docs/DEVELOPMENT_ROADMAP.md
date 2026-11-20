@@ -7,7 +7,7 @@
 |---|---|
 | 文档版本 | v2.8（交接版） |
 | 更新日期 | 2026-11-20 |
-| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / `5793868` + 资源库发布/预览修复 `30c9d34` + 灯箱原图/分页翻页修复（本轮）；NAS 已部署 `v20261120e`（2026-11-20），历史 1404 张已全部取消发布 |
+| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / `5793868` + 资源库发布/预览修复 `30c9d34` + 灯箱原图/分页翻页修复 `f3d762e`；NAS 已部署 `v20261120f`（2026-11-20），历史 1404 张已全部取消发布 |
 | 已知使用场景 | **万张以上图片** + **外网可达**（绿联 UGLink 域名）+ 部署在 NAS |
 | 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **129/129** ✅（21 个测试文件，2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
 
@@ -573,7 +573,7 @@ pnpm test:watch       # 监听模式
 - **Windows build**：standalone 输出创建 symlink 报 EPERM → 开 Windows 开发者模式或管理员运行。
 - **ffmpeg-static postinstall**：从 GitHub 下二进制，国内网络不通会卡住 → 配镜像或预置 `FFMPEG_PATH`，别让安装卡死。
 - **node_modules**：用 `pnpm install --ignore-scripts` 可跳过 ffmpeg-static 的 GitHub 下载快速装好（vitest/tsc/eslint 都可用，但 sharp 原生二进制需 postinstall——本地 build 会受影响；NAS 上用 `FFMPEG_PATH` + 正常 install 无此问题）。若 `.bin` 链接缺失，可用 `node node_modules/typescript/bin/tsc --noEmit` 等直接调用。
-- **NAS 服务**：2026-11-20 已部署 `memorix-app:v20261120e`（项目 `memorix-v4`，app-only，端口 30001）；容器内健康检查 200、`/api/gallery` 200 且返回空列表；外网验证受 UGLink 登录门禁限制。
+- **NAS 服务**：2026-11-20 已部署 `memorix-app:v20261120f`（项目 `memorix-v5`，app-only，端口 30001；v4 保留停止作回滚）；容器内健康检查 200、`/api/gallery` 200 且返回空列表；外网验证受 UGLink 登录门禁限制。
 
 ### 5.4 开发流程
 
