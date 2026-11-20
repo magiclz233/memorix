@@ -5,6 +5,8 @@ import {
   shareUnlockCookieName,
 } from '@/app/lib/share-access';
 import { isValidShareToken, verifySharePassword } from '@/app/lib/share-token';
+import { getClientIdentifier, RateLimiter } from '@/app/lib/rate-limit';
+import { RateLimitError } from '@/app/lib/errors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,6 +18,23 @@ export async function POST(request: Request, { params }: Params) {
   const { token } = await params;
   if (!isValidShareToken(token)) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 400 });
+  }
+
+  // 密码可暴力尝试：按 IP + token 限制 10 次/分钟；Redis 不可用时降级内存。
+  try {
+    await RateLimiter.check(
+      `${getClientIdentifier(request)}:${token}`,
+      'share-unlock',
+      { windowMs: 60_000, maxRequests: 10 },
+    );
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json(
+        { error: 'Too many attempts' },
+        { status: 429, headers: { 'Retry-After': '60' } },
+      );
+    }
+    throw error;
   }
 
   const share = await getUsableShareByToken(token);

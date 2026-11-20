@@ -5,11 +5,11 @@
 
 | 项 | 值 |
 |---|---|
-| 文档版本 | v2.4（交接版） |
+| 文档版本 | v2.5（交接版） |
 | 更新日期 | 2026-11-20 |
-| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10（本轮）之后（见 §2）；本地 `master` 领先 `origin`，尚未 push |
+| 基线提交 | 批次 A/B/C + P2-4 `867a728` + P2-5 `07eec9d` + P2-10 `d215ecf` + review 修复 `18f1c0e` / `efdbdd2` / 本提交之后（见 §2）；本地 `master` 领先 `origin`，尚未 push |
 | 已知使用场景 | **万张以上图片** + **外网可达**（绿联 UGLink 域名）+ 部署在 NAS |
-| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **102/102** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
+| 验证基线 | `tsc --noEmit` ✅ / ESLint ✅（0 error，20 warning）/ Vitest **122/122** ✅（2026-11-20 复验）；完整 build 受 Windows symlink 与 ffmpeg-static 下载限制（见 §5.3） |
 
 ---
 
@@ -25,7 +25,7 @@
 | **P3** | PWA、语义搜索增强层、地图相册等战略项 | 待评估 |
 | **不做** | 手机原生 App / 人脸 / E2EE / 存储大重构 | 明确否决，见 §3.6 |
 
-**下一步从哪开始**：P2-4 / P2-5 / P2-10 已完成。P2 仅剩 **P2-1 尾巴**（批量移动存储源、命令面板，可缓）；之后按评估制决定 P3。详见 §3.3、§4 与 §4.1 任务卡。
+**下一步从哪开始**：P2-4 / P2-5 / P2-10 已完成，review 发现的问题已修复（见 §2.10）。P2 仅剩 **P2-1 尾巴**（批量移动存储源、命令面板，可缓）；之后按评估制决定 P3。详见 §3.3、§4 与 §4.1 任务卡。
 
 ---
 
@@ -43,10 +43,10 @@
 
 **2. 工作区状态（截至 2026-11-20）**：
 
-- 批次 A/B/C 已按逻辑分组提交到 `master`：`8d9f83a`（批次 A 安全与数据正确性修复）/ `bac3a64`（批次 B 分享·时间轴·虚拟滚动·搜索 DSL）/ `bda8c09`（批次 C 扫描队列·回收站·去重·批量交互·运维加固）；P2-4 `867a728`、P2-5 `07eec9d`、P2-10 本轮提交也已合入；本地 `master` 领先 `origin`，尚未 push；
+- 批次 A/B/C 已按逻辑分组提交到 `master`：`8d9f83a`（批次 A 安全与数据正确性修复）/ `bac3a64`（批次 B 分享·时间轴·虚拟滚动·搜索 DSL）/ `bda8c09`（批次 C 扫描队列·回收站·去重·批量交互·运维加固）；P2-4 `867a728`、P2-5 `07eec9d`、P2-10 `d215ecf`、review 修复 `18f1c0e` / `efdbdd2` / 本提交也已合入；本地 `master` 领先 `origin`，尚未 push；
 - `.workbuddy/`、`.zcode/` 是 AI 工作目录，非项目代码，不要提交也不要删除。
 
-**3. 首个任务**：P2-4、P2-5、P2-10 已完成（见 §2.7-2.9）；P2 仅剩 **P2-1 尾巴**（批量移动存储源 / 命令面板，可缓），之后进入 P3 评估。
+**3. 首个任务**：P2-4、P2-5、P2-10 已完成，review 修复见 §2.10；P2 仅剩 **P2-1 尾巴**（批量移动存储源 / 命令面板，可缓），之后进入 P3 评估。
 
 **4. 开发纪律**（严格执行）：
 
@@ -236,7 +236,7 @@
 |---|---|---|
 | 写入 helper | `recordAuditLog` 落 `audit_logs`（action / resource / resourceId / userId / changes / ip / userAgent），写库失败只告警；`recordAuditLogForCurrentUser` 供 Server Action 包装层使用 | `app/lib/audit-log.ts`、`app/lib/audit-log-values.ts` |
 | 覆盖范围 | 回收站移入 / 恢复 / 彻底删除；分享创建 / 吊销；存储源创建 / 更新 / 启停 / 删除；批量发布 / Hero / 标签 / 旧物理删除 | `app/lib/actions/trash.ts`、`app/api/shares/*`、`app/lib/actions-legacy.ts`、`app/lib/actions/media.ts` |
-| 查询接口 | `GET /api/audit-logs?limit=&before=&action=&resource=`：仅管理员，join users 返回操作者邮箱，`Cache-Control: no-store`，`before` 做 id 前翻页 | `app/api/audit-logs/route.ts` |
+| 查询接口 | `GET /api/audit-logs?limit=&before=&action=&resource=`：仅管理员，join users 返回操作者邮箱，`Cache-Control: no-store`，`before` 做 id 前翻页；查询取 `limit+1`，只有确实多一条才返回 `nextBefore`，避免多请求空页 | `app/api/audit-logs/route.ts`、`app/lib/audit-log-page.ts` |
 | 偏差记录 | 任务卡字段 `actorId/targetType/targetId/detail` 与现有表结构不一致，按代码用 `userId/resource/resourceId/changes`；不记录密钥、密码、分享 token | — |
 
 **API 鉴权盘点（2026-11-20）**：全站 27 个 `route.ts`，含写方法的 15 个均已有校验——
@@ -247,19 +247,19 @@
 | `storage/test-connection` | `requireAdminUser` + 存储源 owner |
 | `storage/backfill-secrets` | `requireAdminUser`；一次性回填，仅计数，不回显密钥 |
 | `shares` POST、`shares/[id]` DELETE | session + `filterOwnedFileIds` / share owner |
-| `shares/[token]/unlock` POST | 有意公开：token 格式 + 有效期/吊销校验 + 密码校验，成功才下发 httpOnly cookie |
+| `shares/[token]/unlock` POST | 有意公开：token 格式 + 有效期/吊销校验 + 密码校验，成功才下发 httpOnly cookie；按 IP+token 10 次/分钟限流 |
 | `scan-jobs` POST、`scan-jobs/[id]/retry`、`scan-jobs/[id]/cancel` | admin session + 存储源 owner |
 | `download` POST | session + `resolveFiles` 强制 `userStorages.userId = userId` |
 | `analytics/vitals`、`analytics/errors` POST | 有意公开：`Sec-Fetch-Site`/`Origin` 同源校验 + 每 IP 限流 |
 
-公开读接口 `gallery`、`gallery/timeline`、`health` 均为设计内公开内容；未鉴权写接口数量为 **0**。遗留风险：`shares/[token]/unlock` 未见按 IP/token 的限流，建议后续补上（暂记 P3/待办，不阻塞 P2-5 验收）。
+公开读接口 `gallery`、`gallery/timeline`、`health` 均为设计内公开内容；未鉴权写接口数量为 **0**。`shares/[token]/unlock` 已补按 IP+token 的 10 次/分钟限流（超限 429 + `Retry-After: 60`），见 §2.10。
 
 
 **遗留**：后台可视化审计页（低优先级，未做）。
 
 ### 2.9 批次 C+：P2-10 排序键索引化（2026-11-20 完成）
 
-> 新增 `gallery-cursor` 5 个单测，全套 **102/102 通过**；`tsc` / `eslint`（0 error）全绿。迁移与 EXPLAIN 需在 NAS Postgres 执行（本机无 docker/psql）。
+> 新增 `gallery-cursor` 5 个单测，P2-10 提交时全套 **102/102 通过**；review 修复后最终 **122/122**。`tsc` / `eslint`（0 error）全绿。迁移与 EXPLAIN 需在 NAS Postgres 执行（本机无 docker/psql）。
 
 | 项 | 落地内容 | 关键文件 |
 |---|---|---|
@@ -269,6 +269,23 @@
 | 偏差记录 | ① 路线图要求生成列，但 `date_shot` 在 `photo_metadata`，Postgres 生成列不能跨表，改为普通列 + 两个触发器；② 用 `timestamp(3)`（无时区，毫秒精度）与 files 现有时间列/JS 游标一致；③ 分享页仍按 share.fileIds 取数后再排序 | — |
 | 复核修复（2026-11-20） | 时间轴 SSR 读取 `searchParams` 的 year/month，首屏与翻页过滤一致；分组改用 `sortAt` + UTC getter，修复浏览器时区/空日期丢组；删除未使用且缓存 key 不含游标的 `fetchPublishedMediaForGalleryCached` | `app/lib/timeline-params.ts`、`app/lib/timeline-group.ts`、`app/[locale]/(front)/timeline/page.tsx`、`app/lib/data/front.ts` |
 | 待部署验证 | 迁移 0018 需在万行 NAS 库执行；EXPLAIN 验收 SQL 见 §4.1 任务卡 3 | — |
+
+### 2.10 Review 修复（2026-11-20）
+
+> 针对整体 review 的 8 个发现修复 1、3、4、5、6、7、8；#2 迁移顺序写入 ops-guide；symlink 与 test-connection 白名单作为已接受风险保留。全套 **122/122** 单测（18 个文件），`tsc` / `eslint`（0 error）全绿。
+
+| 问题 | 修复 | 关键文件 |
+|---|---|---|
+| 历史明文存储密钥 | admin 一次性回填接口 `POST /api/storage/backfill-secrets`，支持 `?dryRun=1`；只加密明文，密文/脱敏/空值跳过，幂等；审计只记计数 | `app/lib/storage-secret-backfill.ts`、`app/api/storage/backfill-secrets/route.ts` |
+| 时间轴直接 URL 首屏错位 | SSR 读取 `searchParams` 的 year/month 并传入首屏查询；客户端改用服务端校验过的 `initialYear/initialMonth` | `app/lib/timeline-params.ts`、`app/[locale]/(front)/timeline/page.tsx`、`app/ui/front/timeline/timeline-view.tsx` |
+| 时间轴分组时区/空值 | `GalleryItem.sortAt` 透传 DB 排序键；分组优先 sortAt、UTC getter，跳过非法/全空 | `app/lib/timeline-group.ts`、`app/lib/gallery.ts` |
+| 游标毫秒精度 | `sort_at` 改 `timestamp(3)`，迁移兼容已部分执行环境，与 JS Date 毫秒游标一致 | `drizzle/0018_add_sort_at.sql`、`app/lib/schema.ts` |
+| 缓存 key 不含游标 | 删除未使用且 key 缺 cursor/sort/year/month 的 `fetchPublishedMediaForGalleryCached` | `app/lib/data/front.ts` |
+| 审计分页多一页 | 查询 `limit+1`，纯函数分页，仅 hasMore 时返回 `nextBefore` | `app/lib/audit-log-page.ts`、`app/api/audit-logs/route.ts` |
+| unlock 可暴力尝试 | IP+token 10 次/分钟，超限 429 + `Retry-After: 60`；Redis 不可用降级内存 | `app/api/shares/[token]/unlock/route.ts` |
+| 迁移顺序 | ops-guide 手动部署改为先 `build migrate` + `run --rm migrate`，再 `up -d app`；部署后调用密钥回填 | `docs/ops-guide.md` |
+
+**保留的已接受风险**：`MEDIA_ROOTS` 仍只做 lexical 前缀比较，不解析 symlink（管理员可信配置，path-safety 有注释）；`storage/test-connection` 不校验 MEDIA_ROOTS（仅 admin 可用）。
 
 ---
 
@@ -474,7 +491,7 @@
 | 迁移 | `drizzle/0018_add_sort_at.sql`：加列 → 回填（拍摄时间 → mtime → created_at）→ SET NOT NULL → 建触发器 → 建索引；journal 追加 0018 |
 | 查询改造 | 画廊/时间轴分桶、后台媒体库日期过滤与排序、首页/存储源/分享查询统一改用 `files.sortAt`；删除运行时 coalesce |
 | keyset 分页 | 大图库网格/时间轴改 `(sort_at, id)` 游标；`GET /api/gallery?cursor=` 返回 `nextCursor`，非法游标 400；后台媒体库等小页面继续 OFFSET |
-| 验收 | 单测覆盖游标 roundtrip/非法输入；`tsc` / `eslint` / 102 单测全绿。**待 NAS 实机**：`EXPLAIN (ANALYZE, BUFFERS)` 确认走 `files_sort_at_id_idx` 且无 `Sort` 节点；keyset 与 OFFSET 同页 id 序列比对一致 |
+| 验收 | 单测覆盖游标 roundtrip/非法输入；`tsc` / `eslint` / 122 单测全绿。**待 NAS 实机**：`EXPLAIN (ANALYZE, BUFFERS)` 确认走 `files_sort_at_id_idx` 且无 `Sort` 节点；keyset 与 OFFSET 同页 id 序列比对一致 |
 
 **EXPLAIN 验收 SQL（部署后执行）**：
 
@@ -511,7 +528,7 @@ pnpm lint             # eslint .
 pnpm build            # next build
 pnpm db:migrate       # drizzle-kit migrate
 pnpm tsc --noEmit     # 类型检查
-pnpm test:unit        # Vitest 单元测试（102 用例：14 个测试文件全绿，2026-11-20 复验）
+pnpm test:unit        # Vitest 单元测试（122 用例：18 个测试文件全绿，2026-11-20 复验）
 pnpm test:coverage    # 覆盖率报告
 pnpm test:watch       # 监听模式
 ```
@@ -530,6 +547,7 @@ pnpm test:watch       # 监听模式
 | `FFMPEG_PATH` | 指向系统 ffmpeg，绕开 ffmpeg-static 从 GitHub 下载（github.com 不通） | §5.3 |
 
 > **部署提醒（批次 B + C + P2-10 全部 4 个新迁移必执行）**：`drizzle/0015_add_shares.sql`（分享表）、`drizzle/0016_add_search_indexes.sql`（搜索索引）、`drizzle/0017_add_scan_jobs.sql`（扫描任务表）、`drizzle/0018_add_sort_at.sql`（排序键与触发器）。compose 的 `migrate` 服务会自动跑；手动方式见 ops-guide。
+> **部署后一次性动作**：调用 `POST /api/storage/backfill-secrets?dryRun=1` 确认历史明文条数，再去掉 `dryRun` 执行（见 §2.7 / ops-guide）。
 
 ### 5.3 本机验证环境坑（非代码问题）
 

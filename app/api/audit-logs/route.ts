@@ -4,6 +4,7 @@ import { and, desc, eq, lt } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { db } from '@/app/lib/drizzle';
 import { auditLogs, users } from '@/app/lib/schema';
+import { paginateAuditLogs } from '@/app/lib/audit-log-page';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -63,15 +64,17 @@ export async function GET(request: Request) {
     .leftJoin(users, eq(auditLogs.userId, users.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
-    .limit(limit);
+    .limit(limit + 1);
+
+  const page = paginateAuditLogs(rows, limit);
 
   return NextResponse.json(
     {
-      logs: rows.map((row) => ({
+      logs: page.rows.map((row) => ({
         ...row,
         createdAt: row.createdAt.toISOString(),
       })),
-      nextBefore: rows.length === limit ? rows[rows.length - 1]?.id ?? null : null,
+      nextBefore: page.nextBefore,
     },
     { headers: { 'Cache-Control': 'no-store' } },
   );
