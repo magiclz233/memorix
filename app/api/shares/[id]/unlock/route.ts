@@ -11,11 +11,14 @@ import { RateLimitError } from '@/app/lib/errors';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-type Params = { params: Promise<{ token: string }> };
+type Params = { params: Promise<{ id: string }> };
 
-/** POST /api/shares/[token]/unlock — 校验密码并设置解锁 cookie */
+/**
+ * POST /api/shares/[id]/unlock — 校验密码并设置解锁 cookie
+ * 路由段必须与同级 [id]/route.ts 同名，否则 Next.js 会报 slug 冲突。
+ */
 export async function POST(request: Request, { params }: Params) {
-  const { token } = await params;
+  const { id: token } = await params;
   if (!isValidShareToken(token)) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 400 });
   }

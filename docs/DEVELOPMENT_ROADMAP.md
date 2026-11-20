@@ -282,7 +282,8 @@
 | 游标毫秒精度 | `sort_at` 改 `timestamp(3)`，迁移兼容已部分执行环境，与 JS Date 毫秒游标一致 | `drizzle/0018_add_sort_at.sql`、`app/lib/schema.ts` |
 | 缓存 key 不含游标 | 删除未使用且 key 缺 cursor/sort/year/month 的 `fetchPublishedMediaForGalleryCached` | `app/lib/data/front.ts` |
 | 审计分页多一页 | 查询 `limit+1`，纯函数分页，仅 hasMore 时返回 `nextBefore` | `app/lib/audit-log-page.ts`、`app/api/audit-logs/route.ts` |
-| unlock 可暴力尝试 | IP+token 10 次/分钟，超限 429 + `Retry-After: 60`；Redis 不可用降级内存 | `app/api/shares/[token]/unlock/route.ts` |
+| unlock 可暴力尝试 | IP+token 10 次/分钟，超限 429 + `Retry-After: 60`；Redis 不可用降级内存 | `app/api/shares/[id]/unlock/route.ts` |
+| 部署启动 slug 冲突 | `shares/[id]/route.ts` 与 `shares/[token]/unlock` 同级动态段名不同，Next 启动报错；unlock 并入 `[id]/unlock`，参数改 `id`（URL 不变） | `app/api/shares/[id]/unlock/route.ts` |
 | 迁移顺序 | ops-guide 手动部署改为先 `build migrate` + `run --rm migrate`，再 `up -d app`；部署后调用密钥回填 | `docs/ops-guide.md` |
 
 **保留的已接受风险**：`MEDIA_ROOTS` 仍只做 lexical 前缀比较，不解析 symlink（管理员可信配置，path-safety 有注释）；`storage/test-connection` 不校验 MEDIA_ROOTS（仅 admin 可用）。
