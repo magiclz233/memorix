@@ -298,7 +298,7 @@
 | 默认不发布 | `files.is_published` 默认 false；上传初始化/完成显式 false；扫描 insert 不写 true。历史已发布数据需一次性取消发布，不改变新数据默认行为 | `app/lib/schema.ts`、`app/api/upload/*` |
 | 整库发布/取消发布 | 新增 `setAllFilesPublished(isPublished)`：覆盖当前管理员全部 userStorages 下未删除文件，返回更新数量并写 `media.publish.all` / `media.unpublish.all` 审计；UI 工具栏“整库操作”+ AlertDialog 二次确认，与当前页选中项发布并存 | `app/lib/actions-legacy.ts`、`app/lib/actions/media.ts`、`app/ui/admin/media/media-library.tsx` |
 | 每页数量 | 白名单 12/24/48/96/200（非法回退 24）；`buildPageUrl` 保留 `limit`，翻页不再跳回 24；后台仍用 OFFSET | `app/lib/media-library-view.ts`、`app/[locale]/dashboard/media/page.tsx`、`media-library.tsx` |
-| 灯箱原图 | 网格缩略图统一走同源 `/api/media/thumb/:id`（避免 HTTPS 页面混用内网 HTTP `thumbUrl`）；灯箱新增 `fullSrc=/api/media/stream/:id`，分享场景带 token；视频/动图同样走 stream | `app/lib/media-preview.ts`、`app/lib/gallery.ts`、`media-library.tsx` |
+| 灯箱原图 | 网格缩略图统一走同源 `/api/media/thumb/:id`（避免 HTTPS 页面混用内网 HTTP `thumbUrl`）；灯箱新增 `fullSrc=/api/media/stream/:id`，分享场景带 token；视频/动图同样走 stream；`BlurImage` 对 `/api/` 图片跳过 Next 图片优化器，由浏览器带会话直接请求，避免优化器无 cookie 拉取私有媒体 401 | `app/lib/media-preview.ts`、`app/lib/gallery.ts`、`app/ui/gallery/blur-image.tsx`、`media-library.tsx` |
 | 自适应尺寸 | fit 模式移除 `max-h-[75vh]` shrink-wrap，改为容器内 `fill + object-contain`，按可用屏幕区域等比铺满；frame 模式保留相框但同样使用原图 | `app/ui/front/photo-detail/photo-media-canvas.tsx` |
 | 存量数据 | 已在 NAS 执行：`BEFORE=1404 → UPDATE 1404 → AFTER=0`；gallery API 返回空列表；Redis `FLUSHDB` 清理缓存 | 运维记录见 §5.2 |
 | 验收 | 每页切换后翻页保持、整库发布/取消发布二次确认且覆盖全账号、灯箱大图不再使用缩略图且按屏幕自适应；tsc + lint + 128 单测全绿 | — |

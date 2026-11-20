@@ -24,9 +24,11 @@ export function BlurImage({
   const [isLoaded, setIsLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Only bypass Next.js optimization for external URLs, not local API routes
+  // 本地 API（尤其是未发布媒体的鉴权路由）必须由浏览器携带 cookie 直接请求，
+  // 不能交给 Next.js 图片优化器在服务端无会话拉取；远程 URL 同样绕过优化。
   const shouldBypassOptimization =
-    typeof src === 'string' && !src.startsWith('/');
+    typeof src === 'string' &&
+    (src.startsWith('/api/') || !src.startsWith('/'));
 
   const hasExplicitSize = typeof width === 'number' && typeof height === 'number';
   const useFill = fill === true || !hasExplicitSize;
