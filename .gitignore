@@ -44,3 +44,7 @@ next-env.d.ts
 
 # NAS 实机部署配置（含真实密钥，勿提交）
 docker-compose.nas.yml
+
+# AI 工作目录（非项目代码，勿提交）
+.workbuddy/
+.zcode/
