@@ -8,17 +8,32 @@ const PAGE_SIZE = 24;
 type GalleryContentProps = {
   initialKeyword?: string;
   initialMediaId?: number | null;
+  initialMediaType?: 'all' | 'photo' | 'video';
+  initialSortOrder?: 'newest' | 'oldest';
 };
+
+const toMediaTypes = (type: 'all' | 'photo' | 'video'): Array<'image' | 'video' | 'animated'> =>
+  type === 'photo'
+    ? ['image', 'animated']
+    : type === 'video'
+      ? ['video']
+      : ['image', 'video', 'animated'];
 
 export async function GalleryContent({
   initialKeyword = '',
   initialMediaId = null,
+  initialMediaType = 'all',
+  initialSortOrder = 'newest',
 }: GalleryContentProps) {
   const keyword = initialKeyword.trim();
+  // 首屏就按 URL 里的 mediaType/sortOrder 查询，避免客户端拿到「全部」后再
+  // 二次请求筛选结果（P1-5：首屏忽略 URL 参数导致二次请求）。
   const records = await fetchPublishedMediaForGallery({
     limit: PAGE_SIZE + 1,
     offset: 0,
     keyword,
+    mediaTypes: toMediaTypes(initialMediaType),
+    sortOrder: initialSortOrder,
   });
 
   const hasRecords = records.length > 0;
@@ -47,6 +62,8 @@ export async function GalleryContent({
       initialHasNext={hasNext}
       pageSize={PAGE_SIZE}
       initialKeyword={keyword}
+      initialMediaType={initialMediaType}
+      initialSortOrder={initialSortOrder}
     />
   );
 }

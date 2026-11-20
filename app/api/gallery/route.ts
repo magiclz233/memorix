@@ -35,6 +35,12 @@ export async function GET(request: Request) {
   const sortOrder = url.searchParams.get('sortOrder') === 'oldest' ? 'oldest' : 'newest';
   const keyword = parseKeyword(url.searchParams.get('q'));
 
+  // 时间轴过滤（P1-2）：year 必填且合法时 month 才生效
+  const rawYear = Number.parseInt(url.searchParams.get('year') || '', 10);
+  const rawMonth = Number.parseInt(url.searchParams.get('month') || '', 10);
+  const year = Number.isFinite(rawYear) && rawYear >= 1900 && rawYear <= 2200 ? rawYear : undefined;
+  const month = year && Number.isFinite(rawMonth) && rawMonth >= 1 && rawMonth <= 12 ? rawMonth : undefined;
+
   const mediaTypes: Array<'image' | 'video' | 'animated'> =
     mediaTypeParam === 'photo' ? ['image', 'animated'] :
     mediaTypeParam === 'video' ? ['video'] :
@@ -49,6 +55,8 @@ export async function GET(request: Request) {
     mediaTypes,
     sortOrder,
     keyword,
+    year,
+    month,
   });
 
   const hasNext = records.length > pageSize;

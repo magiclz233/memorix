@@ -106,6 +106,27 @@
       "when": 1776418347267,
       "tag": "0014_faulty_kid_colt",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1763534521000,
+      "tag": "0015_add_shares",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1763534521001,
+      "tag": "0016_add_search_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1763534522000,
+      "tag": "0017_add_scan_jobs",
+      "breakpoints": true
     }
   ]
 }

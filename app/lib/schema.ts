@@ -597,6 +597,42 @@ export const errorLogs = pgTable(
   }),
 );
 
+// 分享链接表：高熵 token 的外部分享（可设过期、密码、权限）
+// 安全边界：只暴露 fileIds 快照内的文件，且必须仍属于创建者、未被软删。
+// 私有媒体可以通过分享链接对外可见，但绝不会因此进入公共画廊。
+export const shares = pgTable(
+  'shares',
+  {
+    id: serial('id').primaryKey(),
+    // 高熵随机 token（base64url），不携带任何文件/用户信息，也不能当密码用
+    token: varchar('token', { length: 64 }).notNull().unique(),
+    // 创建者（用于校验被分享文件的归属）
+    userId: integer('user_id').notNull(),
+    // 分享名称（仅管理端可见）
+    name: varchar('name', { length: 255 }),
+    // 被分享文件的 id 快照（创建时确定，避免后续权限漂移）
+    fileIds: integer('file_ids').array().notNull().default([]),
+    // 密码哈希（scrypt，格式 salt:hash；null 表示无密码）
+    passwordHash: text('password_hash'),
+    // 过期时间（null 表示永不过期）
+    expiresAt: timestamp('expires_at'),
+    // 访问者角色：viewer（只读）| editor（可下载）
+    role: varchar('role', { length: 16 }).notNull().default('viewer'),
+    // 是否允许下载（editor 默认可下载，viewer 亦可单独关闭）
+    allowDownload: boolean('allow_download').notNull().default(true),
+    // 累计访问次数
+    viewCount: integer('view_count').notNull().default(0),
+    // 吊销时间（null 表示有效）
+    revokedAt: timestamp('revoked_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    tokenUnique: uniqueIndex('shares_token_unique').on(table.token),
+    userIdIndex: index('shares_user_id_idx').on(table.userId),
+  }),
+);
+
 // 审计日志表：记录关键操作
 export const auditLogs = pgTable(
   'audit_logs',
@@ -624,5 +660,50 @@ export const auditLogs = pgTable(
     userIdIndex: index('audit_logs_user_id_idx').on(table.userId),
     createdAtIndex: index('audit_logs_created_at_idx').on(table.createdAt),
     resourceIndex: index('audit_logs_resource_idx').on(table.resource, table.resourceId),
+  }),
+);
+
+// 扫描任务表：扫描从「HTTP SSE 内同步执行」改为服务端持久化队列（P1-6）。
+// 关键行为：
+// - 刷新页面 / SSE 断开不再杀死扫描（任务在服务端跑完）；
+// - 同一存储源有 queued/running 任务时拒绝重复入队（防并发重扫）；
+// - cancelRequested 协作式取消（扫描批间检查）；
+// - 失败与取消保留完整记录（错误列表 + 日志环），支持重试（生成新任务）。
+export const scanJobs = pgTable(
+  'scan_jobs',
+  {
+    id: serial('id').primaryKey(),
+    // 触发者（admin），用于鉴权与历史过滤
+    userId: integer('user_id').notNull(),
+    // 目标存储源（快照 type/rootPath 等，执行时再读库取最新配置）
+    storageId: integer('storage_id').notNull(),
+    storageType: varchar('storage_type', { length: 16 }).notNull(),
+    // incremental | full
+    mode: varchar('mode', { length: 16 }).notNull().default('incremental'),
+    // queued | running | succeeded | failed | cancelled
+    status: varchar('status', { length: 16 }).notNull().default('queued'),
+    // 协作式取消标记：runner 在批间轮询，置 true 后尽快中止
+    cancelRequested: boolean('cancel_requested').notNull().default(false),
+    // walking | processing | deleting | done
+    phase: varchar('phase', { length: 16 }),
+    processedCount: integer('processed_count').notNull().default(0),
+    totalCount: integer('total_count'),
+    // { added, updated, removed, failed }
+    stats: jsonb('stats'),
+    // 日志环（最新 200 条，jsonb 数组）
+    logs: jsonb('logs'),
+    // 单文件失败列表（最多 100 条）
+    errors: jsonb('errors'),
+    // 顶层失败原因（中断/异常）
+    errorMessage: text('error_message'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    storageIdIndex: index('scan_jobs_storage_id_idx').on(table.storageId, table.createdAt),
+    statusIndex: index('scan_jobs_status_idx').on(table.status),
+    userIdIndex: index('scan_jobs_user_id_idx').on(table.userId),
   }),
 );

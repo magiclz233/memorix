@@ -11,6 +11,8 @@ type GalleryPageProps = {
   searchParams: Promise<{
     q?: string;
     media?: string;
+    mediaType?: string;
+    sortOrder?: string;
   }>;
 };
 
@@ -60,10 +62,20 @@ export default async function Page({ searchParams }: GalleryPageProps) {
   const params = await searchParams;
   const keyword = typeof params.q === 'string' ? params.q : '';
   const mediaId = parseMediaId(params.media);
+  const mediaType =
+    params.mediaType === 'photo' || params.mediaType === 'video'
+      ? params.mediaType
+      : 'all';
+  const sortOrder = params.sortOrder === 'oldest' ? 'oldest' : 'newest';
 
   return (
     <Suspense fallback={<GallerySkeleton />}>
-      <GalleryContent initialKeyword={keyword} initialMediaId={mediaId} />
+      <GalleryContent
+        initialKeyword={keyword}
+        initialMediaId={mediaId}
+        initialMediaType={mediaType}
+        initialSortOrder={sortOrder}
+      />
     </Suspense>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
+import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -199,7 +200,7 @@ export function FrontHome({ heroPhotos, featuredCollections }: FrontHomeProps) {
     if (!heroRef.current || !heroTextRef.current) return;
     if (!heroImageSrc) return;
     let cancelled = false;
-    const image = new Image();
+    const image = new window.Image();
     image.src = heroImageSrc;
     image.onload = () => {
       if (cancelled) return;
@@ -228,19 +229,20 @@ export function FrontHome({ heroPhotos, featuredCollections }: FrontHomeProps) {
         ref={heroRef}
         className='front-fade-up group relative -mt-24 min-h-[calc(100svh+6rem)] w-screen -ml-[calc(50vw-50%)] overflow-hidden bg-zinc-950'
       >
-        {heroImages.map((src, index) => (
-          <div
-            key={src}
-            className={cn(
-              'absolute inset-0 bg-cover bg-center transition-opacity md:bg-fixed',
-              index === safeIndex ? 'opacity-100' : 'opacity-0',
-            )}
-            style={{
-              backgroundImage: `url(${src})`,
-              transitionDuration: '1200ms',
-            }}
+        {/* 只渲染当前帧，避免一次并发下载全部 Hero 图片；next/image 负责
+            srcset / 懒加载 / 格式优化，首帧 priority 提升 LCP。 */}
+        {heroImageSrc && (
+          <Image
+            key={heroImageSrc}
+            src={heroImageSrc}
+            alt=''
+            fill
+            priority={safeIndex === 0}
+            sizes='100vw'
+            unoptimized
+            className='object-cover'
           />
-        ))}
+        )}
         <div className='absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/5' />
         <div className='absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent' />
         <div className='pointer-events-none absolute inset-0 z-10'>

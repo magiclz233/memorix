@@ -4,15 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import type { GalleryItem } from '@/app/lib/gallery';
+import { VirtualPhotoGrid } from '@/app/ui/front/gallery/virtual-photo-grid';
 import { GallerySkeleton } from '@/app/ui/front/gallery-skeleton';
 import { Spinner } from '@/app/ui/components/spinner';
 import { BackToTop } from '@/app/ui/front/back-to-top';
 import { Button } from '@/components/ui/button';
 
+// P1-5：Gallery25 的 window/localStorage 访问都在 effect 或 typeof 守卫内，
+// 可安全 SSR。去掉 ssr:false 让首屏直接输出真实网格而非空骨架。
 const Gallery25 = dynamic(
   () => import('@/components/gallery25').then((mod) => mod.Gallery25),
   {
-    ssr: false,
+    ssr: true,
     loading: () => <GallerySkeleton />,
   },
 );
@@ -53,6 +56,11 @@ export function GalleryInfinite({
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // P1-3：只在挂载时决定一次渲染器，避免滚动中切换导致跳动。
+  // 首屏还有下一页 => 判定为「大图库」=> 用窗口虚拟化（DOM 恒定）；
+  // 小图库（一页装得下）继续用功能更全的 Gallery25。
+  const [useVirtual] = useState(() => initialHasNext && initialItems.length > 0);
 
   useEffect(() => {
     setItems(initialItems);
@@ -117,11 +125,21 @@ export function GalleryInfinite({
 
   return (
     <>
-      <Gallery25
-        items={items}
-        selectedId={selectedId ?? null}
-        onSelectedIdChange={onSelectedIdChange}
-      />
+      {useVirtual ? (
+        <VirtualPhotoGrid
+          items={items}
+          columns={4}
+          selectedId={selectedId ?? null}
+          onSelectedIdChange={onSelectedIdChange}
+        />
+      ) : (
+        <Gallery25
+          items={items}
+          showFilters={false}
+          selectedId={selectedId ?? null}
+          onSelectedIdChange={onSelectedIdChange}
+        />
+      )}
 
       <div className='mt-10 flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground'>
         {loadError ? (

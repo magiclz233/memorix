@@ -24,9 +24,59 @@ import {
   or,
   not,
   sql,
+  type SQL,
 } from 'drizzle-orm';
 import { unstable_cache } from 'next/cache';
 import { getCached } from './redis';
+import { parseSearchDSL, type ParsedSearch } from './search-dsl';
+
+/**
+ * P1-4：把解析后的搜索 DSL 字段转成 SQL 条件。
+ * 供前台画廊与后台媒体库复用，字段值走 pg_trgm GIN 索引加速的 ILIKE。
+ */
+function buildDslConditions(parsed: ParsedSearch, columns: {
+  title: typeof files.title;
+  path: typeof files.path;
+  author: typeof files.author;
+  mediaType: typeof files.mediaType;
+  description: typeof photoMetadata.description;
+  locationName: typeof photoMetadata.locationName;
+  camera: typeof photoMetadata.camera;
+  maker: typeof photoMetadata.maker;
+  lens: typeof photoMetadata.lens;
+  dateShot: typeof photoMetadata.dateShot;
+}) {
+  const conditions: SQL[] = [];
+  const { fields, freeText } = parsed;
+
+  if (freeText) {
+    const like = `%${freeText}%`;
+    const group = or(
+      ilike(columns.title, like),
+      ilike(columns.path, like),
+      ilike(columns.author, like),
+      ilike(columns.description, like),
+      ilike(columns.locationName, like),
+    );
+    if (group) conditions.push(group);
+  }
+  if (fields.type) {
+    conditions.push(ilike(columns.mediaType, `%${fields.type}%`));
+  }
+  if (fields.camera) conditions.push(ilike(columns.camera, `%${fields.camera}%`));
+  if (fields.maker) conditions.push(ilike(columns.maker, `%${fields.maker}%`));
+  if (fields.lens) conditions.push(ilike(columns.lens, `%${fields.lens}%`));
+  if (fields.title) conditions.push(ilike(columns.title, `%${fields.title}%`));
+  if (fields.description) conditions.push(ilike(columns.description, `%${fields.description}%`));
+  if (fields.location) conditions.push(ilike(columns.locationName, `%${fields.location}%`));
+  if (fields.author) conditions.push(ilike(columns.author, `%${fields.author}%`));
+  if (fields.year) {
+    conditions.push(
+      sql`extract(year from ${columns.dateShot}) = ${fields.year}`,
+    );
+  }
+  return conditions;
+}
 
 export const buildSystemSettingsKey = (locale: string) =>
   `system_settings_${locale}`;
@@ -181,12 +231,18 @@ export async function fetchDashboardOverview(userId: number) {
     .select({ count: count() })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(eq(userStorages.userId, userId));
+    .where(and(eq(userStorages.userId, userId), isNull(files.deletedAt)));
   const publishedCountPromise = db
     .select({ count: count() })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(and(eq(userStorages.userId, userId), eq(files.isPublished, true)));
+    .where(
+      and(
+        eq(userStorages.userId, userId),
+        eq(files.isPublished, true),
+        isNull(files.deletedAt),
+      ),
+    );
   const collectionsPromise = db.select({ count: count() }).from(collections);
 
   const [storageCount, fileCount, publishedCount, collectionsCount] =
@@ -257,7 +313,7 @@ export async function fetchStorageFiles(storageId: number) {
     })
     .from(files)
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-    .where(eq(files.userStorageId, storageId))
+    .where(and(eq(files.userStorageId, storageId), isNull(files.deletedAt)))
     .orderBy(desc(files.mtime));
 }
 
@@ -384,7 +440,7 @@ export async function fetchMediaLibraryPage({
   const widthExpr = sql<number>`coalesce(${photoMetadata.resolutionWidth}, ${videoMetadata.width})`;
   const heightExpr = sql<number>`coalesce(${photoMetadata.resolutionHeight}, ${videoMetadata.height})`;
 
-  const conditions = [eq(userStorages.userId, userId)];
+  const conditions = [eq(userStorages.userId, userId), isNull(files.deletedAt)];
   const heroIds = await fetchHeroPhotoIdsByUser(userId);
 
   if (storageIds.length > 0) {
@@ -404,14 +460,22 @@ export async function fetchMediaLibraryPage({
   }
 
   if (keyword) {
-    const keywordCondition = or(
-      ilike(files.title, `%${keyword}%`),
-      ilike(files.path, `%${keyword}%`),
-      ilike(photoMetadata.description, `%${keyword}%`),
+    // P1-4：后台媒体库同样支持 field:value DSL，与专用筛选器取交集。
+    const parsed = parseSearchDSL(keyword);
+    conditions.push(
+      ...buildDslConditions(parsed, {
+        title: files.title,
+        path: files.path,
+        author: files.author,
+        mediaType: files.mediaType,
+        description: photoMetadata.description,
+        locationName: photoMetadata.locationName,
+        camera: photoMetadata.camera,
+        maker: photoMetadata.maker,
+        lens: photoMetadata.lens,
+        dateShot: photoMetadata.dateShot,
+      }),
     );
-    if (keywordCondition) {
-      conditions.push(keywordCondition);
-    }
   }
 
   if (dateFrom) {
@@ -682,7 +746,13 @@ export async function fetchPublishedPhotos(userId: number) {
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
     .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-    .where(and(eq(files.isPublished, true), eq(userStorages.userId, userId)))
+    .where(
+      and(
+        eq(files.isPublished, true),
+        eq(userStorages.userId, userId),
+        isNull(files.deletedAt),
+      ),
+    )
     .orderBy(desc(files.mtime));
 
   return records
@@ -737,7 +807,7 @@ const resolveCoverFiles = async (coverFileIds: number[]) => {
       blurHash: files.blurHash,
     })
     .from(files)
-    .where(inArray(files.id, uniqueIds));
+    .where(and(inArray(files.id, uniqueIds), isNull(files.deletedAt)));
   return new Map(records.map((record) => [record.id, record]));
 };
 
@@ -1116,7 +1186,13 @@ export async function fetchHeroPhotosForHome(options?: { userId?: number; limit?
     })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(and(inArray(files.id, limitedIds), eq(files.isPublished, true)));
+    .where(
+      and(
+        inArray(files.id, limitedIds),
+        eq(files.isPublished, true),
+        isNull(files.deletedAt),
+      ),
+    );
 
   const filtered = records
     .filter(
@@ -1137,7 +1213,56 @@ type FetchGalleryOptions = {
   mediaTypes?: Array<'image' | 'video' | 'animated'>;
   sortOrder?: 'newest' | 'oldest';
   keyword?: string;
+  /** 时间轴：按拍摄年份过滤（P1-2） */
+  year?: number;
+  /** 时间轴：按拍摄月份过滤 1-12（P1-2） */
+  month?: number;
 };
+
+/** 画廊/时间轴统一使用的「拍摄时间」表达式，避免各处 coalesce 不一致 */
+const galleryDateExpr = sql<Date>`coalesce(${photoMetadata.dateShot}, ${files.mtime}, ${files.createdAt})`;
+
+export type TimelineBucket = {
+  year: number;
+  month: number; // 1-12
+  count: number;
+};
+
+/**
+ * P1-2 时间轴：按 (年, 月) 聚合已发布、未软删的媒体数量。
+ * 用 SQL date_trunc 分桶，避免在 JS 里拉全量再 reduce（万张图会爆内存）。
+ */
+export async function fetchGalleryTimelineBuckets(): Promise<TimelineBucket[]> {
+  const rows = await db
+    .select({
+      year: sql<number>`extract(year from ${galleryDateExpr})::int`,
+      month: sql<number>`extract(month from ${galleryDateExpr})::int`,
+      count: count(),
+    })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .where(
+      and(
+        eq(files.isPublished, true),
+        isNull(files.deletedAt),
+        sql`(${userStorages.config}->>'isDisabled') is distinct from 'true'`,
+      ),
+    )
+    .groupBy(
+      sql`extract(year from ${galleryDateExpr})`,
+      sql`extract(month from ${galleryDateExpr})`,
+    )
+    .orderBy(
+      sql`extract(year from ${galleryDateExpr}) desc`,
+      sql`extract(month from ${galleryDateExpr}) desc`,
+    );
+  return rows.map((row) => ({
+    year: Number(row.year),
+    month: Number(row.month),
+    count: Number(row.count),
+  }));
+}
 
 export async function fetchPublishedMediaForGallery(
   options: FetchGalleryOptions = {},
@@ -1151,17 +1276,39 @@ export async function fetchPublishedMediaForGallery(
     const conditions = [
       eq(files.isPublished, true),
       inArray(files.mediaType, mediaTypes),
+      isNull(files.deletedAt),
+      // 禁用存储源在 SQL 层排除：否则 LIMIT/OFFSET 之后再 JS 过滤会让
+      // hasNext / 分页错位（P1-4）。JS 侧过滤保留作为兜底。
+      sql`(${userStorages.config}->>'isDisabled') is distinct from 'true'`,
     ] as any[];
 
     if (keyword) {
+      // P1-4：支持 field:value DSL（如 type:video camera:sony），其余为自由文本
+      const parsed = parseSearchDSL(keyword);
       conditions.push(
-        or(
-          ilike(files.title, `%${keyword}%`),
-          ilike(files.path, `%${keyword}%`),
-          ilike(files.author, `%${keyword}%`),
-          ilike(photoMetadata.description, `%${keyword}%`),
-          ilike(photoMetadata.locationName, `%${keyword}%`),
-        ),
+        ...buildDslConditions(parsed, {
+          title: files.title,
+          path: files.path,
+          author: files.author,
+          mediaType: files.mediaType,
+          description: photoMetadata.description,
+          locationName: photoMetadata.locationName,
+          camera: photoMetadata.camera,
+          maker: photoMetadata.maker,
+          lens: photoMetadata.lens,
+          dateShot: photoMetadata.dateShot,
+        }),
+      );
+    }
+    // 时间轴年月过滤（与 fetchGalleryTimelineBuckets 用同一日期表达式）
+    if (Number.isInteger(options.year)) {
+      conditions.push(
+        sql`extract(year from ${galleryDateExpr}) = ${options.year}`,
+      );
+    }
+    if (Number.isInteger(options.month) && options.month! >= 1 && options.month! <= 12) {
+      conditions.push(
+        sql`extract(month from ${galleryDateExpr}) = ${options.month}`,
       );
     }
     let query = db
@@ -1207,7 +1354,9 @@ export async function fetchPublishedMediaForGallery(
       .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
       .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
       .where(and(...conditions))
-      .orderBy(options.sortOrder === 'oldest' ? asc(files.mtime) : desc(files.mtime))
+      .orderBy(
+        options.sortOrder === 'oldest' ? asc(galleryDateExpr) : desc(galleryDateExpr),
+      )
       .$dynamic();
     if (typeof options.limit === 'number') {
       query = query.limit(options.limit);
@@ -1280,12 +1429,14 @@ export async function fetchPublishedMediaById(id: number) {
       liveType: photoMetadata.liveType,
       storageConfig: userStorages.config,
     })
-    .from(files)
-    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-    .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
-    .where(and(eq(files.id, id), eq(files.isPublished, true)))
-    .limit(1);
+      .from(files)
+      .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+      .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+      .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
+      .where(
+        and(eq(files.id, id), eq(files.isPublished, true), isNull(files.deletedAt)),
+      )
+      .limit(1);
 
   const record = records[0];
   if (!record) return null;
@@ -1308,7 +1459,7 @@ export async function fetchPublishedPhotosForHome(limit = 12) {
     })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(eq(files.isPublished, true))
+    .where(and(eq(files.isPublished, true), isNull(files.deletedAt)))
     .orderBy(desc(files.mtime))
     .limit(limit);
 

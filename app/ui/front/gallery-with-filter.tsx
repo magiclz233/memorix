@@ -27,6 +27,8 @@ type GalleryWithFilterProps = {
   initialHasNext: boolean;
   pageSize: number;
   initialKeyword?: string;
+  initialMediaType?: MediaType;
+  initialSortOrder?: SortOrder;
 };
 
 const mediaTypeFilters = [
@@ -40,20 +42,18 @@ export function GalleryWithFilter({
   initialHasNext,
   pageSize,
   initialKeyword = '',
+  initialMediaType = 'all',
+  initialSortOrder = 'newest',
 }: GalleryWithFilterProps) {
   const t = useTranslations('front.gallery');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [mediaType, setMediaType] = useState<MediaType>(() => {
-    const param = searchParams.get('mediaType');
-    return (param === 'photo' || param === 'video') ? param : 'all';
-  });
-  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
-    const param = searchParams.get('sortOrder');
-    return param === 'oldest' ? 'oldest' : 'newest';
-  });
+  // 首屏状态直接来自服务端（已按这些参数查过 DB），不再从 URL 二次派生，
+  // 否则 SSR 用一套、客户端 effect 又发一次相同请求（P1-5）。
+  const [mediaType, setMediaType] = useState<MediaType>(initialMediaType);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(initialSortOrder);
   const [keyword, setKeyword] = useState(initialKeyword);
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
   const [hasNext, setHasNext] = useState(initialHasNext);
@@ -63,7 +63,10 @@ export function GalleryWithFilter({
   const [isFiltering, startTransition] = useTransition();
 
   const debouncedKeyword = useDebounce(keyword, 280);
-  const lastFilterKeyRef = useRef(`all|newest|${initialKeyword.trim()}`);
+  // 用服务端已应用的筛选值作为基线，避免挂载后立刻重复请求当前筛选。
+  const lastFilterKeyRef = useRef(
+    `${initialMediaType}|${initialSortOrder}|${initialKeyword.trim()}`,
+  );
 
   const replaceQuery = useCallback(
     (patch: Record<string, string | null>) => {
@@ -170,6 +173,7 @@ export function GalleryWithFilter({
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder={t('searchPlaceholder')}
+              title={t('searchHint')}
               aria-label={t('searchAria')}
               className='h-9 rounded-full border-zinc-200 bg-white/70 pl-9 pr-9 text-sm dark:border-zinc-800 dark:bg-zinc-900/70'
             />

@@ -51,6 +51,8 @@ type Gallery25Props = {
   showChrome?: boolean;
   showGrid?: boolean;
   showHeader?: boolean;
+  /** 是否显示内置的 all/photo/video/timeline 筛选栏。嵌入已有筛选栏的容器时应关闭（P1-5） */
+  showFilters?: boolean;
   selectedId?: GalleryId | null;
   onSelectedIdChange?: (id: GalleryId | null) => void;
   statusLabels?: { published: string; unpublished: string };
@@ -127,6 +129,7 @@ const Gallery25 = ({
   showChrome = true,
   showGrid = true,
   showHeader = true,
+  showFilters = true,
   selectedId: controlledSelectedId,
   onSelectedIdChange,
   statusLabels,
@@ -138,13 +141,14 @@ const Gallery25 = ({
   const [uncontrolledSelectedId, setUncontrolledSelectedId] =
     useState<GalleryId | null>(null);
   const [isFullBleed, setIsFullBleed] = useState(false);
-  const [columnCount, setColumnCount] = useState(() =>
-    readStoredNumber('gallery25-columns', 4),
-  );
+  // P1-5：列数固定初始化为 4（SSR 与首次客户端渲染一致，避免 hydration mismatch），
+  // 具体的 localStorage 值在挂载后的 effect 里再读取。
+  const [columnCount, setColumnCount] = useState(4);
   const [filter, setFilter] = useState<FilterValue>('all');
   const [isChromeVisible, setIsChromeVisible] = useState(true);
   const [ratioMap, setRatioMap] = useState<Record<string, number>>({});
   const [hoveredId, setHoveredId] = useState<GalleryId | null>(null);
+  const [isNarrow, setIsNarrow] = useState(false);
 
   const selectedId =
     controlledSelectedId === undefined
@@ -176,10 +180,11 @@ const Gallery25 = ({
     return items.filter((item) => resolveItemType(item) === filter);
   }, [filter, items, timelineItems]);
   const displayColumnCount = Math.min(
-    columnCount,
+    isNarrow ? 2 : columnCount,
     Math.max(1, visibleItems.length),
   );
-  const gridSizes = `(max-width: 768px) 50vw, ${Math.round(
+  // sizes 需与真实列数一致：窄屏最多 2 列 → 每格约 50vw。
+  const gridSizes = `(max-width: 640px) ${Math.round(100 / Math.min(2, displayColumnCount))}vw, (max-width: 1024px) 50vw, ${Math.round(
     (isFullBleed ? 100 : 88) / displayColumnCount,
   )}vw`;
   const columns = useMemo(
@@ -197,9 +202,23 @@ const Gallery25 = ({
 
   const chromeVisible = showChrome && (!isFullBleed || isChromeVisible);
 
+  // 挂载后读取用户上次选择的列数（此时在客户端，安全）
+  useEffect(() => {
+    setColumnCount(readStoredNumber('gallery25-columns', 4));
+  }, []);
+
   useEffect(() => {
     window.localStorage.setItem('gallery25-columns', String(columnCount));
   }, [columnCount]);
+
+  // 窄屏强制收敛到最多 2 列，避免手机上把照片压成细条
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const apply = () => setIsNarrow(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !isFullBleed) return;
@@ -354,23 +373,25 @@ const Gallery25 = ({
           <>
             {showHeader ? <GalleryHeader /> : null}
             <div className='flex flex-wrap items-center justify-between gap-4'>
-              <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
-                {filters.map((tab) => (
-                  <button
-                    key={tab.value}
-                    type='button'
-                    onClick={() => setFilter(tab.value)}
-                    className={cn(
-                      'rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] transition',
-                      filter === tab.value
-                        ? 'bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white'
-                        : 'text-zinc-600/80 hover:text-zinc-900 dark:text-white/60 dark:hover:text-white',
-                    )}
-                  >
-                    {t(`filters.${tab.key}`)}
-                  </button>
-                ))}
-              </div>
+              {showFilters ? (
+                <div className='flex flex-wrap gap-2 rounded-full border border-zinc-200 bg-white px-2 py-2 text-sm shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900'>
+                  {filters.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type='button'
+                      onClick={() => setFilter(tab.value)}
+                      className={cn(
+                        'rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] transition',
+                        filter === tab.value
+                          ? 'bg-zinc-100 text-zinc-900 dark:bg-white/10 dark:text-white'
+                          : 'text-zinc-600/80 hover:text-zinc-900 dark:text-white/60 dark:hover:text-white',
+                      )}
+                    >
+                      {t(`filters.${tab.key}`)}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <div className='flex flex-wrap items-center justify-end gap-3 text-sm text-muted-foreground'>
                 <span>
                   {t('summary', {
@@ -446,9 +467,12 @@ const Gallery25 = ({
                   return (
                     <motion.article
                       key={item.id}
-                      initial={{ opacity: 0, scale: 0.96, y: yOffset }}
-                      whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ duration: 0.45, delay: itemIndex * 0.08 }}
+                      // 只给首屏附近少量卡片进入动画：万张图下每张卡片注册
+                      // 一个 IntersectionObserver 会造成明显滚动卡顿，且
+                      // itemIndex 越大 delay 越长（原本会累积到数十秒）。
+                      initial={itemIndex < 24 ? { opacity: 0, scale: 0.96, y: yOffset } : false}
+                      whileInView={itemIndex < 24 ? { opacity: 1, scale: 1, y: 0 } : undefined}
+                      transition={{ duration: 0.45, delay: Math.min(itemIndex, 8) * 0.05 }}
                       className='group relative w-full overflow-hidden rounded-2xl border border-border bg-card'
                       onMouseEnter={() => canPreview && setHoveredId(item.id)}
                       onMouseLeave={() => setHoveredId(null)}
@@ -497,6 +521,9 @@ const Gallery25 = ({
                               muted
                               loop={isVideo}
                               playsInline
+                              // 只在真正预览时才加载视频数据，避免快速划过时为每张卡片
+                              // 都发起媒体请求（万张图库里这是主要的带宽/内存杀手）。
+                              preload='none'
                               className='absolute inset-0 h-full w-full object-cover animate-in fade-in duration-300'
                               onEnded={isLive ? () => setHoveredId(null) : undefined}
                             />
@@ -525,8 +552,16 @@ const Gallery25 = ({
                                     onMouseLeave={() => setHoveredId(null)}
                                     onFocus={() => setHoveredId(item.id)}
                                     onBlur={() => setHoveredId(null)}
-                                    onClick={(event) => event.stopPropagation()}
+                                    // 触屏没有 hover：点按角标即播放实况（live video 非循环，
+                                    // onEnded 会自动清除 hoveredId 停止）。部分移动浏览器会在
+                                    // tap 时派发合成 mouseenter，故这里直接设为当前 id 而非 toggle，
+                                    // 避免「先 enter 设值、再 click 又清掉」。stopPropagation 防止打开灯箱。
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setHoveredId(item.id);
+                                    }}
                                     aria-label={livePreviewLabel}
+                                    aria-pressed={isPlaying}
                                     className='absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60'
                                   >
                                     <Sparkles className='h-3.5 w-3.5' />

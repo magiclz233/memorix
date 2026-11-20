@@ -19,7 +19,8 @@ export function GallerySkeleton() {
           </div>
         </div>
 
-        {/* Grid Skeleton */}
+        {/* Grid Skeleton — 高度用确定性序列（禁止 Math.random()，否则 SSR/CSR
+            两套随机值不同会触发 hydration mismatch 告警）。列错落仅为视觉，固定即可。 */}
         <div className="flex gap-4">
           {[1, 2, 3, 4].map((col) => (
             <div key={col} className="flex min-w-0 flex-1 flex-col gap-4">
@@ -28,7 +29,8 @@ export function GallerySkeleton() {
                   key={item}
                   className="w-full overflow-hidden rounded-2xl border border-border bg-card"
                   style={{
-                    height: `${Math.floor(Math.random() * (400 - 200) + 200)}px`,
+                    // 确定性：由列号 + 行号推出，两端渲染结果一致
+                    height: `${220 + ((col * 3 + item) % 5) * 40}px`,
                   }}
                 >
                   <div className="h-full w-full bg-muted animate-pulse" />
