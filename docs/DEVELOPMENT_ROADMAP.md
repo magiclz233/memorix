@@ -263,10 +263,11 @@
 
 | 项 | 落地内容 | 关键文件 |
 |---|---|---|
-| 排序列 | `files.sort_at`（timestamp，非空），由触发器维护 `coalesce(photo_metadata.date_shot, files.mtime, files.created_at)`；回填后建 `(sort_at DESC, id DESC)` btree | `drizzle/0018_add_sort_at.sql`、`app/lib/schema.ts` |
+| 排序列 | `files.sort_at`（timestamp(3)，非空，毫秒精度与游标一致），由触发器维护 `coalesce(photo_metadata.date_shot, files.mtime, files.created_at)`；回填后建 `(sort_at DESC, id DESC)` btree | `drizzle/0018_add_sort_at.sql`、`app/lib/schema.ts` |
 | 查询改造 | 前台画廊、时间轴分桶、后台媒体库日期过滤/排序、首页/存储源/分享查询统一用 `files.sortAt`，删除运行时 coalesce | `app/lib/data-legacy.ts`、`app/lib/data/shares.ts` |
 | keyset 分页 | 画廊/时间轴改用 `(sort_at, id)` 游标（base64url `v1.<ms>.<id>`），`GET /api/gallery?cursor=`，响应 `nextCursor`；非法游标 400；后台小页面继续 OFFSET | `app/lib/gallery-cursor.ts`、`app/api/gallery/route.ts`、`app/ui/front/gallery-*`、`app/ui/front/timeline/timeline-view.tsx` |
-| 偏差记录 | ① 路线图要求生成列，但 `date_shot` 在 `photo_metadata`，Postgres 生成列不能跨表，改为普通列 + 两个触发器；② 用 `timestamp` 而非 `timestamptz`，与 files 现有时间列一致；③ 分享页仍按 share.fileIds 取数后再排序 | — |
+| 偏差记录 | ① 路线图要求生成列，但 `date_shot` 在 `photo_metadata`，Postgres 生成列不能跨表，改为普通列 + 两个触发器；② 用 `timestamp(3)`（无时区，毫秒精度）与 files 现有时间列/JS 游标一致；③ 分享页仍按 share.fileIds 取数后再排序 | — |
+| 复核修复（2026-11-20） | 时间轴 SSR 读取 `searchParams` 的 year/month，首屏与翻页过滤一致；分组改用 `sortAt` + UTC getter，修复浏览器时区/空日期丢组；删除未使用且缓存 key 不含游标的 `fetchPublishedMediaForGalleryCached` | `app/lib/timeline-params.ts`、`app/lib/timeline-group.ts`、`app/[locale]/(front)/timeline/page.tsx`、`app/lib/data/front.ts` |
 | 待部署验证 | 迁移 0018 需在万行 NAS 库执行；EXPLAIN 验收 SQL 见 §4.1 任务卡 3 | — |
 
 ---

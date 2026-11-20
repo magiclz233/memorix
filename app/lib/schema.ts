@@ -86,7 +86,7 @@ export const files = pgTable(
     // 文件修改时间
     mtime: timestamp('mtime'),
     // 排序时间（触发器维护：拍摄时间 → 文件时间 → 入库时间），见迁移 0018
-    sortAt: timestamp('sort_at').notNull().defaultNow(),
+    sortAt: timestamp('sort_at', { precision: 3 }).notNull().defaultNow(),
     // 原图 URL
     url: text('url'),
     // 缩略图 URL

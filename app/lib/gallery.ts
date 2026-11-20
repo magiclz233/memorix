@@ -1,4 +1,4 @@
-﻿import type { fetchPublishedMediaForGallery } from '@/app/lib/data';
+import type { fetchPublishedMediaForGallery } from '@/app/lib/data';
 
 export type GalleryItem = {
   id: string;
@@ -31,6 +31,8 @@ export type GalleryItem = {
   size?: number | null;
   dateShot?: string | null;
   createdAt?: string | null;
+  /** 与 DB sort_at 同源的排序时间；时间轴分组优先用它，避免时区/空值错位 */
+  sortAt?: string | null;
   blurHash?: string | null;
   tags?: string[];
   liveType?: 'none' | 'embedded' | 'paired';
@@ -134,6 +136,7 @@ export const buildGalleryItems = (
       size: record.size ?? null,
       dateShot: normalizeDate(shotAt),
       createdAt: normalizeDate(record.mtime),
+      sortAt: normalizeDate(record.sortAt),
       blurHash: record.blurHash ?? null,
       tags: Array.isArray(record.tags) ? record.tags : [],
       liveType: (record.liveType as 'none' | 'embedded' | 'paired') ?? 'none',

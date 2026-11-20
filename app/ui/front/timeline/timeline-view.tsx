@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CalendarDays, Loader2 } from 'lucide-react';
 import type { GalleryItem } from '@/app/lib/gallery';
+import { groupTimelineByMonth } from '@/app/lib/timeline-group';
 import type { TimelineBucket } from '@/app/lib/data';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
 import { Button } from '@/components/ui/button';
@@ -16,49 +17,22 @@ type Props = {
   initialItems: GalleryItem[];
   initialHasNext: boolean;
   initialCursor: string | null;
+  initialYear: number | null;
+  initialMonth: number | null;
   pageSize: number;
 };
-
-type MonthGroup = {
-  key: string;
-  year: number;
-  month: number;
-  items: GalleryItem[];
-};
-
-function groupByMonth(items: GalleryItem[]): MonthGroup[] {
-  const map = new Map<string, MonthGroup>();
-  for (const item of items) {
-    const date = item.dateShot || item.createdAt;
-    if (!date) continue;
-    const parsed = new Date(date);
-    if (Number.isNaN(parsed.getTime())) continue;
-    const year = parsed.getFullYear();
-    const month = parsed.getMonth() + 1;
-    const key = `${year}-${String(month).padStart(2, '0')}`;
-    let group = map.get(key);
-    if (!group) {
-      group = { key, year, month, items: [] };
-      map.set(key, group);
-    }
-    group.items.push(item);
-  }
-  return Array.from(map.values());
-}
 
 export function TimelineView({
   buckets,
   initialItems,
   initialHasNext,
   initialCursor,
+  initialYear,
+  initialMonth,
   pageSize,
 }: Props) {
   const t = useTranslations('front.timeline');
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const initialYear = Number(searchParams.get('year')) || null;
-  const initialMonth = Number(searchParams.get('month')) || null;
 
   const [year, setYear] = useState<number | null>(initialYear);
   const [month, setMonth] = useState<number | null>(initialMonth);
@@ -172,7 +146,7 @@ export function TimelineView({
     return () => observer.disconnect();
   }, [hasNext, loadError, isFiltering, loadMore]);
 
-  const groups = useMemo(() => groupByMonth(items), [items]);
+  const groups = useMemo(() => groupTimelineByMonth(items), [items]);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[200px_1fr]">

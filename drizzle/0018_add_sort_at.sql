@@ -3,7 +3,10 @@
 --
 -- 偏差说明：路线图原计划用 GENERATED ALWAYS AS ... STORED 生成列，但拍摄时间在 photo_metadata 表，
 -- Postgres 生成列不能跨表引用；这里改为普通列 + 触发器维护，语义与旧表达式一致。
-ALTER TABLE "files" ADD COLUMN IF NOT EXISTS "sort_at" timestamp;
+-- 精度固定为毫秒（timestamp(3)），与 keyset 游标里 JS Date 的毫秒精度一致，
+-- 避免同一毫秒内不同微秒的行在翻页时被跳过或重复。
+ALTER TABLE "files" ADD COLUMN IF NOT EXISTS "sort_at" timestamp(3);
+ALTER TABLE "files" ALTER COLUMN "sort_at" TYPE timestamp(3);
 
 -- 回填：优先拍摄时间，其次文件修改时间，最后入库时间。
 UPDATE "files" f
