@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
-import { headers } from 'next/headers';
+import { getRequestSession } from '@/app/lib/auth-session';
 import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
 import { eq } from 'drizzle-orm';
 import { db } from '@/app/lib/drizzle';
 import { users } from '@/app/lib/schema';
@@ -13,7 +12,7 @@ export const runtime = 'nodejs';
 export default async function DedupPage() {
   const t = await getTranslations('dashboard.dedup');
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const email = session?.user?.email;
   if (!email || session?.user?.role !== 'admin') {
     redirect('/login');

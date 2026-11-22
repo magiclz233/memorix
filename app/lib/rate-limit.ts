@@ -15,7 +15,7 @@ export async function checkRateLimit(
 ): Promise<{ success: boolean; remaining: number }> {
   const key = `rate-limit:${identifier}`;
 
-  if (redisClient) {
+  if (redisClient?.status === 'ready') {
     try {
       const current = await redisClient.incr(key);
       if (current === 1) {
@@ -24,8 +24,8 @@ export async function checkRateLimit(
       const remaining = Math.max(0, limit - current);
       return { success: current <= limit, remaining };
     } catch (error) {
-      console.warn('Redis rate limit error, allowing request:', error);
-      return { success: true, remaining: limit };
+      // Redis 故障时降级到下面的内存限流，而不是直接放行（fail-open）。
+      console.warn('Redis rate limit error, falling back to memory:', error);
     }
   }
 
@@ -48,7 +48,7 @@ export async function checkRateLimit(
  */
 export async function resetRateLimit(identifier: string): Promise<void> {
   const key = `rate-limit:${identifier}`;
-  if (redisClient) {
+  if (redisClient?.status === 'ready') {
     try {
       await redisClient.del(key);
     } catch (error) {
@@ -89,7 +89,7 @@ export class RateLimiter {
     const now = Date.now();
     const windowStart = now - config.windowMs;
 
-    if (redisClient) {
+    if (redisClient?.status === 'ready') {
       try {
         const pipeline = redisClient.pipeline();
         pipeline.zremrangebyscore(key, '-inf', windowStart);
@@ -111,12 +111,8 @@ export class RateLimiter {
         };
       } catch (error) {
         if (error instanceof RateLimitError) throw error;
-        console.warn('RateLimiter Redis error, allowing request:', error);
-        return {
-          remaining: config.maxRequests,
-          resetAt: new Date(now + config.windowMs),
-          limit: config.maxRequests,
-        };
+        // Redis 故障时降级到内存限流，避免限流整体失效。
+        console.warn('RateLimiter Redis error, falling back to memory:', error);
       }
     }
 

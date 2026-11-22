@@ -3,13 +3,12 @@ import { performanceMetrics, errorLogs } from '@/app/lib/schema';
 import { desc, gte, sql, eq, and } from 'drizzle-orm';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { auth } from '@/auth';
-import { headers } from 'next/headers';
+import { getRequestSession } from '@/app/lib/auth-session';
 import { redirect } from 'next/navigation';
 
 export default async function MonitoringPage() {
   // 验证管理员权限
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   if (!session?.user || session.user.role !== 'admin') {
     redirect('/login');
   }

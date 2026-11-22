@@ -30,6 +30,7 @@ import {
 } from 'drizzle-orm';
 import { unstable_cache } from 'next/cache';
 import { getCached } from './redis';
+import { cache } from './cache';
 import { parseSearchDSL, type ParsedSearch } from './search-dsl';
 import { maskSecret } from './secret-box';
 
@@ -226,42 +227,44 @@ export async function fetchPublicSystemSettings(locale: string) {
 }
 
 export async function fetchDashboardOverview(userId: number) {
-  const storageCountPromise = db
-    .select({ count: count() })
-    .from(userStorages)
-    .where(eq(userStorages.userId, userId));
-  const fileCountPromise = db
-    .select({ count: count() })
-    .from(files)
-    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(and(eq(userStorages.userId, userId), isNull(files.deletedAt)));
-  const publishedCountPromise = db
-    .select({ count: count() })
-    .from(files)
-    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(
-      and(
-        eq(userStorages.userId, userId),
-        eq(files.isPublished, true),
-        isNull(files.deletedAt),
-      ),
-    );
-  const collectionsPromise = db.select({ count: count() }).from(collections);
+  return cache.wrap(`dashboard:overview:${userId}`, 60, async () => {
+    const storageCountPromise = db
+      .select({ count: count() })
+      .from(userStorages)
+      .where(eq(userStorages.userId, userId));
+    const fileCountPromise = db
+      .select({ count: count() })
+      .from(files)
+      .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+      .where(and(eq(userStorages.userId, userId), isNull(files.deletedAt)));
+    const publishedCountPromise = db
+      .select({ count: count() })
+      .from(files)
+      .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+      .where(
+        and(
+          eq(userStorages.userId, userId),
+          eq(files.isPublished, true),
+          isNull(files.deletedAt),
+        ),
+      );
+    const collectionsPromise = db.select({ count: count() }).from(collections);
 
-  const [storageCount, fileCount, publishedCount, collectionsCount] =
-    await Promise.all([
-    storageCountPromise,
-    fileCountPromise,
-    publishedCountPromise,
-    collectionsPromise,
-  ]);
+    const [storageCount, fileCount, publishedCount, collectionsCount] =
+      await Promise.all([
+        storageCountPromise,
+        fileCountPromise,
+        publishedCountPromise,
+        collectionsPromise,
+      ]);
 
-  return {
-    storageCount: Number(storageCount[0]?.count ?? 0),
-    fileCount: Number(fileCount[0]?.count ?? 0),
-    publishedCount: Number(publishedCount[0]?.count ?? 0),
-    collectionsCount: Number(collectionsCount[0]?.count ?? 0),
-  };
+    return {
+      storageCount: Number(storageCount[0]?.count ?? 0),
+      fileCount: Number(fileCount[0]?.count ?? 0),
+      publishedCount: Number(publishedCount[0]?.count ?? 0),
+      collectionsCount: Number(collectionsCount[0]?.count ?? 0),
+    };
+  });
 }
 
 export async function fetchUserByEmail(email: string) {
@@ -419,6 +422,8 @@ type MediaLibraryPageOptions = {
   page: number;
   perPage: number;
   filters?: MediaLibraryFilters;
+  /** 页面已查询过的 Hero 列表，传入可避免重复查询 */
+  heroIds?: number[];
 };
 
 const parseDateStart = (value?: string) => {
@@ -438,9 +443,10 @@ export async function fetchMediaLibraryPage({
   page,
   perPage,
   filters = {},
+  heroIds: providedHeroIds,
 }: MediaLibraryPageOptions) {
   const safePerPage =
-    Number.isSafeInteger(perPage) && perPage > 0 ? Math.min(perPage, 100) : 24;
+    Number.isSafeInteger(perPage) && perPage > 0 ? Math.min(perPage, 200) : 24;
   const requestedPage = Number.isSafeInteger(page) && page > 0 ? page : 1;
   const storageIds = filters.storageIds?.filter((id) => id > 0) ?? [];
   const mediaType = filters.mediaType ?? 'all';
@@ -462,7 +468,9 @@ export async function fetchMediaLibraryPage({
   const heightExpr = sql<number>`coalesce(${photoMetadata.resolutionHeight}, ${videoMetadata.height})`;
 
   const conditions = [eq(userStorages.userId, userId), isNull(files.deletedAt)];
-  const heroIds = await fetchHeroPhotoIdsByUser(userId);
+  const heroIds =
+    providedHeroIds ??
+    (hero === 'all' ? [] : await fetchHeroPhotoIdsByUser(userId));
 
   if (storageIds.length > 0) {
     conditions.push(inArray(files.userStorageId, storageIds));
@@ -628,7 +636,7 @@ export async function fetchMediaLibraryPage({
                   ? [desc(files.title), desc(dateExpr)]
                   : [desc(dateExpr), desc(files.id)];
 
-  const countResult = await db
+  const countQuery = db
     .select({ count: count() })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
@@ -636,56 +644,68 @@ export async function fetchMediaLibraryPage({
     .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
     .where(and(...conditions));
 
+  const buildRecordsQuery = (targetPage: number) =>
+    db
+      .select({
+        id: files.id,
+        title: files.title,
+        path: files.path,
+        size: files.size,
+        mimeType: files.mimeType,
+        mtime: files.mtime,
+        createdAt: files.createdAt,
+        url: files.url,
+        thumbUrl: files.thumbUrl,
+        mediaType: files.mediaType,
+        isPublished: files.isPublished,
+        blurHash: files.blurHash,
+        resolutionWidth: photoMetadata.resolutionWidth,
+        resolutionHeight: photoMetadata.resolutionHeight,
+        videoWidth: videoMetadata.width,
+        videoHeight: videoMetadata.height,
+        videoDuration: videoMetadata.duration,
+        liveType: photoMetadata.liveType,
+        description: photoMetadata.description,
+        author: files.author,
+        dateShot: photoMetadata.dateShot,
+        camera: photoMetadata.camera,
+        maker: photoMetadata.maker,
+        lens: photoMetadata.lens,
+        exposure: photoMetadata.exposure,
+        aperture: photoMetadata.aperture,
+        iso: photoMetadata.iso,
+        focalLength: photoMetadata.focalLength,
+        whiteBalance: photoMetadata.whiteBalance,
+        gpsLatitude: photoMetadata.gpsLatitude,
+        gpsLongitude: photoMetadata.gpsLongitude,
+        storageId: userStorages.id,
+        storageType: userStorages.type,
+        storageConfig: userStorages.config,
+      })
+      .from(files)
+      .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+      .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+      .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
+      .where(and(...conditions))
+      .orderBy(...orderBy)
+      .limit(safePerPage)
+      .offset((targetPage - 1) * safePerPage);
+
+  // count 与当前页数据互不依赖，并行查询减少一次往返；
+  // 页码越界时再按收敛后的页码补查一次。
+  const requestedSafePage = Math.max(requestedPage, 1);
+  const [countResult, initialRecords] = await Promise.all([
+    countQuery,
+    buildRecordsQuery(requestedSafePage),
+  ]);
+
   const totalCount = Number(countResult[0]?.count ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / safePerPage));
-  const safePage = Math.min(requestedPage, totalPages);
-  const offset = (safePage - 1) * safePerPage;
-
-  const records = await db
-    .select({
-      id: files.id,
-      title: files.title,
-      path: files.path,
-      size: files.size,
-      mimeType: files.mimeType,
-      mtime: files.mtime,
-      createdAt: files.createdAt,
-      url: files.url,
-      thumbUrl: files.thumbUrl,
-      mediaType: files.mediaType,
-      isPublished: files.isPublished,
-      blurHash: files.blurHash,
-      resolutionWidth: photoMetadata.resolutionWidth,
-      resolutionHeight: photoMetadata.resolutionHeight,
-      videoWidth: videoMetadata.width,
-      videoHeight: videoMetadata.height,
-      videoDuration: videoMetadata.duration,
-      liveType: photoMetadata.liveType,
-      description: photoMetadata.description,
-      author: files.author,
-      dateShot: photoMetadata.dateShot,
-      camera: photoMetadata.camera,
-      maker: photoMetadata.maker,
-      lens: photoMetadata.lens,
-      exposure: photoMetadata.exposure,
-      aperture: photoMetadata.aperture,
-      iso: photoMetadata.iso,
-      focalLength: photoMetadata.focalLength,
-      whiteBalance: photoMetadata.whiteBalance,
-      gpsLatitude: photoMetadata.gpsLatitude,
-      gpsLongitude: photoMetadata.gpsLongitude,
-      storageId: userStorages.id,
-      storageType: userStorages.type,
-      storageConfig: userStorages.config,
-    })
-    .from(files)
-    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
-    .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
-    .where(and(...conditions))
-    .orderBy(...orderBy)
-    .limit(safePerPage)
-    .offset(offset);
+  const safePage = Math.min(requestedSafePage, totalPages);
+  const records =
+    safePage === requestedSafePage
+      ? initialRecords
+      : await buildRecordsQuery(safePage);
 
   const items: MediaLibraryItem[] = records.map((record) => {
     const config = (record.storageConfig ?? {}) as {

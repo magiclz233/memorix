@@ -7,7 +7,7 @@ import { CheckCircle2 } from 'lucide-react';
 
 import type { UploadTask } from '@/app/lib/definitions';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ListTabs } from '@/app/ui/shared/list-tabs';
 import { TaskCard } from '@/app/ui/admin/upload/task-card';
 import { Button } from '@/components/ui/button';
 import { setFilesPublished } from '@/app/lib/actions/media';
@@ -112,22 +112,19 @@ export function TaskList({
         />
 
         <div className="flex items-center gap-3">
-          <Tabs
+          <ListTabs
+            size="sm"
+            items={[
+              { value: 'all', label: t('taskDetail.filterAll') },
+              { value: 'uploading', label: t('taskDetail.filterUploading') },
+              { value: 'completed', label: t('status.completed') },
+            ]}
             value={status}
-            onValueChange={(value) =>
+            onChange={(value) =>
               setStatus(value as 'all' | 'uploading' | 'completed')
             }
-          >
-            <TabsList className="grid w-full grid-cols-3 lg:w-[320px]">
-              <TabsTrigger value="all">{t('taskDetail.filterAll')}</TabsTrigger>
-              <TabsTrigger value="uploading">
-                {t('taskDetail.filterUploading')}
-              </TabsTrigger>
-              <TabsTrigger value="completed">
-                {t('status.completed')}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+            ariaLabel={t('taskDetail.filterAll')}
+          />
 
           {completedFileIds.length > 0 && (
             <Button

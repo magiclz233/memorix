@@ -3,6 +3,10 @@ import { createLogger } from './logger';
 
 const logger = createLogger('cache');
 
+/** Redis 尚未 ready 时直接走降级，避免离线队列关闭后每条命令都报错。 */
+const getReadyRedis = () =>
+  redisClient?.status === 'ready' ? redisClient : null;
+
 /**
  * Redis 缓存管理器
  * 实现 Cache-Aside 模式，Redis 不可用时自动降级
@@ -12,10 +16,11 @@ class CacheManager {
    * 获取缓存
    */
   async get<T>(key: string): Promise<T | null> {
-    if (!redisClient) return null;
+    const client = getReadyRedis();
+    if (!client) return null;
 
     try {
-      const value = await redisClient.get(key);
+      const value = await client.get(key);
       return value ? (JSON.parse(value) as T) : null;
     } catch (error) {
       logger.warn({ key, error }, 'Cache get error');
@@ -27,14 +32,15 @@ class CacheManager {
    * 设置缓存
    */
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
-    if (!redisClient) return;
+    const client = getReadyRedis();
+    if (!client) return;
 
     try {
       const serialized = JSON.stringify(value);
       if (ttl) {
-        await redisClient.setex(key, ttl, serialized);
+        await client.setex(key, ttl, serialized);
       } else {
-        await redisClient.set(key, serialized);
+        await client.set(key, serialized);
       }
     } catch (error) {
       logger.warn({ key, error }, 'Cache set error');
@@ -45,13 +51,14 @@ class CacheManager {
    * 删除缓存（支持单个键或多个键）
    */
   async del(key: string | string[]): Promise<void> {
-    if (!redisClient) return;
+    const client = getReadyRedis();
+    if (!client) return;
 
     try {
       if (Array.isArray(key)) {
-        if (key.length > 0) await redisClient.del(...key);
+        if (key.length > 0) await client.del(...key);
       } else {
-        await redisClient.del(key);
+        await client.del(key);
       }
     } catch (error) {
       logger.warn({ key, error }, 'Cache delete error');
@@ -63,13 +70,14 @@ class CacheManager {
    * 例如：delPattern('gallery:list:*') 清除所有画廊列表缓存
    */
   async delPattern(pattern: string): Promise<void> {
-    if (!redisClient) return;
+    const client = getReadyRedis();
+    if (!client) return;
 
     try {
       let cursor = '0';
       let totalDeleted = 0;
       do {
-        const [nextCursor, keys] = await redisClient.scan(
+        const [nextCursor, keys] = await client.scan(
           cursor,
           'MATCH',
           pattern,
@@ -78,7 +86,7 @@ class CacheManager {
         );
         cursor = nextCursor;
         if (keys.length > 0) {
-          await redisClient.del(...keys);
+          await client.del(...keys);
           totalDeleted += keys.length;
         }
       } while (cursor !== '0');
@@ -114,10 +122,11 @@ class CacheManager {
    * 获取缓存统计信息
    */
   async getStats(): Promise<{ hits: number; misses: number; hitRate: number } | null> {
-    if (!redisClient) return null;
+    const client = getReadyRedis();
+    if (!client) return null;
 
     try {
-      const info = await redisClient.info('stats');
+      const info = await client.info('stats');
       const lines = info.split('\r\n');
       const stats: Record<string, string> = {};
 
@@ -145,10 +154,11 @@ class CacheManager {
    * 检查 Redis 连接状态
    */
   async ping(): Promise<boolean> {
-    if (!redisClient) return false;
+    const client = getReadyRedis();
+    if (!client) return false;
 
     try {
-      const result = await redisClient.ping();
+      const result = await client.ping();
       return result === 'PONG';
     } catch {
       return false;

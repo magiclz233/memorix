@@ -1,6 +1,5 @@
-import { headers } from 'next/headers';
-import { auth } from '@/auth';
-import { fetchUserByEmail } from '@/app/lib/data';
+import { getRequestSession } from '@/app/lib/auth-session';
+import { getSessionUserId } from '@/app/lib/session-user';
 import { listSharesForUser, fetchSelectableMediaForUser } from '@/app/lib/data/shares';
 import { ShareManager } from '@/app/ui/admin/shares/share-manager';
 import { getTranslations } from 'next-intl/server';
@@ -8,11 +7,12 @@ import { getTranslations } from 'next-intl/server';
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  const t = await getTranslations('dashboard.share');
-  const session = await auth.api.getSession({ headers: await headers() });
-  const email = session?.user?.email ?? null;
+  // 分享管理文案在 messages 的 front.share.admin 下（历史结构），管理端复用同一组文案。
+  const t = await getTranslations('front.share.admin');
+  const session = await getRequestSession();
+  const userId = getSessionUserId(session);
 
-  if (!email) {
+  if (!userId) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('title')}</h1>
@@ -21,14 +21,9 @@ export default async function Page() {
     );
   }
 
-  const user = await fetchUserByEmail(email);
-  if (!user) {
-    return null;
-  }
-
   const [shareRows, media] = await Promise.all([
-    listSharesForUser(user.id),
-    fetchSelectableMediaForUser(user.id),
+    listSharesForUser(userId),
+    fetchSelectableMediaForUser(userId),
   ]);
 
   const shares = shareRows.map((s) => ({
@@ -59,7 +54,11 @@ export default async function Page() {
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('title')}</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('description')}</p>
       </div>
-      <ShareManager initialShares={shares} selectableMedia={selectable} />
+      <ShareManager
+        initialShares={shares}
+        selectableMedia={selectable}
+        now={Date.now()}
+      />
     </div>
   );
 }

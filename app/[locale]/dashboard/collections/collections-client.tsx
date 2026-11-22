@@ -36,13 +36,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Table,
   TableBody,
   TableCell,
@@ -50,6 +43,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ListTabs } from '@/app/ui/shared/list-tabs';
+import { ListPagination } from '@/app/ui/shared/list-pagination';
+import { useListPagination } from '@/app/ui/shared/use-list-pagination';
 import {
   CollectionForm,
   CollectionFormData,
@@ -116,6 +112,24 @@ export function CollectionsClient({
       statusFilter === 'all' || item.status === statusFilter;
     return matchesSearch && matchesType && matchesStatus;
   });
+
+  const pagination = useListPagination(filteredCollections.length);
+  const pagedCollections = pagination.slice(filteredCollections);
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    pagination.setPage(1);
+  };
+
+  const handleTypeFilterChange = (value: string) => {
+    setTypeFilter(value as 'all' | 'mixed' | 'photo' | 'video');
+    pagination.setPage(1);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value as 'all' | 'draft' | 'published');
+    pagination.setPage(1);
+  };
 
   const handleCreate = () => {
     setEditingItem(null);
@@ -213,49 +227,42 @@ export function CollectionsClient({
 
       {/* Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-3">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
             <Input
               placeholder={t('filters.searchPlaceholder')}
               className="w-[220px] rounded-full pl-9 md:w-[280px]"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
-          <Select
-            value={typeFilter}
-            onValueChange={(value) =>
-              setTypeFilter(value as 'all' | 'mixed' | 'photo' | 'video')
-            }
-          >
-            <SelectTrigger className="h-9 w-[160px] rounded-full">
-              <SelectValue placeholder={t('filters.typePlaceholder')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('filters.typeAll')}</SelectItem>
-              <SelectItem value="mixed">{t('filters.typeMixed')}</SelectItem>
-              <SelectItem value="photo">{t('filters.typePhoto')}</SelectItem>
-              <SelectItem value="video">{t('filters.typeVideo')}</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={statusFilter}
-            onValueChange={(value) =>
-              setStatusFilter(value as 'all' | 'draft' | 'published')
-            }
-          >
-            <SelectTrigger className="h-9 w-[160px] rounded-full">
-              <SelectValue placeholder={t('filters.statusPlaceholder')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('filters.statusAll')}</SelectItem>
-              <SelectItem value="draft">{t('filters.statusDraft')}</SelectItem>
-              <SelectItem value="published">
-                {t('filters.statusPublished')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <ListTabs
+              size="sm"
+              items={[
+                { value: 'all', label: t('filters.typeAll') },
+                { value: 'mixed', label: t('filters.typeMixed') },
+                { value: 'photo', label: t('filters.typePhoto') },
+                { value: 'video', label: t('filters.typeVideo') },
+              ]}
+              value={typeFilter}
+              onChange={handleTypeFilterChange}
+              ariaLabel={t('filters.typePlaceholder')}
+            />
+            <span className="hidden h-4 w-px bg-zinc-200 dark:bg-zinc-700 sm:block" />
+            <ListTabs
+              size="sm"
+              items={[
+                { value: 'all', label: t('filters.statusAll') },
+                { value: 'draft', label: t('filters.statusDraft') },
+                { value: 'published', label: t('filters.statusPublished') },
+              ]}
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+              ariaLabel={t('filters.statusPlaceholder')}
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -292,7 +299,7 @@ export function CollectionsClient({
         <EmptyState t={t} handleCreate={handleCreate} />
       ) : viewMode === 'grid' ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredCollections.map((collection) => (
+          {pagedCollections.map((collection) => (
             <CollectionGridItem
               key={collection.id}
               item={collection}
@@ -305,13 +312,24 @@ export function CollectionsClient({
         </div>
       ) : (
         <CollectionListView
-          items={filteredCollections}
+          items={pagedCollections}
           t={t}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onToggleStatus={handleToggleStatus}
         />
       )}
+
+      {filteredCollections.length > 0 ? (
+        <ListPagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          pageSize={pagination.pageSize}
+          totalCount={filteredCollections.length}
+          onPageChange={pagination.setPage}
+          onPageSizeChange={pagination.setPageSize}
+        />
+      ) : null}
 
       {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

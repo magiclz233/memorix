@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 import dotenv from 'dotenv';
 import path from 'path';
+import { SECURITY_HEADERS } from './app/lib/security-headers';
 
 // 允许经 next/image 优化的远程域名白名单（逗号分隔，支持 S3/CDN）。
 // 默认留空：外部图走 <Image unoptimized> 或本地 /api/media/thumb 代理，
@@ -11,32 +12,7 @@ const remoteImageHosts = (process.env.NEXT_PUBLIC_IMAGE_HOSTS ?? '')
   .map((host) => host.trim())
   .filter(Boolean);
 
-const securityHeaders = [
-  { key: 'X-Frame-Options', value: 'DENY' },
-  { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'X-XSS-Protection', value: '1; mode=block' },
-  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  {
-    key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(self), payment=()',
-  },
-  {
-    key: 'Content-Security-Policy',
-    value: [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
-      "connect-src 'self' https:",
-      "media-src 'self' blob: https:",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "object-src 'none'",
-    ].join('; '),
-  },
-];
+const securityHeaders = SECURITY_HEADERS.map(([key, value]) => ({ key, value }));
 
 // 本地开发时加载环境特定配置（Vercel 上通过 Dashboard 配置环境变量）
 if (process.env.NODE_ENV !== 'production') {

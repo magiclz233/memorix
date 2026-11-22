@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useMessages, useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
-import { useRouter, usePathname } from '@/i18n/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   Eye,
@@ -50,10 +49,6 @@ import {
 import { setFilesPublished, setHeroPhotos, setMediaTags, setAllFilesPublished } from '@/app/lib/actions';
 import type { MediaLibraryItem } from '@/app/lib/data';
 import { resolveMessage } from '@/app/lib/i18n';
-import {
-  MEDIA_PAGE_SIZE_OPTIONS,
-  resolveMediaPageSize,
-} from '@/app/lib/media-library-view';
 import { resolveMediaFullSrc } from '@/app/lib/media-preview';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -67,13 +62,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MediaSearchBar } from './media-search-bar';
-import { StorageTypeFilter } from './storage-type-filter';
-import { AdvancedFilterPanel } from './advanced-filter-panel';
+import { ListTabs } from '@/app/ui/shared/list-tabs';import { AdvancedFilterPanel } from './advanced-filter-panel';
 import { FilterChips } from './filter-chips';
 import { useMediaFilters, type FilterKey } from './use-media-filters';
 import { showErrorToast, showLoadingToast, showSuccessToast, updateToast } from '@/app/lib/batch-operations';
@@ -147,8 +139,6 @@ export function MediaLibraryManager({
   const t = useTranslations('dashboard.media');
   const messages = useMessages();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
   // 处理选中状态
@@ -196,7 +186,6 @@ export function MediaLibraryManager({
 
   const currentCategory = filters.category;
   const currentStorageId = filters.storageId;
-  const currentLimit = String(resolveMediaPageSize(searchParams.get('limit')));
 
   useEffect(() => {
     setSearchInput(filters.q);
@@ -243,15 +232,6 @@ export function MediaLibraryManager({
 
   const handleStorageChange = (storageId: number | null) => {
     patchFilters({ storageId });
-  };
-
-  const handleLimitChange = (limit: string) => {
-    const params = new URLSearchParams(searchParams);
-    params.set('limit', limit);
-    params.delete('page');
-    startTransition(() => {
-      router.replace(`${pathname}?${params.toString()}`);
-    });
   };
 
   const activeFilterChips = useMemo(() => {
@@ -793,10 +773,15 @@ export function MediaLibraryManager({
           ) : null}
         </div>
 
-        <StorageTypeFilter
+        <ListTabs
+          items={categories.map((category) => ({
+            value: category.id,
+            label: category.label,
+            icon: category.icon,
+          }))}
           value={currentCategory}
-          categories={categories}
           onChange={handleCategoryChange}
+          ariaLabel={t('filters.source')}
         />
 
         {currentCategory !== 'all' && storageGroups[currentCategory]?.length > 0 ? (
@@ -883,28 +868,6 @@ export function MediaLibraryManager({
               />
               <span>{t('library.columns.count', { count: columnCount })}</span>
             </label>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 gap-2 text-zinc-500">
-                  <span className="text-xs">
-                    {t('library.perPage', { count: currentLimit })}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuRadioGroup
-                  value={currentLimit}
-                  onValueChange={(value) => handleLimitChange(value)}
-                >
-                  {MEDIA_PAGE_SIZE_OPTIONS.map((size) => (
-                    <DropdownMenuRadioItem key={size} value={String(size)}>
-                      {t('library.perPageOption', { count: size })}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -38,6 +38,9 @@ import {
 } from '@/components/ui/dialog';
 import { showError, showSuccess } from '@/app/lib/toast-utils';
 import { cn } from '@/lib/utils';
+import { ListTabs } from '@/app/ui/shared/list-tabs';
+import { ListPagination } from '@/app/ui/shared/list-pagination';
+import { useListPagination } from '@/app/ui/shared/use-list-pagination';
 
 type ShareRow = {
   id: number;
@@ -64,12 +67,18 @@ type SelectableMedia = {
 type Props = {
   initialShares: ShareRow[];
   selectableMedia: SelectableMedia[];
+  now: number;
 };
 
-export function ShareManager({ initialShares, selectableMedia }: Props) {
-  const t = useTranslations('dashboard.share');
+export function ShareManager({ initialShares, selectableMedia, now }: Props) {
+  // 分享管理文案在 messages 的 front.share.admin 下（历史结构），管理端复用同一组文案。
+  const t = useTranslations('front.share.admin');
+  const tList = useTranslations('common.list');
   const router = useRouter();
   const [shares, setShares] = useState(initialShares);
+  const [shareFilter, setShareFilter] = useState<
+    'all' | 'active' | 'expired' | 'protected'
+  >('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [name, setName] = useState('');
@@ -89,6 +98,27 @@ export function ShareManager({ initialShares, selectableMedia }: Props) {
       ),
     [selectableMedia],
   );
+
+  const filteredShares = useMemo(() => {
+    return shares.filter((share) => {
+      const expired = share.expiresAt
+        ? new Date(share.expiresAt).getTime() <= now
+        : false;
+
+      if (shareFilter === 'active') return !expired;
+      if (shareFilter === 'expired') return expired;
+      if (shareFilter === 'protected') return share.hasPassword;
+      return true;
+    });
+  }, [shares, shareFilter, now]);
+
+  const pagination = useListPagination(filteredShares.length);
+  const pagedShares = pagination.slice(filteredShares);
+
+  const handleShareFilterChange = (value: string) => {
+    setShareFilter(value as 'all' | 'active' | 'expired' | 'protected');
+    pagination.setPage(1);
+  };
 
   function toggleFile(id: number) {
     setSelected((prev) => {
@@ -198,13 +228,52 @@ export function ShareManager({ initialShares, selectableMedia }: Props) {
         </Button>
       </div>
 
+      {shares.length > 0 ? (
+        <ListTabs
+          size='sm'
+          items={[
+            { value: 'all', label: tList('shareAll'), count: shares.length },
+            {
+              value: 'active',
+              label: tList('shareActive'),
+              count: shares.filter(
+                (share) =>
+                  !share.expiresAt ||
+                  new Date(share.expiresAt).getTime() > now,
+              ).length,
+            },
+            {
+              value: 'expired',
+              label: tList('shareExpired'),
+              count: shares.filter(
+                (share) =>
+                  Boolean(share.expiresAt) &&
+                  new Date(share.expiresAt as string).getTime() <= now,
+              ).length,
+            },
+            {
+              value: 'protected',
+              label: tList('shareProtected'),
+              count: shares.filter((share) => share.hasPassword).length,
+            },
+          ]}
+          value={shareFilter}
+          onChange={handleShareFilterChange}
+          ariaLabel={tList('filterLabel')}
+        />
+      ) : null}
+
       {shares.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 p-12 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
           {t('noShares')}
         </div>
+      ) : filteredShares.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-zinc-300 p-12 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+          {tList('noMatches')}
+        </div>
       ) : (
         <div className="space-y-3">
-          {shares.map((share) => {
+          {pagedShares.map((share) => {
             const origin = typeof window !== 'undefined' ? window.location.origin : '';
             const url = `${origin}/share/${share.token}`;
             return (
@@ -267,6 +336,17 @@ export function ShareManager({ initialShares, selectableMedia }: Props) {
           })}
         </div>
       )}
+
+      {filteredShares.length > 0 ? (
+        <ListPagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          pageSize={pagination.pageSize}
+          totalCount={filteredShares.length}
+          onPageChange={pagination.setPage}
+          onPageSizeChange={pagination.setPageSize}
+        />
+      ) : null}
 
       <Dialog open={dialogOpen} onOpenChange={(open) => (open ? setDialogOpen(true) : closeDialog())}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">

@@ -2,7 +2,8 @@ import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 
 import { auth } from '@/auth';
-import { fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
+import { fetchUserStorages } from '@/app/lib/data';
+import { getSessionUserId } from '@/app/lib/session-user';
 import { buildUploadStorageOption } from '@/app/lib/upload-storage-option';
 import { TestUploadCenter } from '@/app/ui/test/test-upload-center';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,8 @@ export default async function Page() {
     headers: await headers(),
   });
 
-  const email = session?.user?.email ?? null;
-  if (!email) {
+  const userId = getSessionUserId(session);
+  if (!userId) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
@@ -31,21 +32,7 @@ export default async function Page() {
     );
   }
 
-  const user = await fetchUserByEmail(email);
-  if (!user) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          上传中心测试页面
-        </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          {t('upload.userNotFound')}
-        </p>
-      </div>
-    );
-  }
-
-  const storages = await fetchUserStorages(user.id);
+  const storages = await fetchUserStorages(userId);
   const options = storages.map((storage) => buildUploadStorageOption(storage, t));
 
   return (

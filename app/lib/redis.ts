@@ -1,25 +1,44 @@
 import Redis from 'ioredis';
 
+/**
+ * 开发环境 HMR / 多次模块加载会重复执行本模块，用 globalThis 复用同一个连接，
+ * 避免每个热更新都新建一条 Redis 连接。
+ */
+const globalForRedis = globalThis as typeof globalThis & {
+  __memorixRedis?: Redis | null;
+};
+
+function createRedisClient(url: string): Redis {
+  const client = new Redis(url, {
+    // 单次请求最多重试 2 次，失败后由 cache 层降级，不阻塞页面。
+    maxRetriesPerRequest: 2,
+    // 永久重连（上限 3s）：NAS/网络短暂抖动后缓存能自动恢复，
+    // 而不是像旧配置一样在第 3 次后彻底放弃。
+    retryStrategy: (times) => Math.min(times * 200, 3000),
+    connectTimeout: 5000,
+    keepAlive: 5000,
+    // Redis 不可用时命令立即失败，cache 层 catch 后走 DB fallback。
+    enableOfflineQueue: false,
+  });
+
+  client.on('error', (err) => {
+    console.error('Redis connection error:', err.message);
+  });
+
+  client.on('connect', () => {
+    console.log('Redis connected');
+  });
+
+  return client;
+}
+
 let redisClient: Redis | null = null;
 
-// 初始化 Redis（如果配置了）
 if (process.env.REDIS_URL) {
   try {
-    redisClient = new Redis(process.env.REDIS_URL, {
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times) => {
-        if (times > 3) return null;
-        return Math.min(times * 200, 1000);
-      },
-    });
-
-    redisClient.on('error', (err) => {
-      console.error('Redis connection error:', err);
-    });
-
-    redisClient.on('connect', () => {
-      console.log('Redis connected');
-    });
+    redisClient =
+      globalForRedis.__memorixRedis ?? createRedisClient(process.env.REDIS_URL);
+    globalForRedis.__memorixRedis = redisClient;
   } catch (error) {
     console.warn('Redis initialization failed, falling back to no cache:', error);
     redisClient = null;
@@ -39,7 +58,7 @@ export async function getCached<T>(
   fallback: () => Promise<T>,
   ttl: number = 300
 ): Promise<T> {
-  if (!redisClient) {
+  if (redisClient?.status !== 'ready') {
     return fallback();
   }
 
@@ -63,7 +82,7 @@ export async function getCached<T>(
  * @param pattern 缓存键模式（支持通配符 *）
  */
 export async function deleteCached(pattern: string): Promise<void> {
-  if (!redisClient) return;
+  if (redisClient?.status !== 'ready') return;
 
   try {
     let cursor = '0';
@@ -96,7 +115,7 @@ export async function setCached<T>(
   value: T,
   ttl: number = 300
 ): Promise<void> {
-  if (!redisClient) return;
+  if (redisClient?.status !== 'ready') return;
 
   try {
     await redisClient.setex(key, ttl, JSON.stringify(value));

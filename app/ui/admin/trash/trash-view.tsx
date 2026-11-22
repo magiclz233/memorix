@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import {
   RotateCcw,
   Trash2,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ServerListPagination } from '@/app/ui/shared/list-pagination';
 import { showSuccess, showError } from '@/app/lib/toast-utils';
 import {
   purgeTrashedMedia,
@@ -239,33 +240,14 @@ export function TrashView({ items, total, page, pageSize, locale }: Props) {
       </div>
 
       {/* 分页 */}
-      {totalPages > 1 && (
-        <div className='flex items-center justify-center gap-2 pt-2'>
-          {page > 1 && (
-            <Button
-              variant='outline'
-              size='sm'
-              className='rounded-full'
-              onClick={() => router.push(`/dashboard/trash?page=${page - 1}`)}
-            >
-              {t('prevPage')}
-            </Button>
-          )}
-          <span className='text-xs text-zinc-400'>
-            {t('pageIndicator', { page, total: totalPages })}
-          </span>
-          {page < totalPages && (
-            <Button
-              variant='outline'
-              size='sm'
-              className='rounded-full'
-              onClick={() => router.push(`/dashboard/trash?page=${page + 1}`)}
-            >
-              {t('nextPage')}
-            </Button>
-          )}
-        </div>
-      )}
+      {total > 0 ? (
+        <ServerListPagination
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalCount={total}
+        />
+      ) : null}
 
       {/* 彻底删除确认弹窗 */}
       {purgeConfirmIds && (

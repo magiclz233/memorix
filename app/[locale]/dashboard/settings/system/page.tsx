@@ -1,23 +1,18 @@
-import { headers } from 'next/headers';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { auth } from '@/auth';
-import { fetchSystemSettings, fetchUserByEmail } from '@/app/lib/data';
+import { getRequestSession } from '@/app/lib/auth-session';
+import { fetchSystemSettings } from '@/app/lib/data';
+import { getSessionUserId } from '@/app/lib/session-user';
 import { SystemSettingsForm } from './system-settings-form';
 
 export default async function Page() {
   const t = await getTranslations('dashboard.settings.system');
   const locale = await getLocale();
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableRefresh: true },
-  });
-  const user = session?.user?.email
-    ? await fetchUserByEmail(session.user.email)
-    : null;
-  if (!user || user.role !== 'admin') {
+  const session = await getRequestSession();
+  const userId = getSessionUserId(session);
+  if (!userId || session?.user?.role !== 'admin') {
     return <div>{t('forbidden')}</div>;
   }
-  const settings = await fetchSystemSettings(user.id, locale);
+  const settings = await fetchSystemSettings(userId, locale);
   // Using type assertion since we extended the return type at runtime but not in the type definition yet
   const settingsKey = (settings as any)?._lastModified?.toString() ?? 'initial';
 

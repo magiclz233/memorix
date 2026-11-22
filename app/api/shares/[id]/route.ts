@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { auth } from '@/auth';
-import { fetchUserByEmail } from '@/app/lib/data';
+import { getSessionUserId } from '@/app/lib/session-user';
 import { getShareById, revokeShare } from '@/app/lib/data/shares';
 import { recordAuditLog } from '@/app/lib/audit-log';
 
@@ -12,10 +12,7 @@ type Params = { params: Promise<{ id: string }> };
 
 async function currentUserId(): Promise<number | null> {
   const session = await auth.api.getSession({ headers: await headers() });
-  const email = session?.user?.email;
-  if (!email) return null;
-  const user = await fetchUserByEmail(email);
-  return user?.id ?? null;
+  return getSessionUserId(session);
 }
 
 /** DELETE /api/shares/[id] — 吊销分享（软吊销，可再次创建；不物理删除审计痕迹） */

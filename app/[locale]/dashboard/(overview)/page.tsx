@@ -1,7 +1,7 @@
 import { Link } from '@/i18n/navigation';
-import { headers } from 'next/headers';
-import { auth } from '@/auth';
-import { fetchDashboardOverview, fetchUserByEmail } from '@/app/lib/data';
+import { getRequestSession } from '@/app/lib/auth-session';
+import { fetchDashboardOverview } from '@/app/lib/data';
+import { getSessionUserId } from '@/app/lib/session-user';
 import { getTranslations } from 'next-intl/server';
 import {
   CardContent,
@@ -35,12 +35,10 @@ const StatCard = ({ label, value, description }: StatCardProps) => (
 
 export default async function Page() {
   const t = await getTranslations('dashboard.overview');
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  const email = session?.user?.email ?? null;
+  const session = await getRequestSession();
+  const userId = getSessionUserId(session);
 
-  if (!email) {
+  if (!userId) {
     return (
       <main className="space-y-6">
         <div>
@@ -57,19 +55,7 @@ export default async function Page() {
     );
   }
 
-  const user = await fetchUserByEmail(email);
-  if (!user) {
-    return (
-      <main className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t('title')}</h1>
-          <p className="text-base text-muted-foreground">{t('userNotFound')}</p>
-        </div>
-      </main>
-    );
-  }
-
-  const overview = await fetchDashboardOverview(user.id);
+  const overview = await fetchDashboardOverview(userId);
   const stats = [
     {
       label: t('stats.storage'),

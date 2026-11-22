@@ -40,7 +40,7 @@ export async function fetchTrashedMedia(
   const limit = Math.min(Math.max(options.limit ?? 60, 1), 200);
   const offset = Math.max(options.offset ?? 0, 0);
 
-  const rows = await db
+  const rowsQuery = db
     .select({
       id: files.id,
       title: files.title,
@@ -61,11 +61,14 @@ export async function fetchTrashedMedia(
     .limit(limit)
     .offset(offset);
 
-  const [totalRow] = await db
+  const totalQuery = db
     .select({ total: count() })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
     .where(and(eq(userStorages.userId, userId), isNotNull(files.deletedAt)));
+
+  // 当前页数据与总数互不依赖，并行查询省一次往返。
+  const [rows, [totalRow]] = await Promise.all([rowsQuery, totalQuery]);
 
   return { rows, total: Number(totalRow?.total ?? 0) };
 }

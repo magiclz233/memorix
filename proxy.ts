@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
-import { auth } from '@/auth';
+import { SECURITY_HEADERS } from '@/app/lib/security-headers';
 import { routing } from '@/i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
@@ -20,30 +20,9 @@ function getLocaleFromPathname(pathname: string) {
  * 添加安全响应头
  */
 function addSecurityHeaders(response: NextResponse): NextResponse {
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-XSS-Protection', '1; mode=block');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set(
-    'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(self), payment=()',
-  );
-  response.headers.set(
-    'Content-Security-Policy',
-    [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
-      "connect-src 'self' https:",
-      "media-src 'self' blob: https:",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "object-src 'none'",
-    ].join('; '),
-  );
+  for (const [key, value] of SECURITY_HEADERS) {
+    response.headers.set(key, value);
+  }
   return response;
 }
 
@@ -131,23 +110,20 @@ export async function proxy(request: NextRequest) {
     return addSecurityHeaders(intlResponse as NextResponse);
   }
 
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
+  // 只做廉价的 cookie 存在性检查，避免每次 dashboard 请求都在 proxy 里
+  // 查一次 session（layout 会做完整校验与角色判断）。
+  const hasSessionCookie = request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.includes('session_token'));
 
-  if (!session) {
+  if (!hasSessionCookie) {
     const locale = getLocaleFromPathname(pathname);
     const loginUrl = new URL(`/${locale}/login`, request.url);
     loginUrl.searchParams.set(
       'callbackUrl',
       `${request.nextUrl.pathname}${request.nextUrl.search}`,
     );
-    return NextResponse.redirect(loginUrl);
-  }
-
-  if (session.user.role !== 'admin') {
-    const locale = getLocaleFromPathname(pathname);
-    return NextResponse.redirect(new URL(`/${locale}/gallery`, request.url));
+    return addSecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
   return addSecurityHeaders(intlResponse as NextResponse);

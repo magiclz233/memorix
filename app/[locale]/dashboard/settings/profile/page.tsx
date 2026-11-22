@@ -1,6 +1,5 @@
-import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
-import { auth } from '@/auth';
+import { getRequestSession } from '@/app/lib/auth-session';
 import { fetchUserByEmail } from '@/app/lib/data';
 import { ProfileForm } from '@/app/ui/dashboard/profile-form';
 import { ChangePasswordForm } from '@/app/ui/shared/change-password-form';
@@ -8,7 +7,7 @@ import { config } from '@/app/lib/config';
 
 export default async function Page() {
   const t = await getTranslations('dashboard.settings.profile');
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const user = session?.user?.email 
     ? await fetchUserByEmail(session.user.email) 
     : null;

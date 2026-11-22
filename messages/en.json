@@ -9,6 +9,26 @@
       "warning": "Please confirm this action",
       "info": "Information updated",
       "loading": "Processing..."
+    },
+    "list": {
+      "total": "{count} items",
+      "perPage": "Per page",
+      "perPageOption": "{count} items",
+      "jumpTo": "Go to",
+      "jumpPlaceholder": "Page",
+      "jumpAction": "Go",
+      "pageIndicator": "Page {page} of {total}",
+      "prev": "Previous page",
+      "next": "Next page",
+      "first": "First page",
+      "last": "Last page",
+      "invalidPage": "Enter a page between 1 and {total}",
+      "noMatches": "No matching items",
+      "filterLabel": "Filter",
+      "shareAll": "All",
+      "shareActive": "Active",
+      "shareExpired": "Expired",
+      "shareProtected": "Password"
     }
   },
   "nav": {
@@ -1452,6 +1472,8 @@
           "user": "User"
         },
         "status": {
+          "all": "All",
+          "admin": "Admins",
           "banned": "Banned"
         },
         "actions": {

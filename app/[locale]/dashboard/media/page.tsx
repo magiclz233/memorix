@@ -1,21 +1,16 @@
 import { Link } from '@/i18n/navigation';
-import { headers } from 'next/headers';
-import { auth } from '@/auth';
+import { getRequestSession } from '@/app/lib/auth-session';
 import {
   fetchHeroPhotoIdsByUser,
   fetchMediaLibraryPage,
-  fetchUserByEmail,
   fetchUserStorages,
   type MediaLibrarySort,
 } from '@/app/lib/data';
-import { generatePagination } from '@/app/lib/utils';
-import {
-  DEFAULT_MEDIA_PAGE_SIZE,
-  resolveMediaPageSize,
-} from '@/app/lib/media-library-view';
+import { getSessionUserId } from '@/app/lib/session-user';
+import { parsePageNumber, resolveListPageSize } from '@/app/lib/list-view';
 import { MediaLibraryManager } from '@/app/ui/admin/media/media-library';
+import { ServerListPagination } from '@/app/ui/shared/list-pagination';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 type PageProps = {
@@ -70,12 +65,10 @@ const parseNumber = (value?: string | string[]) => {
 
 export default async function Page({ searchParams }: PageProps) {
   const t = await getTranslations('dashboard.media');
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  const email = session?.user?.email ?? null;
+  const session = await getRequestSession();
+  const userId = getSessionUserId(session);
 
-  if (!email) {
+  if (!userId) {
     return (
       <main className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
@@ -87,18 +80,6 @@ export default async function Page({ searchParams }: PageProps) {
         <Button asChild variant="outline">
           <Link href="/login">{t('goToLogin')}</Link>
         </Button>
-      </main>
-    );
-  }
-
-  const user = await fetchUserByEmail(email);
-  if (!user) {
-    return (
-      <main className="space-y-4">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          {t('title')}
-        </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('userNotFound')}</p>
       </main>
     );
   }
@@ -122,8 +103,8 @@ export default async function Page({ searchParams }: PageProps) {
   ];
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const page = parseNumber(resolvedSearchParams?.page ?? '1') ?? 1;
-  const perPage = resolveMediaPageSize(resolvedSearchParams?.limit);
+  const page = parsePageNumber(resolvedSearchParams?.page);
+  const perPage = resolveListPageSize(resolvedSearchParams?.limit);
   const selectedStorageIds = parseStringArray(resolvedSearchParams?.storageId)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0);
@@ -158,8 +139,10 @@ export default async function Page({ searchParams }: PageProps) {
 
   const sizeMinMb = parseNumber(resolvedSearchParams?.sizeMin);
   const sizeMaxMb = parseNumber(resolvedSearchParams?.sizeMax);
-  const storages = await fetchUserStorages(user.id);
-  const heroIds = await fetchHeroPhotoIdsByUser(user.id);
+  const [storages, heroIds] = await Promise.all([
+    fetchUserStorages(userId),
+    fetchHeroPhotoIdsByUser(userId),
+  ]);
 
   // Helper to get storage IDs by category
   const getStorageIdsByCategory = (category: string) => {
@@ -179,9 +162,10 @@ export default async function Page({ searchParams }: PageProps) {
   }
 
   const { items, totalPages, totalCount, page: safePage } = await fetchMediaLibraryPage({
-    userId: user.id,
+    userId,
     page,
     perPage,
+    heroIds,
     filters: {
       storageIds: finalStorageIds,
       mediaType,
@@ -246,44 +230,6 @@ export default async function Page({ searchParams }: PageProps) {
       sort !== 'dateShotDesc',
   );
 
-  const buildPageUrl = (pageNumber: number | string) => {
-    const params = new URLSearchParams();
-    selectedStorageIds.forEach((id) => params.append('storageId', String(id)));
-    if (category !== 'all') params.set('category', category);
-    if (mediaType !== 'all') params.set('type', mediaType);
-    if (publishStatus !== 'all') params.set('status', publishStatus);
-    if (hero !== 'all') params.set('hero', hero);
-    if (resolvedSearchParams?.q) params.set('q', resolvedSearchParams.q);
-    if (resolvedSearchParams?.dateFrom) params.set('dateFrom', resolvedSearchParams.dateFrom);
-    if (resolvedSearchParams?.dateTo) params.set('dateTo', resolvedSearchParams.dateTo);
-    if (resolvedSearchParams?.sizeMin) params.set('sizeMin', resolvedSearchParams.sizeMin);
-    if (resolvedSearchParams?.sizeMax) params.set('sizeMax', resolvedSearchParams.sizeMax);
-    if (resolvedSearchParams?.widthMin) params.set('widthMin', resolvedSearchParams.widthMin);
-    if (resolvedSearchParams?.widthMax) params.set('widthMax', resolvedSearchParams.widthMax);
-    if (resolvedSearchParams?.heightMin) params.set('heightMin', resolvedSearchParams.heightMin);
-    if (resolvedSearchParams?.heightMax) params.set('heightMax', resolvedSearchParams.heightMax);
-    if (resolvedSearchParams?.exposureMin) params.set('exposureMin', resolvedSearchParams.exposureMin);
-    if (resolvedSearchParams?.exposureMax) params.set('exposureMax', resolvedSearchParams.exposureMax);
-    if (resolvedSearchParams?.apertureMin) params.set('apertureMin', resolvedSearchParams.apertureMin);
-    if (resolvedSearchParams?.apertureMax) params.set('apertureMax', resolvedSearchParams.apertureMax);
-    if (resolvedSearchParams?.isoMin) params.set('isoMin', resolvedSearchParams.isoMin);
-    if (resolvedSearchParams?.isoMax) params.set('isoMax', resolvedSearchParams.isoMax);
-    if (resolvedSearchParams?.focalLengthMin) params.set('focalLengthMin', resolvedSearchParams.focalLengthMin);
-    if (resolvedSearchParams?.focalLengthMax) params.set('focalLengthMax', resolvedSearchParams.focalLengthMax);
-    if (orientation !== 'all') params.set('orientation', orientation);
-    if (resolvedSearchParams?.camera) params.set('camera', resolvedSearchParams.camera);
-    if (resolvedSearchParams?.maker) params.set('maker', resolvedSearchParams.maker);
-    if (resolvedSearchParams?.lens) params.set('lens', resolvedSearchParams.lens);
-    if (hasGps !== 'all') params.set('hasGps', hasGps);
-    if (sort !== 'dateShotDesc') params.set('sort', sort);
-    // 翻页时保留每页数量；否则用户切到 48/96 后点下一页又回到 24。
-    if (perPage !== DEFAULT_MEDIA_PAGE_SIZE) params.set('limit', String(perPage));
-    params.set('page', pageNumber.toString());
-    return `/dashboard/media?${params.toString()}`;
-  };
-
-  const allPages = generatePagination(safePage, totalPages);
-
   return (
     <main className="space-y-6">
       <header className="space-y-2">
@@ -320,71 +266,13 @@ export default async function Page({ searchParams }: PageProps) {
         />
       )}
 
-      {totalPages > 1 ? (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white/70 px-4 py-3 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
-          <span className="text-zinc-500 dark:text-zinc-400">
-            {t('pagination', { current: safePage, total: totalPages })}
-          </span>
-          <div className="flex items-center gap-2">
-            {safePage > 1 ? (
-              <Button asChild variant="outline" size="sm">
-                <Link
-                  href={buildPageUrl(safePage - 1)}
-                  aria-label={t('prevPage')}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                aria-label={t('prevPage')}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            )}
-            {allPages.map((pageItem, index) => {
-              const isActive = pageItem === safePage;
-              const isEllipsis = pageItem === '...';
-              return (
-                <span key={`${pageItem}-${index}`}>
-                  {isEllipsis ? (
-                    <span className="px-2 text-zinc-400">...</span>
-                  ) : (
-                    <Button
-                      asChild
-                      variant={isActive ? 'default' : 'outline'}
-                      size="sm"
-                    >
-                      <Link href={buildPageUrl(pageItem)}>{pageItem}</Link>
-                    </Button>
-                  )}
-                </span>
-              );
-            })}
-            {safePage < totalPages ? (
-              <Button asChild variant="outline" size="sm">
-                <Link
-                  href={buildPageUrl(safePage + 1)}
-                  aria-label={t('nextPage')}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                aria-label={t('nextPage')}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
+      {totalCount > 0 ? (
+        <ServerListPagination
+          page={safePage}
+          totalPages={totalPages}
+          pageSize={perPage}
+          totalCount={totalCount}
+        />
       ) : null}
     </main>
   );

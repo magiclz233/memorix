@@ -3,10 +3,10 @@ import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import {
   fetchMediaLibraryPage,
-  fetchUserByEmail,
   fetchUserStorages,
   type MediaLibrarySort,
 } from '@/app/lib/data';
+import { getSessionUserId } from '@/app/lib/session-user';
 
 const parsePositiveInteger = (
   value: string | null,
@@ -28,22 +28,17 @@ const parseStorageId = (value: string | null) => {
 
 export async function GET(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
-  const email = session?.user?.email ?? null;
+  const userId = getSessionUserId(session);
 
-  if (!email) {
+  if (!userId) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const user = await fetchUserByEmail(email);
-  if (!user) {
-    return NextResponse.json({ message: 'User not found' }, { status: 404 });
   }
 
   const url = new URL(request.url);
   const page = parsePositiveInteger(url.searchParams.get('page'), 1, 1_000_000);
   const perPage = parsePositiveInteger(url.searchParams.get('limit'), 24, 100);
 
-  const storages = await fetchUserStorages(user.id);
+  const storages = await fetchUserStorages(userId);
   const category = url.searchParams.get('category') || 'all';
   const storageId = parseStorageId(url.searchParams.get('storageId'));
 
@@ -60,7 +55,7 @@ export async function GET(request: Request) {
   const sort = (url.searchParams.get('sort') as MediaLibrarySort) || 'dateShotDesc';
 
   const result = await fetchMediaLibraryPage({
-    userId: user.id,
+    userId,
     page,
     perPage,
     filters: {

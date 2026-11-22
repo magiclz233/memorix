@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { auth } from '@/auth';
-import { fetchUserByEmail } from '@/app/lib/data';
+import { getSessionUserId } from '@/app/lib/session-user';
 import {
   createShare,
   filterOwnedFileIds,
@@ -24,10 +24,7 @@ const MAX_EXPIRY_DAYS = 365;
 
 async function currentUserId(): Promise<number | null> {
   const session = await auth.api.getSession({ headers: await headers() });
-  const email = session?.user?.email;
-  if (!email) return null;
-  const user = await fetchUserByEmail(email);
-  return user?.id ?? null;
+  return getSessionUserId(session);
 }
 
 /** GET /api/shares — 列出当前用户的分享（仅 owner 可见 token） */

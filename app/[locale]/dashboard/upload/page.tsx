@@ -1,8 +1,8 @@
-import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 
-import { auth } from '@/auth';
-import { fetchUserByEmail, fetchUserStorages } from '@/app/lib/data';
+import { getRequestSession } from '@/app/lib/auth-session';
+import { fetchUserStorages } from '@/app/lib/data';
+import { getSessionUserId } from '@/app/lib/session-user';
 import { buildUploadStorageOption } from '@/app/lib/upload-storage-option';
 import { UploadCenter } from '@/app/ui/admin/upload-center';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,10 @@ import { Link } from '@/i18n/navigation';
 
 export default async function Page() {
   const t = await getTranslations('dashboard');
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getRequestSession();
 
-  const email = session?.user?.email ?? null;
-  if (!email) {
+  const userId = getSessionUserId(session);
+  if (!userId) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
@@ -31,21 +29,7 @@ export default async function Page() {
     );
   }
 
-  const user = await fetchUserByEmail(email);
-  if (!user) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          {t('upload.title')}
-        </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          {t('upload.userNotFound')}
-        </p>
-      </div>
-    );
-  }
-
-  const storages = await fetchUserStorages(user.id);
+  const storages = await fetchUserStorages(userId);
   const options = storages.map((storage) => buildUploadStorageOption(storage, t));
 
   return (
