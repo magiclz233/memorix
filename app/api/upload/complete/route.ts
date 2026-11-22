@@ -115,6 +115,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: tUpload('unsupportedStorageType') }, { status: 400 });
     }
 
+    const storageConfig = storage.config as Record<string, unknown>;
+    if (storageConfig.isDisabled === true) {
+      return NextResponse.json({ error: tUpload('storageDisabled') }, { status: 400 });
+    }
+
     const chunks = await db.query.uploadChunks.findMany({
       where: and(
         eq(uploadChunks.uploadTaskId, task.id),
@@ -149,7 +154,8 @@ export async function POST(request: NextRequest) {
 
     const hashAlgorithm: 'md5' | 'sha256' = task.fileHash.length >= 64 ? 'sha256' : 'md5';
     const mergedFileHash = await calculateFileHash(mergedFilePath, hashAlgorithm);
-    if (mergedFileHash !== task.fileHash) {
+    const mergedFileStats = await fs.stat(mergedFilePath);
+    if (mergedFileHash !== task.fileHash || mergedFileStats.size !== task.fileSize) {
       await db
         .update(uploadTasks)
         .set({ status: 'failed', updatedAt: new Date() })
@@ -158,7 +164,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: t('fileHashVerificationFailed') }, { status: 400 });
     }
 
-    const storageConfig = storage.config as Record<string, unknown>;
     const rootPath = typeof storageConfig.rootPath === 'string' ? storageConfig.rootPath.trim() : '';
 
     if (!rootPath) {

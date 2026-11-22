@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     const storageId = Number(formData.get('storageId'));
     const uploadedFiles = formData.getAll('files') as File[];
 
-    if (!storageId || !uploadedFiles.length) {
+    if (!Number.isSafeInteger(storageId) || storageId <= 0 || !uploadedFiles.length) {
       return NextResponse.json({ error: t('missingParameters') }, { status: 400 });
     }
 

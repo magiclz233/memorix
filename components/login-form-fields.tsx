@@ -8,6 +8,7 @@ import { authenticate } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { resolveSafeRedirectPath } from '@/i18n/paths';
 import { cn } from '@/lib/utils';
 
 type LoginFormFieldsProps = {
@@ -20,11 +21,7 @@ export function LoginFormFields({
   redirectTo,
 }: LoginFormFieldsProps) {
   const t = useTranslations('auth.login');
-  const trimmedRedirectTo =
-    typeof redirectTo === 'string' ? redirectTo.trim() : '';
-  const safeRedirectTo = trimmedRedirectTo.startsWith('/')
-    ? trimmedRedirectTo
-    : '/gallery';
+  const safeRedirectTo = resolveSafeRedirectPath(redirectTo);
   const [errorMessage, formAction, isPending] = useActionState(
     authenticate,
     undefined,
@@ -61,7 +58,6 @@ export function LoginFormFields({
             type={showPassword ? 'text' : 'password'}
             autoComplete='current-password'
             required
-            minLength={6}
             className='pr-16'
           />
           <button

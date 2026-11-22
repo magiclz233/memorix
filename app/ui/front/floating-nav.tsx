@@ -35,7 +35,7 @@ const navItems = [
   { key: 'about', href: '/about' },
 ];
 
-export function FloatingNav() {
+export function FloatingNav({ minPasswordLength }: { minPasswordLength: number }) {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const router = useRouter();
@@ -426,6 +426,7 @@ export function FloatingNav() {
             </DialogDescription>
           </DialogHeader>
           <ChangePasswordForm 
+            minPasswordLength={minPasswordLength}
             onSuccess={() => setShowPasswordDialog(false)} 
             onCancel={() => setShowPasswordDialog(false)}
           />

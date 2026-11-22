@@ -9,9 +9,11 @@ import { Label } from '@/components/ui/label';
 import { KeyRound, Lock, ShieldCheck } from 'lucide-react';
 
 export function ChangePasswordForm({ 
-  onSuccess, 
-  onCancel 
+  minPasswordLength,
+  onSuccess,
+  onCancel,
 }: { 
+  minPasswordLength: number;
   onSuccess?: () => void;
   onCancel?: () => void;
 }) {
@@ -59,9 +61,9 @@ export function ChangePasswordForm({
               id="newPassword"
               name="newPassword"
               type="password"
-              placeholder={t('newPasswordPlaceholder')}
+              placeholder={t('newPasswordPlaceholder', { min: minPasswordLength })}
               required
-              minLength={6}
+              minLength={minPasswordLength}
               className="pl-9 h-10"
               autoComplete="new-password"
             />
@@ -78,7 +80,7 @@ export function ChangePasswordForm({
               type="password"
               placeholder={t('confirmPasswordPlaceholder')}
               required
-              minLength={6}
+              minLength={minPasswordLength}
               className="pl-9 h-10"
               autoComplete="new-password"
             />

@@ -134,6 +134,13 @@
       "when": 1776418347271,
       "tag": "0018_add_sort_at",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1776418347272,
+      "tag": "0019_add_query_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -193,7 +193,7 @@ export async function purgeFromTrash(
             await fs.unlink(absolutePath).catch(() => {});
           }
         }
-      } else if (row.storageType === 's3') {
+      } else if (row.storageType === 's3' || row.storageType === 'qiniu') {
         if (config.bucket && config.accessKey && config.secretKey) {
           const client = resolveS3Client({
             endpoint: config.endpoint ?? null,

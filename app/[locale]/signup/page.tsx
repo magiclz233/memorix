@@ -7,6 +7,8 @@ import { SignupForm } from '@/components/signup-form';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { fetchPublicSystemSettings } from '@/app/lib/data';
 import { Button } from '@/components/ui/button';
+import { isGitHubAuthEnabled } from '@/app/lib/auth-config';
+import { config } from '@/app/lib/config';
 
 export default async function SignupPage() {
   const t = await getTranslations('auth.signupPage');
@@ -43,7 +45,10 @@ export default async function SignupPage() {
         <div className='flex flex-1 items-center justify-center'>
           <div className='w-full max-w-md'>
             {signupEnabled ? (
-              <SignupForm />
+              <SignupForm
+                githubEnabled={isGitHubAuthEnabled}
+                minPasswordLength={config.auth.minPasswordLength}
+              />
             ) : (
               <div className='rounded-2xl border border-zinc-200 bg-white/80 p-6 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60'>
                 <h1 className='text-xl font-semibold text-zinc-900 dark:text-zinc-100'>

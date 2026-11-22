@@ -11,6 +11,11 @@ import {
   userStorages,
   users,
 } from '@/app/lib/schema';
+import { isGitHubAuthEnabled } from '@/app/lib/auth-config';
+import { config } from '@/app/lib/config';
+
+const githubClientId = process.env.GITHUB_CLIENT_ID?.trim();
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
 
 // 额外可信来源（例如绿联 UGLink 外网域名），逗号分隔；baseURL 本身自动可信
 const trustedOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? '')
@@ -130,13 +135,15 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 6,
+    minPasswordLength: config.auth.minPasswordLength,
   },
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID as string,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-    },
-  },
+  socialProviders: isGitHubAuthEnabled
+    ? {
+        github: {
+          clientId: githubClientId!,
+          clientSecret: githubClientSecret!,
+        },
+      }
+    : {},
   plugins: [nextCookies()],
 });

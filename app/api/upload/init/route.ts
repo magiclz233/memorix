@@ -13,6 +13,29 @@ const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
 const MIN_CHUNK_SIZE = 1 * 1024 * 1024; // 1MB
 const MAX_CHUNK_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
+// 与扫描器保持一致：只接受可识别的图片/视频扩展名，MIME 由扩展名推导，
+// 不再信任客户端上报的 mimeType（可被伪造为 text/html 等）。
+const MIME_BY_EXTENSION: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
+  '.avif': 'image/avif',
+  '.bmp': 'image/bmp',
+  '.tif': 'image/tiff',
+  '.tiff': 'image/tiff',
+  '.mp4': 'video/mp4',
+  '.mov': 'video/quicktime',
+  '.m4v': 'video/x-m4v',
+  '.avi': 'video/x-msvideo',
+  '.mkv': 'video/x-matroska',
+  '.webm': 'video/webm',
+  '.m2ts': 'video/mp2t',
+  '.ts': 'video/mp2t',
+};
 
 function sanitizeFileName(fileName: string) {
   const baseName = path.basename(fileName).trim();
@@ -89,19 +112,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { fileName, fileSize, fileHash, mimeType, storageId, targetPath, chunkSize } =
+    const { fileName, fileSize, fileHash, storageId, targetPath, chunkSize } =
       body as Record<string, unknown>;
 
     if (
       typeof fileName !== 'string' ||
       typeof fileHash !== 'string' ||
-      typeof mimeType !== 'string' ||
       !storageId
     ) {
       return NextResponse.json({ error: t('missingRequiredFields') }, { status: 400 });
     }
 
-    if (typeof fileSize !== 'number' || !Number.isFinite(fileSize) || fileSize <= 0) {
+    if (typeof fileSize !== 'number' || !Number.isSafeInteger(fileSize) || fileSize <= 0) {
       return NextResponse.json({ error: t('invalidFileSize') }, { status: 400 });
     }
 
@@ -112,13 +134,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedFileName = path.basename(fileName).trim();
+    const normalizedFileHash = fileHash.trim().toLowerCase();
+    const mimeType = MIME_BY_EXTENSION[path.extname(normalizedFileName).toLowerCase()];
+    if (
+      !normalizedFileName ||
+      normalizedFileName.length > 255 ||
+      !/^(?:[a-f0-9]{32}|[a-f0-9]{64})$/.test(normalizedFileHash) ||
+      !mimeType
+    ) {
+      return NextResponse.json({ error: t('missingRequiredFields') }, { status: 400 });
+    }
+
     const normalizedTargetDir = normalizeTargetDirectory(targetPath);
     if (normalizedTargetDir === null) {
       return NextResponse.json({ error: t('pathInvalid') }, { status: 400 });
     }
 
     const numericStorageId = Number(storageId);
-    if (!Number.isInteger(numericStorageId) || numericStorageId <= 0) {
+    if (!Number.isSafeInteger(numericStorageId) || numericStorageId <= 0) {
       return NextResponse.json({ error: t('missingRequiredFields') }, { status: 400 });
     }
 
@@ -138,9 +172,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: tUpload('unsupportedStorageType') }, { status: 400 });
     }
 
+    const storageConfig = storage.config as { isDisabled?: boolean };
+    if (storageConfig.isDisabled) {
+      return NextResponse.json({ error: tUpload('storageDisabled') }, { status: 400 });
+    }
+
     const existingFile = await db.query.files.findFirst({
       where: and(
-        eq(files.fileHash, fileHash),
+        eq(files.fileHash, normalizedFileHash),
+        eq(files.size, fileSize),
         eq(files.userStorageId, numericStorageId),
         isNull(files.deletedAt),
       ),
@@ -155,7 +195,8 @@ export async function POST(request: NextRequest) {
 
     const existingTask = await db.query.uploadTasks.findFirst({
       where: and(
-        eq(uploadTasks.fileHash, fileHash),
+        eq(uploadTasks.fileHash, normalizedFileHash),
+        eq(uploadTasks.fileSize, fileSize),
         eq(uploadTasks.userStorageId, numericStorageId),
         eq(uploadTasks.status, 'uploading'),
         gt(uploadTasks.expiresAt, new Date()),
@@ -183,16 +224,16 @@ export async function POST(request: NextRequest) {
     const effectiveChunkSize = resolveChunkSize(chunkSize);
     const totalChunks = Math.ceil(fileSize / effectiveChunkSize);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const finalRelativePath = buildRelativeUploadPath(normalizedTargetDir, fileName);
+    const finalRelativePath = buildRelativeUploadPath(normalizedTargetDir, normalizedFileName);
 
     const [newTask] = await db
       .insert(uploadTasks)
       .values({
         uploadId,
         userStorageId: numericStorageId,
-        fileName,
+        fileName: normalizedFileName,
         fileSize,
-        fileHash,
+        fileHash: normalizedFileHash,
         mimeType,
         chunkSize: effectiveChunkSize,
         totalChunks,

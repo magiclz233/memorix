@@ -374,7 +374,14 @@ export async function fetchMediaForPicker(
 ) {
   await requireAdmin();
 
-  const offset = (page - 1) * limit;
-  return fetchPublishedMediaForGallery({ limit, offset, mediaTypes });
+  const safePage = Number.isSafeInteger(page) && page > 0 ? page : 1;
+  const safeLimit =
+    Number.isSafeInteger(limit) && limit > 0 ? Math.min(limit, 100) : 24;
+  const offset = (safePage - 1) * safeLimit;
+  return fetchPublishedMediaForGallery({
+    limit: safeLimit,
+    offset,
+    mediaTypes,
+  });
 }
 

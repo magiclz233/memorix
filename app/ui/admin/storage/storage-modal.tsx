@@ -95,6 +95,7 @@ function StorageForm({
     { value: 'local', label: tTypes('local') },
     { value: 'nas', label: tTypes('nas') },
     { value: 's3', label: tTypes('s3') },
+    { value: 'qiniu', label: tTypes('qiniu') },
   ] as const;
 
   const handleSubmit = async (e: React.FormEvent) => {

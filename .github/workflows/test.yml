@@ -2,9 +2,9 @@ name: 测试
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master, develop]
   pull_request:
-    branches: [main, develop]
+    branches: [master, develop]
 
 jobs:
   quality-gate:

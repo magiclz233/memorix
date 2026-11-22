@@ -35,7 +35,7 @@ export async function GET(request: Request, { params }: Params) {
   const { id } = await params;
   const fileId = Number(id);
 
-  if (!Number.isFinite(fileId)) {
+  if (!Number.isInteger(fileId) || fileId <= 0) {
     return new NextResponse('Invalid ID', { status: 400 });
   }
 
@@ -76,7 +76,7 @@ export async function GET(request: Request, { params }: Params) {
     return new NextResponse('Use media stream for videos', { status: 400 });
   }
 
-  if (item.storageType === 's3') {
+  if (item.storageType === 's3' || item.storageType === 'qiniu') {
     const config = (item.config ?? {}) as {
       endpoint?: string | null;
       region?: string | null;

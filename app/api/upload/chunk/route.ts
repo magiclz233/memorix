@@ -43,15 +43,16 @@ export async function POST(request: NextRequest) {
     const chunkHash = formData.get('chunkHash');
     const chunkFile = formData.get('chunk');
 
-    const chunkIndex = Number.parseInt(String(chunkIndexValue), 10);
+    const chunkIndex = Number(chunkIndexValue);
+    const normalizedChunkHash =
+      typeof chunkHash === 'string' ? chunkHash.trim().toLowerCase() : '';
 
     if (
       typeof uploadId !== 'string' ||
       !uploadId ||
       !Number.isInteger(chunkIndex) ||
       chunkIndex < 0 ||
-      typeof chunkHash !== 'string' ||
-      !chunkHash ||
+      !/^(?:[a-f0-9]{32}|[a-f0-9]{64})$/.test(normalizedChunkHash) ||
       !(chunkFile instanceof File)
     ) {
       return NextResponse.json({ error: t('missingRequiredFields') }, { status: 400 });
@@ -84,7 +85,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: t('missingRequiredFields') }, { status: 400 });
     }
 
-    if (chunkFile.size > task.chunkSize) {
+    const expectedChunkSize =
+      chunkIndex === task.totalChunks - 1
+        ? task.fileSize - task.chunkSize * (task.totalChunks - 1)
+        : task.chunkSize;
+    if (chunkFile.size !== expectedChunkSize) {
       return NextResponse.json({ error: t('invalidFileSize') }, { status: 400 });
     }
 
@@ -105,9 +110,9 @@ export async function POST(request: NextRequest) {
     }
 
     const chunkBuffer = Buffer.from(await chunkFile.arrayBuffer());
-    const algorithm = resolveHashAlgorithm(chunkHash);
+    const algorithm = resolveHashAlgorithm(normalizedChunkHash);
     const actualHash = crypto.createHash(algorithm).update(chunkBuffer).digest('hex');
-    if (actualHash !== chunkHash) {
+    if (actualHash !== normalizedChunkHash) {
       return NextResponse.json({ error: t('chunkHashMismatch') }, { status: 400 });
     }
 
@@ -121,7 +126,7 @@ export async function POST(request: NextRequest) {
       await db
         .update(uploadChunks)
         .set({
-          chunkHash,
+          chunkHash: normalizedChunkHash,
           chunkSize: chunkBuffer.length,
           storagePath: chunkPath,
           status: 'uploaded',
@@ -132,7 +137,7 @@ export async function POST(request: NextRequest) {
       await db.insert(uploadChunks).values({
         uploadTaskId: task.id,
         chunkIndex,
-        chunkHash,
+        chunkHash: normalizedChunkHash,
         chunkSize: chunkBuffer.length,
         storagePath: chunkPath,
         status: 'uploaded',

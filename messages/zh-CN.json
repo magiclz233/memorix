@@ -76,7 +76,7 @@
       "passwordLabel": "密码",
       "hidePassword": "隐藏密码",
       "showPassword": "显示密码",
-      "passwordHint": "至少 6 位字符。",
+      "passwordHint": "至少 {min} 位字符。",
       "confirmPasswordLabel": "确认密码",
       "hideConfirmPassword": "隐藏确认密码",
       "showConfirmPassword": "显示确认密码",
@@ -644,7 +644,8 @@
       "fileHashVerificationFailed": "文件哈希验证失败",
       "missingUploadId": "缺少上传ID",
       "failedToReadDirectory": "读取目录失败",
-      "failedToReadFileInfo": "读取文件信息失败"
+      "failedToReadFileInfo": "读取文件信息失败",
+      "invalidDateParameter": "参数 {name} 不是有效日期"
     }
   },
   "dashboard": {
@@ -671,7 +672,8 @@
       "processed": "已处理 {processed}/{total} 项",
       "clearedMissing": "已清理 {count} 个失效记录",
       "softDeletedMissing": "已将 {count} 个失效文件标记为已删除（可在回收站恢复）",
-      "scanSafetyAbort": "扫描结果异常（仅找到 {found} 个文件，现有 {existing} 个），已跳过清理以保护数据"
+      "scanSafetyAbort": "扫描结果异常（仅找到 {found} 个文件，现有 {existing} 个），已跳过清理以保护数据",
+      "missingCleanupSkipped": "扫描过程中有目录读取失败，本轮已跳过清理（涉及 {count} 条未扫描到的记录）"
     },
     "sidebar": {
       "overview": "概览",
@@ -1392,7 +1394,7 @@
           "currentPassword": "当前密码",
           "currentPasswordPlaceholder": "请输入当前密码",
           "newPassword": "新密码",
-          "newPasswordPlaceholder": "请输入新密码（至少6位）",
+          "newPasswordPlaceholder": "请输入新密码（至少 {min} 位）",
           "confirmPassword": "确认密码",
           "confirmPasswordPlaceholder": "再次输入新密码",
           "cancel": "取消",
@@ -1508,8 +1510,8 @@
   "actions": {
     "signup": {
       "emailInvalid": "请输入有效邮箱。",
-      "passwordMin": "密码至少需要 6 位。",
-      "confirmPasswordMin": "请再次输入至少 6 位密码。",
+      "passwordMin": "密码至少需要 {min} 位。",
+      "confirmPasswordMin": "请再次输入至少 {min} 位密码。",
       "passwordMismatch": "两次输入的密码不一致。",
       "checkForm": "请检查表单信息。",
       "emailTaken": "该邮箱已注册。",
@@ -1598,7 +1600,8 @@
       "enabled": "用户已启用。",
       "selfDelete": "不能删除自己。",
       "deleted": "用户已删除。",
-      "deleteFailed": "删除用户失败。"
+      "deleteFailed": "删除用户失败。",
+      "storageDependency": "请先删除该用户的所有存储配置，再删除用户。"
     },
     "profile": {
       "emailTaken": "该邮箱已被使用。",
@@ -1607,8 +1610,8 @@
     },
     "password": {
       "currentRequired": "请输入当前密码。",
-      "newMin": "新密码至少需要 6 位。",
-      "confirmMin": "请再次输入新密码。",
+      "newMin": "新密码至少需要 {min} 位。",
+      "confirmMin": "请再次输入至少 {min} 位新密码。",
       "mismatch": "两次输入的密码不一致。",
       "checkInput": "请检查输入。",
       "success": "密码已修改，请使用新密码登录。",

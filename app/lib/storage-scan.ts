@@ -135,6 +135,7 @@ type S3StorageConfig = S3Config;
 
 type S3StorageScanOptions = {
   storageId: number;
+  storageType?: 's3' | 'qiniu';
   config: S3StorageConfig;
   mode?: StorageScanMode;
   onLog?: (entry: StorageScanLog) => void;
@@ -466,6 +467,7 @@ export async function runStorageScan({
   let scannedVideos = 0;
   let scannedAnimated = 0;
   let scannedDirs = 0;
+  let scanHadReadErrors = false;
   const livePhotoImageExts = new Set(['.heic', '.heif', '.jpg', '.jpeg']);
 
   const fileList = await scanMediaFiles(rootPath, (event: ScanWalkEvent) => {
@@ -496,6 +498,7 @@ export async function runStorageScan({
       return;
     }
     if (event.kind === 'error') {
+      scanHadReadErrors = true;
       log('warn', `${event.message ?? t('readFailed')}: ${event.path}`);
     }
   }, () => shouldCancel?.() ?? false);
@@ -587,6 +590,9 @@ export async function runStorageScan({
       'error',
       t('scanSafetyAbort', { found: filteredFileList.length, existing: existingFiles.length }),
     );
+  } else if (idsToDelete.length > 0 && scanHadReadErrors) {
+    // 目录遍历出现读取错误时，未扫到的记录可能只是暂时不可达，本轮不做清理。
+    log('warn', t('missingCleanupSkipped', { count: idsToDelete.length }));
   } else if (idsToDelete.length > 0) {
     const deleteBatchSize = 1000;
     const deletedAt = new Date();
@@ -886,6 +892,7 @@ export async function runStorageScan({
 
 export async function runS3StorageScan({
   storageId,
+  storageType = 's3',
   config,
   mode = 'incremental',
   onLog,
@@ -1083,7 +1090,7 @@ export async function runS3StorageScan({
           .values({
             title: file.title,
             path: file.key,
-            sourceType: 's3',
+            sourceType: storageType,
             size: file.size,
             mimeType: file.mimeType,
             mtime: file.mtime,
@@ -1099,7 +1106,7 @@ export async function runS3StorageScan({
               size: file.size,
               mimeType: file.mimeType,
               mtime: file.mtime,
-              sourceType: 's3',
+              sourceType: storageType,
               mediaType: resolvedMediaType,
               updatedAt: new Date(),
               // 文件重新出现时从软删除中恢复

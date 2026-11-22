@@ -116,9 +116,10 @@ async function executeScanJob(job: ScanJobRecord): Promise<void> {
   };
 
   try {
-    if (storage.type === 's3') {
+    if (storage.type === 's3' || storage.type === 'qiniu') {
       await runS3StorageScan({
         storageId: storage.id,
+        storageType: storage.type as 's3' | 'qiniu',
         config: {
           endpoint: (config.endpoint as string | null) ?? null,
           region: (config.region as string | null) ?? null,

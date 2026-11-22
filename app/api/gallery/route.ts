@@ -16,9 +16,9 @@ const MAX_QUERY_LENGTH = appConfig.gallery.maxQueryLength;
 
 const parsePositiveInt = (value: string | null, fallback: number) => {
   if (!value) return fallback;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return parsed;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, 1_000_000);
 };
 
 const clampPageSize = (value: number) =>

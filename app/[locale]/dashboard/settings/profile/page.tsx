@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { fetchUserByEmail } from '@/app/lib/data';
 import { ProfileForm } from '@/app/ui/dashboard/profile-form';
 import { ChangePasswordForm } from '@/app/ui/shared/change-password-form';
+import { config } from '@/app/lib/config';
 
 export default async function Page() {
   const t = await getTranslations('dashboard.settings.profile');
@@ -34,7 +35,7 @@ export default async function Page() {
 
       <div className="rounded-2xl border border-zinc-200 bg-white/80 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
         <h2 className="mb-4 text-lg font-medium text-zinc-900 dark:text-zinc-100">{t('changePassword')}</h2>
-        <ChangePasswordForm />
+        <ChangePasswordForm minPasswordLength={config.auth.minPasswordLength} />
       </div>
     </div>
   );

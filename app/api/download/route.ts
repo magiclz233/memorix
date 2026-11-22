@@ -61,7 +61,7 @@ async function resolveFiles(fileIds: number[], userId: number): Promise<Resolved
     })
     .from(files)
     .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
-    .where(and(inArray(files.id, fileIds), eq(userStorages.userId, userId), isNull(files.deletedAt))) as Promise<ResolvedFile[]>;
+    .where(and(inArray(files.id, fileIds), eq(userStorages.userId, userId), isNull(files.deletedAt), isNull(userStorages.deletedAt))) as Promise<ResolvedFile[]>;
 }
 
 /**
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
   const fileName = fileNameFor(recordTyped);
   const disposition = `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 
-  if (recordTyped.storageType === 's3') {
+  if (recordTyped.storageType === 's3' || recordTyped.storageType === 'qiniu') {
     const config = recordTyped.storageConfig ?? {};
     if (!config.bucket || !config.accessKey || !config.secretKey) {
       return NextResponse.json({ error: 'Storage Config Incomplete' }, { status: 500 });
@@ -171,9 +171,14 @@ export async function POST(request: NextRequest) {
     const userId = Number(session.user.id);
     const t = await getTranslations('api.download');
     const body = await request.json();
-    const fileIds = body.fileIds as number[];
+    const rawFileIds = body?.fileIds;
 
-    if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
+    if (!Array.isArray(rawFileIds) || rawFileIds.length === 0) {
+      return NextResponse.json({ error: t('missingParameters') }, { status: 400 });
+    }
+
+    const fileIds = Array.from(new Set(rawFileIds));
+    if (!fileIds.every((id) => Number.isInteger(id) && id > 0)) {
       return NextResponse.json({ error: t('missingParameters') }, { status: 400 });
     }
 
@@ -200,7 +205,7 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      if (record.storageType === 's3') {
+      if (record.storageType === 's3' || record.storageType === 'qiniu') {
         const config = record.storageConfig ?? {};
         if (!config.bucket || !config.accessKey || !config.secretKey) continue;
         try {

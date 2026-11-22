@@ -1,9 +1,14 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { stripLocalePrefix, withLocalePrefix } from '@/i18n/paths';
+import {
+  resolveSafeRedirectPath,
+  stripLocalePrefix,
+  withLocalePrefix,
+} from '@/i18n/paths';
 
 import { LoginFormFields } from '@/components/login-form-fields';
 import { GitHubSignInButton } from '@/components/github-signin-button';
+import { isGitHubAuthEnabled } from '@/app/lib/auth-config';
 import { cn } from '@/lib/utils';
 
 type LoginFormProps = React.ComponentPropsWithoutRef<'div'> & {
@@ -17,10 +22,7 @@ export async function LoginForm({
 }: LoginFormProps) {
   const t = await getTranslations('auth.login');
   const locale = await getLocale();
-  const trimmedRedirectTo = redirectTo.trim();
-  const rawRedirectTo = trimmedRedirectTo.startsWith('/')
-    ? trimmedRedirectTo
-    : '/gallery';
+  const rawRedirectTo = resolveSafeRedirectPath(redirectTo);
   const safeRedirectTo = stripLocalePrefix(rawRedirectTo);
   const githubRedirectTo = withLocalePrefix(safeRedirectTo, locale);
   const signupHref = `/signup?callbackUrl=${encodeURIComponent(safeRedirectTo)}`;
@@ -35,12 +37,16 @@ export async function LoginForm({
       </div>
       <div className='grid gap-6'>
         <LoginFormFields redirectTo={safeRedirectTo} />
-        <div className='relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border'>
-          <span className='relative z-10 bg-background px-2 text-muted-foreground'>
-            {t('divider')}
-          </span>
-        </div>
-        <GitHubSignInButton redirectTo={githubRedirectTo} />
+        {isGitHubAuthEnabled ? (
+          <>
+            <div className='relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border'>
+              <span className='relative z-10 bg-background px-2 text-muted-foreground'>
+                {t('divider')}
+              </span>
+            </div>
+            <GitHubSignInButton redirectTo={githubRedirectTo} />
+          </>
+        ) : null}
       </div>
       <div className='text-center text-sm'>
         {t('noAccount')}{' '}

@@ -63,6 +63,17 @@ function isPathInsideRoot(rootPath: string, targetPath: string) {
   );
 }
 
+/**
+ * 把数据库中的相对路径解析到存储根目录内；越界（`../`、绝对路径等）返回 null。
+ */
+export function resolvePathWithinRoot(rootPath: string, relativePath: string) {
+  if (!rootPath.trim()) return null;
+
+  const normalizedRoot = path.resolve(rootPath);
+  const resolvedPath = path.resolve(normalizedRoot, relativePath);
+  return isPathInsideRoot(normalizedRoot, resolvedPath) ? resolvedPath : null;
+}
+
 export type MediaFileInfo = {
   absolutePath: string;
   relativePath: string;

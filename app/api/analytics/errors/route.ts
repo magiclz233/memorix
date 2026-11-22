@@ -3,6 +3,13 @@ import { db } from '@/app/lib/drizzle';
 import { errorLogs } from '@/app/lib/schema';
 import { RateLimiter, getClientIdentifier } from '@/app/lib/rate-limit';
 
+/** 只保留可序列化的标量上下文，避免把任意对象写进 JSONB。 */
+function toLimitedString(value: unknown, maxLength: number) {
+  if (value === null || value === undefined) return null;
+  if (!['string', 'number', 'boolean'].includes(typeof value)) return null;
+  return String(value).slice(0, maxLength);
+}
+
 /** 埋点对游客开放，但只接受本源浏览器上报，防外部脚本投毒。 */
 function isBrowserTelemetry(request: NextRequest): boolean {
   const site = request.headers.get('sec-fetch-site');
@@ -36,9 +43,9 @@ export async function POST(request: NextRequest) {
       message: String(data.message || 'Unknown client error').slice(0, 1000),
       stack: data.stack ? String(data.stack).slice(0, 5000) : null,
       context: {
-        type: data.type,
-        filename: data.filename,
-        lineno: data.lineno,
+        type: toLimitedString(data.type, 100),
+        filename: toLimitedString(data.filename, 500),
+        lineno: toLimitedString(data.lineno, 20),
         source: 'client',
       },
     });

@@ -439,6 +439,9 @@ export async function fetchMediaLibraryPage({
   perPage,
   filters = {},
 }: MediaLibraryPageOptions) {
+  const safePerPage =
+    Number.isSafeInteger(perPage) && perPage > 0 ? Math.min(perPage, 100) : 24;
+  const requestedPage = Number.isSafeInteger(page) && page > 0 ? page : 1;
   const storageIds = filters.storageIds?.filter((id) => id > 0) ?? [];
   const mediaType = filters.mediaType ?? 'all';
   const publishStatus = filters.publishStatus ?? 'all';
@@ -634,9 +637,9 @@ export async function fetchMediaLibraryPage({
     .where(and(...conditions));
 
   const totalCount = Number(countResult[0]?.count ?? 0);
-  const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
-  const safePage = Math.min(Math.max(page, 1), totalPages);
-  const offset = (safePage - 1) * perPage;
+  const totalPages = Math.max(1, Math.ceil(totalCount / safePerPage));
+  const safePage = Math.min(requestedPage, totalPages);
+  const offset = (safePage - 1) * safePerPage;
 
   const records = await db
     .select({
@@ -681,7 +684,7 @@ export async function fetchMediaLibraryPage({
     .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
     .where(and(...conditions))
     .orderBy(...orderBy)
-    .limit(perPage)
+    .limit(safePerPage)
     .offset(offset);
 
   const items: MediaLibraryItem[] = records.map((record) => {

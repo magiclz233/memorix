@@ -8,17 +8,23 @@ import { promises as fs } from 'fs';
 import { revalidatePathForAllLocales, revalidateHomeCache } from './revalidate';
 import { headers } from 'next/headers';
 import { redirect } from '@/i18n/navigation';
-import { stripLocalePrefix } from '@/i18n/paths';
+import { resolveSafeRedirectPath, stripLocalePrefix } from '@/i18n/paths';
 import { APIError } from 'better-auth/api';
 import { auth } from '@/auth';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { db } from './drizzle'; // 引入 db
 import {
+  authAccounts,
+  authSessions,
+  authVerifications,
   collectionMedia,
   collections,
+  errorLogs,
   files,
+  performanceMetrics,
   photoMetadata,
+  shares,
   videoMetadata,
   userSettings,
   userStorages,
@@ -33,6 +39,7 @@ import { resolveS3Client } from './s3-helper';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { StorageConfigSchema } from './storage-config-schema';
 import { recordAuditLog } from './audit-log';
+import { config } from './config';
 
 export type ActionState = {
   success: boolean;
@@ -59,11 +66,7 @@ export async function authenticate(
   const email = formData.get('email');
   const password = formData.get('password');
   const redirectTo = formData.get('redirectTo');
-  const trimmedRedirectTo =
-    typeof redirectTo === 'string' ? redirectTo.trim() : '';
-  const rawRedirectTo = trimmedRedirectTo.startsWith('/')
-    ? trimmedRedirectTo
-    : '/gallery';
+  const rawRedirectTo = resolveSafeRedirectPath(redirectTo);
   const safeRedirectTo = stripLocalePrefix(rawRedirectTo);
 
   if (typeof email !== 'string' || typeof password !== 'string') {
@@ -110,12 +113,17 @@ export async function signup(
   if (settings?.publicAccess === false) {
     return { success: false, message: t('disabled'), errors: {} };
   }
+  const minPasswordLength = config.auth.minPasswordLength;
   const SignupSchema = z
     .object({
       name: z.string().trim().min(1, { message: t('nameRequired') }),
       email: z.string().trim().email({ message: t('emailInvalid') }),
-      password: z.string().min(6, { message: t('passwordMin') }),
-      confirmPassword: z.string().min(6, { message: t('confirmPasswordMin') }),
+      password: z.string().min(minPasswordLength, {
+        message: t('passwordMin', { min: minPasswordLength }),
+      }),
+      confirmPassword: z.string().min(minPasswordLength, {
+        message: t('confirmPasswordMin', { min: minPasswordLength }),
+      }),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: t('passwordMismatch'),
@@ -894,7 +902,7 @@ export async function toggleUserBan(formData: FormData) {
   const userId = Number(formData.get('userId'));
   const banned = formData.get('banned') === 'true'; // Target state
 
-  if (!userId) {
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
     return { success: false, message: t('invalidId') };
   }
 
@@ -927,7 +935,7 @@ export async function deleteUser(formData: FormData) {
   const admin = await requireAdminUser();
   const userId = Number(formData.get('userId'));
 
-  if (!userId) {
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
     return { success: false, message: t('invalidId') };
   }
 
@@ -936,8 +944,48 @@ export async function deleteUser(formData: FormData) {
   }
 
   try {
-    await db.delete(users).where(eq(users.id, userId));
-    
+    const target = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+    if (!target) {
+      return { success: false, message: t('invalidId') };
+    }
+
+    // 用户仍持有存储源时不允许删除：否则文件、缩略图与云端对象会变成无主数据。
+    const storage = await db.query.userStorages.findFirst({
+      where: eq(userStorages.userId, userId),
+    });
+    if (storage) {
+      return { success: false, message: t('storageDependency') };
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.delete(authSessions).where(eq(authSessions.userId, userId));
+      await tx.delete(authAccounts).where(eq(authAccounts.userId, userId));
+      await tx
+        .delete(authVerifications)
+        .where(eq(authVerifications.identifier, target.email));
+      await tx.delete(userSettings).where(eq(userSettings.userId, userId));
+      await tx.delete(shares).where(eq(shares.userId, userId));
+      await tx
+        .update(collections)
+        .set({ createdBy: null })
+        .where(eq(collections.createdBy, userId));
+      await tx
+        .update(collections)
+        .set({ updatedBy: null })
+        .where(eq(collections.updatedBy, userId));
+      await tx
+        .update(performanceMetrics)
+        .set({ userId: null })
+        .where(eq(performanceMetrics.userId, userId));
+      await tx
+        .update(errorLogs)
+        .set({ userId: null })
+        .where(eq(errorLogs.userId, userId));
+      await tx.delete(users).where(eq(users.id, userId));
+    });
+
     revalidatePathForAllLocales('/dashboard/settings/users');
     return { success: true, message: t('deleted') };
   } catch (error) {
@@ -1042,6 +1090,17 @@ export async function updatePhotoDetails(formData: FormData) {
   const nextTags = normalizeMediaTagInput(tags);
 
   try {
+    // 只允许修改当前管理员自己存储源下的文件，避免通过猜测 ID 越权修改他人媒体。
+    const ownedFile = await db
+      .select({ id: files.id })
+      .from(files)
+      .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+      .where(and(eq(files.id, fileId), eq(userStorages.userId, admin.id)))
+      .limit(1);
+    if (!ownedFile[0]) {
+      return { success: false, message: t('noStorage') };
+    }
+
     const updates: { title?: string; author?: string | null; updatedAt: Date } = {
       updatedAt: new Date(),
     };
@@ -1157,12 +1216,16 @@ export async function updateProfile(prevState: ActionState, formData: FormData) 
 
 export async function changePasswordAction(prevState: ActionState, formData: FormData) {
   const t = await getTranslations('actions.password');
-  const { config: appConfig } = await import('./config');
+  const minPasswordLength = config.auth.minPasswordLength;
   const ChangePasswordSchema = z
     .object({
       currentPassword: z.string().min(1, { message: t('currentRequired') }),
-      newPassword: z.string().min(appConfig.auth.minPasswordLength, { message: t('newMin') }),
-      confirmPassword: z.string().min(appConfig.auth.minPasswordLength, { message: t('confirmMin') }),
+      newPassword: z.string().min(minPasswordLength, {
+        message: t('newMin', { min: minPasswordLength }),
+      }),
+      confirmPassword: z.string().min(minPasswordLength, {
+        message: t('confirmMin', { min: minPasswordLength }),
+      }),
     })
     .refine((data) => data.newPassword === data.confirmPassword, {
       message: t('mismatch'),
@@ -1289,7 +1352,7 @@ export async function deleteMediaFiles(fileIds: number[]) {
               });
             }
           }
-        } else if (file.storageType === 's3') {
+        } else if (file.storageType === 's3' || file.storageType === 'qiniu') {
           // S3 文件此前只删 DB 记录，桶对象残留会持续产生存储费用且可被重新扫回。
           const config = (file.storageConfig ?? {}) as Record<string, string | null | undefined>;
           if (config.bucket && config.accessKey && config.secretKey) {

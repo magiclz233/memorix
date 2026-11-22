@@ -8,10 +8,22 @@ import {
   type MediaLibrarySort,
 } from '@/app/lib/data';
 
-const parseNumber = (value: string | null, fallback: number) => {
+const parsePositiveInteger = (
+  value: string | null,
+  fallback: number,
+  maximum = Number.MAX_SAFE_INTEGER,
+) => {
   if (!value) return fallback;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return Number.isSafeInteger(parsed) && parsed > 0
+    ? Math.min(parsed, maximum)
+    : fallback;
+};
+
+const parseStorageId = (value: string | null) => {
+  if (!value) return 0;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 0;
 };
 
 export async function GET(request: Request) {
@@ -28,12 +40,12 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
-  const page = parseNumber(url.searchParams.get('page'), 1);
-  const perPage = parseNumber(url.searchParams.get('limit'), 24);
+  const page = parsePositiveInteger(url.searchParams.get('page'), 1, 1_000_000);
+  const perPage = parsePositiveInteger(url.searchParams.get('limit'), 24, 100);
 
   const storages = await fetchUserStorages(user.id);
   const category = url.searchParams.get('category') || 'all';
-  const storageId = parseNumber(url.searchParams.get('storageId'), 0);
+  const storageId = parseStorageId(url.searchParams.get('storageId'));
 
   const categoryStorageIds =
     category === 'all' ? [] : storages.filter((s) => s.type === category).map((s) => s.id);

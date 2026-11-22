@@ -269,8 +269,12 @@ export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
   checks: {
     database: { status: 'up' | 'down'; latency?: number };
-    redis: { status: 'up' | 'down'; latency?: number };
-    storage: { status: 'up' | 'down'; available?: boolean };
+    redis: { status: 'up' | 'down'; latency?: number; configured?: boolean };
+    storage: {
+      status: 'up' | 'down';
+      available?: boolean;
+      configured?: boolean;
+    };
   };
   timestamp: Date;
 }

@@ -2,17 +2,20 @@
 
 import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
+import { resolveSafeRedirectPath } from '@/i18n/paths';
 import { useTranslations } from 'next-intl';
 
 type GitHubSignInButtonProps = {
   redirectTo?: string;
+  label?: string;
 };
 
 export function GitHubSignInButton({
   redirectTo = '/gallery',
+  label,
 }: GitHubSignInButtonProps) {
   const t = useTranslations('auth.login');
-  const safeRedirectTo = redirectTo.startsWith('/') ? redirectTo : '/gallery';
+  const safeRedirectTo = resolveSafeRedirectPath(redirectTo);
 
   const handleClick = () => {
     void authClient.signIn.social({
@@ -34,7 +37,7 @@ export function GitHubSignInButton({
           fill='currentColor'
         />
       </svg>
-      {t('githubSignIn')}
+      {label ?? t('githubSignIn')}
     </Button>
   );
 }

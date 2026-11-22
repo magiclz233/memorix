@@ -76,7 +76,7 @@
       "passwordLabel": "Password",
       "hidePassword": "Hide password",
       "showPassword": "Show password",
-      "passwordHint": "At least 6 characters.",
+      "passwordHint": "At least {min} characters.",
       "confirmPasswordLabel": "Confirm password",
       "hideConfirmPassword": "Hide confirm password",
       "showConfirmPassword": "Show confirm password",
@@ -644,7 +644,8 @@
       "fileHashVerificationFailed": "File hash verification failed",
       "missingUploadId": "Missing uploadId",
       "failedToReadDirectory": "Failed to read directory",
-      "failedToReadFileInfo": "Failed to read file info"
+      "failedToReadFileInfo": "Failed to read file info",
+      "invalidDateParameter": "Parameter {name} is not a valid date"
     }
   },
   "dashboard": {
@@ -671,7 +672,8 @@
       "processed": "Processed {processed}/{total} items",
       "clearedMissing": "Cleared {count} stale records",
       "softDeletedMissing": "Marked {count} missing files as deleted (recoverable from trash)",
-      "scanSafetyAbort": "Scan result looks abnormal (found {found}, existing {existing}); skipped cleanup to protect data"
+      "scanSafetyAbort": "Scan result looks abnormal (found {found}, existing {existing}); skipped cleanup to protect data",
+      "missingCleanupSkipped": "Some directories could not be read; skipped cleanup of {count} unscanned records"
     },
     "sidebar": {
       "overview": "Overview",
@@ -1392,7 +1394,7 @@
           "currentPassword": "Current Password",
           "currentPasswordPlaceholder": "Enter current password",
           "newPassword": "New Password",
-          "newPasswordPlaceholder": "Enter new password (min 6 chars)",
+          "newPasswordPlaceholder": "Enter new password (min {min} chars)",
           "confirmPassword": "Confirm Password",
           "confirmPasswordPlaceholder": "Re-enter new password",
           "cancel": "Cancel",
@@ -1509,8 +1511,8 @@
     "signup": {
       "nameRequired": "Please enter your name.",
       "emailInvalid": "Please enter a valid email.",
-      "passwordMin": "Password must be at least 6 characters.",
-      "confirmPasswordMin": "Please confirm your password.",
+      "passwordMin": "Password must be at least {min} characters.",
+      "confirmPasswordMin": "Please enter at least {min} characters again.",
       "passwordMismatch": "Passwords do not match.",
       "checkForm": "Please check the form.",
       "emailTaken": "Email already registered.",
@@ -1598,7 +1600,8 @@
       "enabled": "User enabled.",
       "selfDelete": "Cannot delete yourself.",
       "deleted": "User deleted.",
-      "deleteFailed": "Failed to delete user."
+      "deleteFailed": "Failed to delete user.",
+      "storageDependency": "Delete all storage configurations owned by this user before deleting the user."
     },
     "profile": {
       "emailTaken": "Email already in use.",
@@ -1607,8 +1610,8 @@
     },
     "password": {
       "currentRequired": "Please enter current password.",
-      "newMin": "New password must be at least 6 characters.",
-      "confirmMin": "Please confirm new password.",
+      "newMin": "New password must be at least {min} characters.",
+      "confirmMin": "Please enter at least {min} characters again.",
       "mismatch": "Passwords do not match.",
       "checkInput": "Please check your input.",
       "success": "Password changed, please sign in with new password.",

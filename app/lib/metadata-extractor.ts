@@ -13,6 +13,7 @@ import { and, eq, isNull, lt } from 'drizzle-orm';
 import {
   getStorageCacheRoot,
   readPhotoMetadata,
+  resolvePathWithinRoot,
 } from './storage';
 import { generateImageThumbnail } from './image-preview';
 import { generateVideoPoster, probeVideoMetadata } from './video';
@@ -271,8 +272,14 @@ export async function retryFailedExtractions(maxAttempts: number = 5) {
       }
 
       const storageConfig = storage.config as Record<string, unknown>;
-      const rootPath = storageConfig.rootPath as string;
-      const absolutePath = path.join(rootPath, file.path);
+      const rootPath =
+        typeof storageConfig.rootPath === 'string' ? storageConfig.rootPath : '';
+      const absolutePath = resolvePathWithinRoot(rootPath, file.path);
+      if (!absolutePath) {
+        await recordExtractionFailure(file.id, 'Invalid storage file path');
+        results.failed += 1;
+        continue;
+      }
 
       await extractMetadataAsync(file.id, absolutePath, file.mediaType, file.userStorageId);
       results.succeeded += 1;
