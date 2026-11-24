@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import {
   Check,
@@ -36,6 +36,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { showError, showSuccess } from '@/app/lib/toast-utils';
 import { cn } from '@/lib/utils';
 import { ListTabs } from '@/app/ui/shared/list-tabs';
@@ -88,6 +98,8 @@ export function ShareManager({ initialShares, selectableMedia, now }: Props) {
   const [allowDownload, setAllowDownload] = useState(true);
   const [creating, setCreating] = useState(false);
   const [revokingId, setRevokingId] = useState<number | null>(null);
+  const [revokeConfirmId, setRevokeConfirmId] = useState<number | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -100,7 +112,13 @@ export function ShareManager({ initialShares, selectableMedia, now }: Props) {
   );
 
   const filteredShares = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase();
     return shares.filter((share) => {
+      if (keyword) {
+        const matchName = (share.name ?? '').toLowerCase().includes(keyword);
+        const matchToken = share.token.toLowerCase().includes(keyword);
+        if (!matchName && !matchToken) return false;
+      }
       const expired = share.expiresAt
         ? new Date(share.expiresAt).getTime() <= now
         : false;
@@ -110,7 +128,7 @@ export function ShareManager({ initialShares, selectableMedia, now }: Props) {
       if (shareFilter === 'protected') return share.hasPassword;
       return true;
     });
-  }, [shares, shareFilter, now]);
+  }, [shares, shareFilter, searchKeyword, now]);
 
   const pagination = useListPagination(filteredShares.length);
   const pagedShares = pagination.slice(filteredShares);
@@ -177,8 +195,14 @@ export function ShareManager({ initialShares, selectableMedia, now }: Props) {
     }
   }
 
-  async function revoke(id: number) {
-    if (!window.confirm(t('revokeConfirm'))) return;
+  function revoke(id: number) {
+    setRevokeConfirmId(id);
+  }
+
+  async function confirmRevoke() {
+    if (revokeConfirmId === null) return;
+    const id = revokeConfirmId;
+    setRevokeConfirmId(null);
     setRevokingId(id);
     try {
       const res = await fetch(`/api/shares/${id}`, { method: 'DELETE' });
@@ -221,12 +245,44 @@ export function ShareManager({ initialShares, selectableMedia, now }: Props) {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Input
+          value={searchKeyword}
+          onChange={(e) => {
+            setSearchKeyword(e.target.value);
+            pagination.setPage(1);
+          }}
+          placeholder={t('namePlaceholder')}
+          className="max-w-xs"
+        />
         <Button onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           {t('newShare')}
         </Button>
       </div>
+
+      <AlertDialog
+        open={revokeConfirmId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevokeConfirmId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('revoke')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('revokeConfirm')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void confirmRevoke()}
+              className="bg-rose-600 text-white hover:bg-rose-700"
+            >
+              {t('revoke')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {shares.length > 0 ? (
         <ListTabs

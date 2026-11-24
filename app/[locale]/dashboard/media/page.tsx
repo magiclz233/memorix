@@ -1,6 +1,8 @@
 import { Link } from '@/i18n/navigation';
+import { HardDrive, UploadCloud } from 'lucide-react';
 import { getRequestSession } from '@/app/lib/auth-session';
 import {
+  fetchCollections,
   fetchHeroPhotoIdsByUser,
   fetchMediaLibraryPage,
   fetchUserStorages,
@@ -8,6 +10,7 @@ import {
 } from '@/app/lib/data';
 import { getSessionUserId } from '@/app/lib/session-user';
 import { parsePageNumber, resolveListPageSize } from '@/app/lib/list-view';
+import { AdminPageHeader } from '@/app/ui/admin/shared/admin-page-header';
 import { MediaLibraryManager } from '@/app/ui/admin/media/media-library';
 import { ServerListPagination } from '@/app/ui/shared/list-pagination';
 import { Button } from '@/components/ui/button';
@@ -139,10 +142,16 @@ export default async function Page({ searchParams }: PageProps) {
 
   const sizeMinMb = parseNumber(resolvedSearchParams?.sizeMin);
   const sizeMaxMb = parseNumber(resolvedSearchParams?.sizeMax);
-  const [storages, heroIds] = await Promise.all([
+  const [storages, heroIds, rawCollections] = await Promise.all([
     fetchUserStorages(userId),
     fetchHeroPhotoIdsByUser(userId),
+    fetchCollections({ status: 'all' }),
   ]);
+  const collectionOptions = rawCollections.map((c) => ({
+    id: c.id,
+    title: c.title,
+    type: c.type as 'mixed' | 'photo' | 'video',
+  }));
 
   // Helper to get storage IDs by category
   const getStorageIdsByCategory = (category: string) => {
@@ -154,12 +163,14 @@ export default async function Page({ searchParams }: PageProps) {
 
   const category = resolvedSearchParams?.category ?? 'all';
   
-  // If storageId is provided, use it. 
-  // If not, but category is provided (and not 'all'), use all storage IDs in that category.
-  let finalStorageIds = selectedStorageIds;
-  if (finalStorageIds.length === 0 && category !== 'all') {
-    finalStorageIds = getStorageIdsByCategory(category);
-  }
+  // 区分「不限存储源（undefined）」与「选了某分类但该分类下暂无实例（[]）」：
+  // 传 undefined 表示不加存储源过滤；传 [] 会短路返回 0 条而非误返回全库。
+  const finalStorageIds =
+    selectedStorageIds.length > 0
+      ? selectedStorageIds
+      : category !== 'all'
+        ? getStorageIdsByCategory(category)
+        : undefined;
 
   const { items, totalPages, totalCount, page: safePage } = await fetchMediaLibraryPage({
     userId,
@@ -231,40 +242,41 @@ export default async function Page({ searchParams }: PageProps) {
   );
 
   return (
-    <main className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          {t('title')}
-        </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          {t('description')}
-        </p>
-      </header>
-
-      {totalCount === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-10 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
-          {hasFilters
-            ? t('empty.noMatches')
-            : t('empty.noContent')}
-          <div className="mt-4 flex justify-center gap-3">
-            {hasFilters ? (
-              <Button asChild variant="ghost">
-                <Link href="/dashboard/media">{t('filters.clear')}</Link>
-              </Button>
-            ) : null}
-            <Button asChild variant="outline">
-              <Link href="/dashboard/storage">{t('empty.goToStorage')}</Link>
+    <main className="space-y-6 pb-24">
+      <AdminPageHeader
+        title={t('title')}
+        description={t('description')}
+        meta={
+          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 font-mono text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+            {t('library.totalCount', { count: totalCount })}
+          </span>
+        }
+        actions={
+          <>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard/storage">
+                <HardDrive className="h-4 w-4" />
+                <span>{t('empty.goToStorage')}</span>
+              </Link>
             </Button>
-          </div>
-        </div>
-      ) : (
-        <MediaLibraryManager
-          items={items}
-          heroIds={heroIds}
-          totalCount={totalCount}
-          storages={storages}
-        />
-      )}
+            <Button asChild size="sm" className="bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600">
+              <Link href="/dashboard/upload/create">
+                <UploadCloud className="h-4 w-4" />
+                <span>{t('library.uploadAction')}</span>
+              </Link>
+            </Button>
+          </>
+        }
+      />
+
+      <MediaLibraryManager
+        items={items}
+        heroIds={heroIds}
+        totalCount={totalCount}
+        storages={storages}
+        collections={collectionOptions}
+        hasFilters={hasFilters}
+      />
 
       {totalCount > 0 ? (
         <ServerListPagination

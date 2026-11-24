@@ -517,8 +517,10 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
 
   const checkAndProceed = async (type: 'disable' | 'delete', storageId: number) => {
     const result = await checkStorageDependencies(storageId);
-    if (result.success && result.dependencies && result.dependencies.length > 0) {
-      setAlertDependencies(result.dependencies);
+    const deps = result.success && result.dependencies ? result.dependencies : [];
+    // 删除存储源无论是否存在作品集依赖都必须经过二次确认，防止误删配置。
+    if (type === 'delete' || deps.length > 0) {
+      setAlertDependencies(deps);
       setPendingAction({ type, storageId });
       setAlertOpen(true);
     } else {
@@ -528,10 +530,14 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
 
   const performAction = (type: 'disable' | 'delete', storageId: number) => {
     startTransition(async () => {
-      if (type === 'disable') {
-        await setUserStorageDisabled(storageId, true);
-      } else {
-        await deleteUserStorage(storageId);
+      const result =
+        type === 'disable'
+          ? await setUserStorageDisabled(storageId, true)
+          : await deleteUserStorage(storageId);
+      if (result?.success) {
+        showSuccess(result.message);
+      } else if (result?.message) {
+        showError(result.message);
       }
       setAlertOpen(false);
       setPendingAction(null);
@@ -545,12 +551,23 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
 
     if (isDisabled) {
       startTransition(async () => {
-        await setUserStorageDisabled(storage.id, false);
+        const result = await setUserStorageDisabled(storage.id, false);
+        if (result?.success) showSuccess(result.message);
+        else if (result?.message) showError(result.message);
         router.refresh();
       });
     } else {
       checkAndProceed('disable', storage.id);
     }
+  };
+
+  const handleSetStoragePublish = (storageId: number, pub: boolean) => {
+    startTransition(async () => {
+      const result = await setStoragePublished(storageId, pub);
+      if (result?.success) showSuccess(result.message);
+      else if (result?.message) showError(result.message);
+      router.refresh();
+    });
   };
 
   const confirmAlert = () => {
@@ -595,19 +612,47 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
               {t('view.modes.list')}
             </Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => setShowLogs((prev) => !prev)}
+            >
+              <Terminal className="mr-2 h-4 w-4" />
+              {t('files.scan.logs')}
+            </Button>
             <Button variant="outline" className="rounded-full" onClick={handleOpenCache}>
               <RefreshCw className="mr-2 h-4 w-4" />
               {t('view.cache.button')}
             </Button>
-            <Button className="rounded-full bg-indigo-600 hover:bg-indigo-700" onClick={() => { setEditingStorage(null); setIsModalOpen(true); }}>
+            <Button className="rounded-full bg-indigo-600 text-white hover:bg-indigo-700" onClick={() => { setEditingStorage(null); setIsModalOpen(true); }}>
               <PlusCircle className="mr-2 h-4 w-4" />
               {t('view.actions.add')}
             </Button>
           </div>
         </div>
 
-        {viewMode === 'grid' ? (
+        {storages.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-12 text-center dark:border-zinc-800 dark:bg-zinc-900/60">
+            <HardDrive className="mx-auto mb-3 h-8 w-8 text-zinc-400" />
+            <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+              {t('view.emptyTitle')}
+            </p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              {t('view.emptyDesc')}
+            </p>
+            <Button
+              className="mt-4 rounded-full bg-indigo-600 text-white hover:bg-indigo-700"
+              onClick={() => {
+                setEditingStorage(null);
+                setIsModalOpen(true);
+              }}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {t('view.actions.add')}
+            </Button>
+          </div>
+        ) : viewMode === 'grid' ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {storages.map((storage) => (
               <StorageCard
@@ -619,34 +664,36 @@ export function StorageView({ storages }: { storages: StorageItem[] }) {
                 onRetry={() => retryScan(storage.id)}
                 onDelete={() => checkAndProceed('delete', storage.id)}
                 onToggleDisable={() => handleToggleDisable(storage)}
-                onSetPublish={(pub: boolean) => setStoragePublished(storage.id, pub).then(() => router.refresh())}
+                onSetPublish={(pub: boolean) => handleSetStoragePublish(storage.id, pub)}
                 scanState={scanningStates[storage.id]}
               />
             ))}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="grid grid-cols-12 gap-4 border-b border-zinc-200 bg-zinc-50/50 px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50">
-              <div className="col-span-3">{t('view.headers.name')}</div>
-              <div className="col-span-2">{t('view.headers.type')}</div>
-              <div className="col-span-4">{t('view.headers.path')}</div>
-              <div className="col-span-1">{t('view.headers.status')}</div>
-              <div className="col-span-2 text-right">{t('view.headers.actions')}</div>
+          <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="min-w-[680px]">
+              <div className="grid grid-cols-12 gap-4 border-b border-zinc-200 bg-zinc-50/50 px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50">
+                <div className="col-span-3">{t('view.headers.name')}</div>
+                <div className="col-span-2">{t('view.headers.type')}</div>
+                <div className="col-span-4">{t('view.headers.path')}</div>
+                <div className="col-span-1">{t('view.headers.status')}</div>
+                <div className="col-span-2 text-right">{t('view.headers.actions')}</div>
+              </div>
+              {storages.map((storage) => (
+                <StorageRow
+                  key={storage.id}
+                  storage={storage}
+                  onEdit={() => handleEdit(storage)}
+                  onScan={(mode: ScanMode) => handleScan(storage.id, mode)}
+                  onCancel={() => cancelScan(storage.id)}
+                  onRetry={() => retryScan(storage.id)}
+                  onDelete={() => checkAndProceed('delete', storage.id)}
+                  onToggleDisable={() => handleToggleDisable(storage)}
+                  onSetPublish={(pub: boolean) => handleSetStoragePublish(storage.id, pub)}
+                  scanState={scanningStates[storage.id]}
+                />
+              ))}
             </div>
-            {storages.map((storage) => (
-              <StorageRow
-                key={storage.id}
-                storage={storage}
-                onEdit={() => handleEdit(storage)}
-                onScan={(mode: ScanMode) => handleScan(storage.id, mode)}
-                onCancel={() => cancelScan(storage.id)}
-                onRetry={() => retryScan(storage.id)}
-                onDelete={() => checkAndProceed('delete', storage.id)}
-                onToggleDisable={() => handleToggleDisable(storage)}
-                onSetPublish={(pub: boolean) => setStoragePublished(storage.id, pub).then(() => router.refresh())}
-                scanState={scanningStates[storage.id]}
-              />
-            ))}
           </div>
         )}
 

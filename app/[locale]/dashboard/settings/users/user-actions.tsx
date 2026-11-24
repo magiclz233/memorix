@@ -2,10 +2,11 @@
 
 import { useTransition, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Trash2, Ban, CheckCircle, ShieldCheck, UserCircle } from 'lucide-react';
 import { toggleUserBan, deleteUser, setUserRole } from '@/app/lib/actions';
-import { showError } from '@/app/lib/toast-utils';
+import { showError, showSuccess } from '@/app/lib/toast-utils';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ interface SetRoleProps extends UserActionProps {
 
 export function ToggleBanButton({ userId, isBanned, disabled }: ToggleBanProps) {
   const t = useTranslations('dashboard.settings.users.actions');
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
 
@@ -41,7 +43,10 @@ export function ToggleBanButton({ userId, isBanned, disabled }: ToggleBanProps) 
       formData.append('banned', (!isBanned).toString());
       
       const result = await toggleUserBan(formData);
-      if (!result.success) {
+      if (result.success) {
+        showSuccess(result.message);
+        router.refresh();
+      } else {
         showError(result.message);
       }
       setOpen(false);
@@ -83,6 +88,7 @@ export function ToggleBanButton({ userId, isBanned, disabled }: ToggleBanProps) 
 
 export function DeleteUserButton({ userId, disabled }: UserActionProps) {
   const t = useTranslations('dashboard.settings.users.actions');
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
 
@@ -92,7 +98,10 @@ export function DeleteUserButton({ userId, disabled }: UserActionProps) {
       formData.append('userId', userId.toString());
       
       const result = await deleteUser(formData);
-      if (!result.success) {
+      if (result.success) {
+        showSuccess(result.message);
+        router.refresh();
+      } else {
         showError(result.message);
       }
       setOpen(false);
@@ -132,6 +141,7 @@ export function DeleteUserButton({ userId, disabled }: UserActionProps) {
 
 export function SetRoleButton({ userId, currentRole, disabled }: SetRoleProps) {
   const t = useTranslations('dashboard.settings.users.actions');
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const nextRole = currentRole === 'admin' ? 'user' : 'admin';
@@ -143,7 +153,10 @@ export function SetRoleButton({ userId, currentRole, disabled }: SetRoleProps) {
       formData.append('role', nextRole);
       
       const result = await setUserRole(formData);
-      if (!result.success) {
+      if (result.success) {
+        showSuccess(result.message);
+        router.refresh();
+      } else {
         showError(result.message);
       }
       setOpen(false);

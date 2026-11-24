@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import {
@@ -54,9 +54,14 @@ export function useListPagination(
     );
   }, []);
 
-  // 筛选后总数变少时，返回的 page 会自动收敛到最后一页；
-  // 用户下一次翻页/改每页数量时再把 URL 同步为收敛后的值。
+  // 筛选后总数变少导致 safePage 收敛时，自动同步清理 URL 中的越界 page 参数。
   const safePage = Math.min(Math.max(page, 1), totalPages);
+
+  useEffect(() => {
+    if (safePage !== page) {
+      syncUrl(safePage, pageSize);
+    }
+  }, [page, pageSize, safePage, syncUrl]);
 
   const setPage = useCallback(
     (nextPage: number) => {

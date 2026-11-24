@@ -99,9 +99,9 @@ export function ListPagination({
     >
       <div className='flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-500 dark:text-zinc-400'>
         {typeof totalCount === 'number' ? (
-          <span>{t('total', { count: totalCount })}</span>
+          <span className='font-mono tabular-nums'>{t('total', { count: totalCount })}</span>
         ) : null}
-        <span>{t('pageIndicator', { page: safePage, total: safeTotalPages })}</span>
+        <span className='font-mono tabular-nums'>{t('pageIndicator', { page: safePage, total: safeTotalPages })}</span>
         <label className='flex items-center gap-1.5'>
           <span>{t('perPage')}</span>
           <Select
@@ -280,7 +280,7 @@ export function ServerListPagination({
     );
     const query = params.toString();
     startTransition(() => {
-      router.replace(query ? `${pathname}?${query}` : pathname);
+      router.push(query ? `${pathname}?${query}` : pathname, { scroll: true });
     });
   };
 

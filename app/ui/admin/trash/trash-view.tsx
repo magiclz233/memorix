@@ -13,6 +13,16 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ServerListPagination } from '@/app/ui/shared/list-pagination';
 import { showSuccess, showError } from '@/app/lib/toast-utils';
 import {
@@ -126,6 +136,12 @@ export function TrashView({ items, total, page, pageSize, locale }: Props) {
 
   return (
     <div className='space-y-5'>
+      {/* 30 天自动清理策略提醒 */}
+      <div className='flex items-center gap-2 rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-2.5 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300'>
+        <AlertTriangle className='h-4 w-4 shrink-0' />
+        <span>{t('retentionNotice')}</span>
+      </div>
+
       {/* 批量操作栏 */}
       <div className='flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950'>
         <div className='flex items-center gap-3'>
@@ -249,37 +265,37 @@ export function TrashView({ items, total, page, pageSize, locale }: Props) {
         />
       ) : null}
 
-      {/* 彻底删除确认弹窗 */}
-      {purgeConfirmIds && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'>
-          <div className='w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-950'>
-            <div className='mb-3 flex items-center gap-2 text-rose-600'>
+      {/* 彻底删除确认弹窗（Shadcn AlertDialog） */}
+      <AlertDialog
+        open={purgeConfirmIds !== null}
+        onOpenChange={(open) => {
+          if (!open) setPurgeConfirmIds(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className='flex items-center gap-2 text-rose-600'>
               <AlertTriangle className='h-5 w-5' />
-              <h3 className='text-base font-bold'>{t('purgeConfirmTitle')}</h3>
-            </div>
-            <p className='text-sm text-muted-foreground'>{t('purgeConfirmBody')}</p>
-            <p className='mt-1 text-xs font-medium text-rose-500'>
-              {t('purgeConfirmCount', { count: purgeConfirmIds.length })}
-            </p>
-            <div className='mt-5 flex justify-end gap-2'>
-              <Button
-                variant='ghost'
-                className='rounded-full'
-                onClick={() => setPurgeConfirmIds(null)}
-              >
-                {t('cancel')}
-              </Button>
-              <Button
-                variant='destructive'
-                className='rounded-full'
-                onClick={confirmPurge}
-              >
-                {t('purgeConfirmAction')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+              <span>{t('purgeConfirmTitle')}</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('purgeConfirmBody')}
+              <span className='mt-2 block font-medium text-rose-500'>
+                {t('purgeConfirmCount', { count: purgeConfirmIds?.length ?? 0 })}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmPurge}
+              className='bg-rose-600 text-white hover:bg-rose-700'
+            >
+              {t('purgeConfirmAction')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

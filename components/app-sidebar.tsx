@@ -3,6 +3,7 @@
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import {
+  Activity,
   FolderKanban,
   HardDrive,
   Trash2,
@@ -18,7 +19,7 @@ import {
 } from 'lucide-react';
 
 import { signOutAction } from '@/app/lib/actions';
-import { NavMain } from '@/components/nav-main';
+import { NavMain, type NavGroup } from '@/components/nav-main';
 import { ModeToggle } from '@/components/ui/admin/mode-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LocaleSwitcher } from '@/components/locale-switcher';
@@ -42,25 +43,48 @@ type AdminSidebarUser = {
 
 type AdminSidebarProps = React.ComponentProps<typeof Sidebar> & {
   user?: AdminSidebarUser | null;
+  siteName?: string;
 };
 
 export function AdminSidebar({
   user,
+  siteName = 'Memorix',
   ...props
 }: AdminSidebarProps) {
   const t = useTranslations('dashboard.sidebar');
 
-  const navItems = [
-    { title: t('overview'), url: '/dashboard', icon: LayoutDashboard },
-    { title: t('media'), url: '/dashboard/media', icon: Image },
-    { title: t('collections'), url: '/dashboard/collections', icon: FolderKanban },
-    { title: t('upload'), url: '/dashboard/upload', icon: UploadCloud },
-    { title: t('storage'), url: '/dashboard/storage', icon: HardDrive },
-    { title: t('shares'), url: '/dashboard/shares', icon: Share2 },
-    { title: t('trash'), url: '/dashboard/trash', icon: Trash2 },
-    { title: t('dedup'), url: '/dashboard/dedup', icon: Fingerprint },
-    { title: t('systemSettings'), url: '/dashboard/settings/system', icon: Settings },
-    { title: t('userManagement'), url: '/dashboard/settings/users', icon: Users },
+  const navGroups: NavGroup[] = [
+    {
+      label: t('groups.overview'),
+      items: [
+        { title: t('overview'), url: '/dashboard', icon: LayoutDashboard, exact: true },
+      ],
+    },
+    {
+      label: t('groups.content'),
+      items: [
+        { title: t('media'), url: '/dashboard/media', icon: Image },
+        { title: t('collections'), url: '/dashboard/collections', icon: FolderKanban },
+        { title: t('upload'), url: '/dashboard/upload', icon: UploadCloud },
+      ],
+    },
+    {
+      label: t('groups.organize'),
+      items: [
+        { title: t('shares'), url: '/dashboard/shares', icon: Share2 },
+        { title: t('dedup'), url: '/dashboard/dedup', icon: Fingerprint },
+        { title: t('trash'), url: '/dashboard/trash', icon: Trash2 },
+      ],
+    },
+    {
+      label: t('groups.system'),
+      items: [
+        { title: t('storage'), url: '/dashboard/storage', icon: HardDrive },
+        { title: t('monitoring'), url: '/dashboard/monitoring', icon: Activity },
+        { title: t('userManagement'), url: '/dashboard/settings/users', icon: Users },
+        { title: t('systemSettings'), url: '/dashboard/settings/system', icon: Settings },
+      ],
+    },
   ];
 
   return (
@@ -73,12 +97,12 @@ export function AdminSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg">
               <Link href="/dashboard">
-                <div className="flex size-9 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-sm">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm">
                   <LayoutDashboard className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold text-zinc-900 dark:text-zinc-100">
-                    Memorix
+                    {siteName}
                   </span>
                   <span className="truncate text-xs text-zinc-500 dark:text-zinc-400">
                     {t('adminConsole')}
@@ -91,25 +115,31 @@ export function AdminSidebar({
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>
-        <NavMain items={navItems} />
+        <NavMain groups={navGroups} />
       </SidebarContent>
       <SidebarFooter className="gap-3">
-        <div className="flex items-center gap-2 p-2">
-          <Avatar className="h-8 w-8 rounded-lg">
-            {user?.avatar ? (
-              <AvatarImage src={user.avatar} alt={user.name} />
-            ) : null}
-            <AvatarFallback className="rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-              {(user?.name ?? 'A').slice(0, 1).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{user?.name ?? 'Administrator'}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {user?.email ?? ''}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:p-0">
+          <Link
+            href="/dashboard/settings/profile"
+            title={t('profile')}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-lg p-1 transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:flex-none"
+          >
+            <Avatar className="h-8 w-8 shrink-0 rounded-lg">
+              {user?.avatar ? (
+                <AvatarImage src={user.avatar} alt={user.name} />
+              ) : null}
+              <AvatarFallback className="rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                {(user?.name ?? 'A').slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+              <p className="truncate text-sm font-medium">{user?.name ?? 'Administrator'}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {user?.email ?? ''}
+              </p>
+            </div>
+          </Link>
+          <div className="flex items-center gap-1.5 group-data-[collapsible=icon]:flex-col">
             <LocaleSwitcher
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-input bg-background text-[10px] font-semibold text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"
               itemClassName="rounded-sm px-2 py-1 text-sm transition hover:bg-accent hover:text-accent-foreground"

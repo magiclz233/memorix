@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { Link } from '@/i18n/navigation';
 
 import { FileItem } from '@/app/ui/admin/upload/file-item';
 import { useUploadTasks } from '@/app/ui/hooks/use-upload-tasks';
@@ -191,8 +192,8 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         )}
 
         <div className="flex justify-end">
-          <Button type="button" variant="outline">
-            {t('actions.manageFiles')}
+          <Button asChild variant="outline">
+            <Link href="/dashboard/media">{t('actions.manageFiles')}</Link>
           </Button>
         </div>
       </section>

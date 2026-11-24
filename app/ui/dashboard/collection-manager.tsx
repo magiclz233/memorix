@@ -38,7 +38,20 @@ import {
   addMediaToCollection,
   removeMediaFromCollection,
   reorderMedia,
+  toggleCollectionStatus,
 } from '@/app/lib/actions/unified-collections';
+import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { showError, showSuccess } from '@/app/lib/toast-utils';
 import { Plus, ArrowLeft, Images, PlusCircle, LayoutGrid } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { Gallery25 } from '@/components/gallery25';
@@ -66,6 +79,7 @@ type CollectionManagerProps = {
     id: number;
     title: string;
     type: 'mixed' | 'photo' | 'video';
+    status?: string;
   };
   initialItems: CollectionItem[];
 };
@@ -79,6 +93,10 @@ export function CollectionManager({
   const [items, setItems] = useState(initialItems);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
+  const [status, setStatus] = useState<'draft' | 'published'>(
+    collection.status === 'published' ? 'published' : 'draft',
+  );
+  const [removingFileId, setRemovingFileId] = useState<number | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -96,6 +114,7 @@ export function CollectionManager({
       const oldIndex = items.findIndex((item) => item.file.id === active.id);
       const newIndex = items.findIndex((item) => item.file.id === over?.id);
       if (oldIndex === -1 || newIndex === -1) return;
+      const previousItems = items;
       const newItems = arrayMove(items, oldIndex, newIndex);
       const reorderedItems = newItems.map((item, index) => ({
         ...item,
@@ -107,15 +126,49 @@ export function CollectionManager({
           fileId: item.file.id,
           sortOrder: item.sortOrder,
         }));
-        await reorderMedia(collection.id, updates);
+        const result = await reorderMedia(collection.id, updates);
+        if (result && 'message' in result && result.message) {
+          setItems(previousItems);
+          showError(result.message);
+        }
       });
     }
   };
 
+  const handleToggleStatus = (checked: boolean) => {
+    const nextStatus = checked ? 'published' : 'draft';
+    const prevStatus = status;
+    setStatus(nextStatus);
+    startTransition(async () => {
+      const result = await toggleCollectionStatus(collection.id, nextStatus);
+      if (result.success) {
+        showSuccess(nextStatus === 'published' ? t('status.published') : t('status.draft'));
+        router.refresh();
+      } else {
+        setStatus(prevStatus);
+        showError(result.message);
+      }
+    });
+  };
+
   const handleRemove = (fileId: number) => {
+    setRemovingFileId(fileId);
+  };
+
+  const confirmRemove = () => {
+    if (removingFileId === null) return;
+    const fileId = removingFileId;
+    const previousItems = items;
+    setRemovingFileId(null);
     setItems((prev) => prev.filter((item) => item.file.id !== fileId));
     startTransition(async () => {
-      await removeMediaFromCollection(collection.id, [fileId]);
+      const result = await removeMediaFromCollection(collection.id, [fileId]);
+      if (result && 'message' in result && result.message) {
+        setItems(previousItems);
+        showError(result.message);
+        return;
+      }
+      showSuccess(tManager('removed'));
       router.refresh();
     });
   };
@@ -197,13 +250,20 @@ export function CollectionManager({
               {t('title')}
             </Link>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
              <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
                 {collection.title}
              </h1>
-             <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+             <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 font-mono text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
                 {tManager('items', { count: items.length })}
              </span>
+             <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+                <Switch
+                  checked={status === 'published'}
+                  onCheckedChange={handleToggleStatus}
+                />
+                <span>{status === 'published' ? t('status.published') : t('status.draft')}</span>
+             </label>
           </div>
         </div>
 
@@ -312,6 +372,28 @@ export function CollectionManager({
           </motion.div>
         )}
       </AnimatePresence>
+      <AlertDialog
+        open={removingFileId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemovingFileId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tManager('removeConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{tManager('removeConfirmDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('form.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemove}
+              className="bg-rose-600 text-white hover:bg-rose-700"
+            >
+              {tManager('removeConfirmAction')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

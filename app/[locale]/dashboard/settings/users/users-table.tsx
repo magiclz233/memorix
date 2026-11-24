@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Search } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 import { ListTabs } from '@/app/ui/shared/list-tabs';
 import { ListPagination } from '@/app/ui/shared/list-pagination';
 import { useListPagination } from '@/app/ui/shared/use-list-pagination';
@@ -43,8 +45,15 @@ type UsersTableProps = {
 export function UsersTable({ users, locale, currentUserId }: UsersTableProps) {
   const t = useTranslations('dashboard.settings.users');
   const [status, setStatus] = useState<UserStatusTab>('all');
+  const [keyword, setKeyword] = useState('');
 
   const filteredUsers = users.filter((user) => {
+    const q = keyword.trim().toLowerCase();
+    if (q) {
+      const matchName = (user.name ?? '').toLowerCase().includes(q);
+      const matchEmail = user.email.toLowerCase().includes(q);
+      if (!matchName && !matchEmail) return false;
+    }
     if (status === 'admin') return user.role === 'admin';
     if (status === 'banned') return Boolean(user.banned);
     return true;
@@ -60,25 +69,39 @@ export function UsersTable({ users, locale, currentUserId }: UsersTableProps) {
 
   return (
     <div className='space-y-4'>
-      <ListTabs
-        size='sm'
-        items={[
-          { value: 'all', label: t('status.all'), count: users.length },
-          {
-            value: 'admin',
-            label: t('status.admin'),
-            count: users.filter((user) => user.role === 'admin').length,
-          },
-          {
-            value: 'banned',
-            label: t('status.banned'),
-            count: users.filter((user) => user.banned).length,
-          },
-        ]}
-        value={status}
-        onChange={handleStatusChange}
-        ariaLabel={t('table.status')}
-      />
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <ListTabs
+          size='sm'
+          items={[
+            { value: 'all', label: t('status.all'), count: users.length },
+            {
+              value: 'admin',
+              label: t('status.admin'),
+              count: users.filter((user) => user.role === 'admin').length,
+            },
+            {
+              value: 'banned',
+              label: t('status.banned'),
+              count: users.filter((user) => user.banned).length,
+            },
+          ]}
+          value={status}
+          onChange={handleStatusChange}
+          ariaLabel={t('table.status')}
+        />
+        <div className='relative w-full sm:w-64'>
+          <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400' />
+          <Input
+            value={keyword}
+            onChange={(e) => {
+              setKeyword(e.target.value);
+              pagination.setPage(1);
+            }}
+            placeholder={t('searchPlaceholder')}
+            className='pl-9'
+          />
+        </div>
+      </div>
 
       <div className='rounded-2xl border border-zinc-200 bg-white/80 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60'>
         {users.length === 0 ? (

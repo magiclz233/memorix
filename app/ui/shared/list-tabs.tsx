@@ -70,10 +70,10 @@ export function ListTabs({
             {typeof item.count === 'number' ? (
               <span
                 className={cn(
-                  'rounded-full px-1.5 py-0.5 text-xs',
+                  'rounded-full px-1.5 py-0.5 font-mono text-xs tabular-nums',
                   active
-                    ? 'bg-black/10 dark:bg-white/20'
-                    : 'bg-zinc-100 dark:bg-zinc-800',
+                    ? 'bg-white/20 text-white dark:bg-black/15 dark:text-zinc-900'
+                    : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
                 )}
               >
                 {item.count}

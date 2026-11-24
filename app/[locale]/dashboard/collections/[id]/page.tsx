@@ -29,7 +29,12 @@ export default async function Page({
   return (
     <CollectionManager
       key={`${collection.id}-${itemsKey}`}
-      collection={{ id: collection.id, title: collection.title, type: collection.type }}
+      collection={{
+        id: collection.id,
+        title: collection.title,
+        type: collection.type,
+        status: collection.status,
+      }}
       initialItems={items.map((item) => ({
         file: {
           id: item.file.id,

@@ -1,6 +1,6 @@
 'use client';
 
-import { Pause, Play, X } from 'lucide-react';
+import { Folder, Pause, Play, RotateCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { UploadTask } from '@/app/lib/definitions';
@@ -70,9 +70,7 @@ export function TaskCard({
       <div className="flex flex-col gap-4 p-5 pb-8 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6 text-zinc-500">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
+            <Folder className="h-6 w-6 text-zinc-500" />
           </div>
           <div>
             <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
@@ -107,6 +105,16 @@ export function TaskCard({
             ) : task.status === 'paused' || task.status === 'queued' ? (
               <Button size="icon" variant="ghost" onClick={() => onResume(task.id)} className="h-8 w-8 rounded-full text-zinc-400">
                 <Play className="h-4 w-4" />
+              </Button>
+            ) : task.status === 'failed' ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => onRetry(task.id)}
+                title={t('actions.retry')}
+                className="h-8 w-8 rounded-full text-amber-500 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/30"
+              >
+                <RotateCw className="h-4 w-4" />
               </Button>
             ) : null}
 

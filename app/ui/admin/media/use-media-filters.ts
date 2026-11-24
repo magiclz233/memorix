@@ -3,10 +3,13 @@
 import { useCallback, useMemo, useTransition } from 'react';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
+import type { MediaLibrarySort } from '@/app/lib/data';
 
 export type PublishedValue = 'all' | 'published' | 'unpublished';
 export type MediaTypeValue = 'all' | 'image' | 'video' | 'animated';
 export type HeroValue = 'all' | 'yes' | 'no';
+export type OrientationValue = 'all' | 'landscape' | 'portrait' | 'square';
+export type HasGpsValue = 'all' | 'yes' | 'no';
 
 export type FilterKey =
   | 'q'
@@ -16,7 +19,12 @@ export type FilterKey =
   | 'type'
   | 'dateFrom'
   | 'dateTo'
-  | 'hero';
+  | 'hero'
+  | 'orientation'
+  | 'camera'
+  | 'lens'
+  | 'hasGps'
+  | 'sort';
 
 export type MediaFilters = {
   q: string;
@@ -27,7 +35,23 @@ export type MediaFilters = {
   dateFrom: string;
   dateTo: string;
   hero: HeroValue;
+  orientation: OrientationValue;
+  camera: string;
+  lens: string;
+  hasGps: HasGpsValue;
+  sort: MediaLibrarySort;
 };
+
+const VALID_SORTS: readonly MediaLibrarySort[] = [
+  'dateShotDesc',
+  'dateShotAsc',
+  'sizeDesc',
+  'sizeAsc',
+  'resolutionDesc',
+  'resolutionAsc',
+  'titleAsc',
+  'titleDesc',
+];
 
 const FILTER_KEYS: FilterKey[] = [
   'q',
@@ -38,6 +62,11 @@ const FILTER_KEYS: FilterKey[] = [
   'dateFrom',
   'dateTo',
   'hero',
+  'orientation',
+  'camera',
+  'lens',
+  'hasGps',
+  'sort',
 ];
 
 export function useMediaFilters() {
@@ -48,6 +77,7 @@ export function useMediaFilters() {
 
   const filters = useMemo<MediaFilters>(() => {
     const storageRaw = searchParams.get('storageId');
+    const sortRaw = searchParams.get('sort') as MediaLibrarySort | null;
 
     return {
       q: searchParams.get('q') || '',
@@ -58,6 +88,11 @@ export function useMediaFilters() {
       dateFrom: searchParams.get('dateFrom') || '',
       dateTo: searchParams.get('dateTo') || '',
       hero: (searchParams.get('hero') as HeroValue) || 'all',
+      orientation: (searchParams.get('orientation') as OrientationValue) || 'all',
+      camera: searchParams.get('camera') || '',
+      lens: searchParams.get('lens') || '',
+      hasGps: (searchParams.get('hasGps') as HasGpsValue) || 'all',
+      sort: sortRaw && VALID_SORTS.includes(sortRaw) ? sortRaw : 'dateShotDesc',
     };
   }, [searchParams]);
 
@@ -65,7 +100,7 @@ export function useMediaFilters() {
     (patch: Partial<MediaFilters>) => {
       const params = new URLSearchParams(searchParams.toString());
 
-      const next = {
+      const next: MediaFilters = {
         ...filters,
         ...patch,
       };
@@ -74,34 +109,33 @@ export function useMediaFilters() {
         next.storageId = null;
       }
 
-      if (next.q) params.set('q', next.q);
-      else params.delete('q');
+      const setOrDelete = (key: string, value: string | null | undefined, defaultValue?: string) => {
+        if (value && value !== defaultValue) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      };
 
-      if (next.category !== 'all') params.set('category', next.category);
-      else params.delete('category');
-
-      if (next.storageId) params.set('storageId', String(next.storageId));
-      else params.delete('storageId');
-
-      if (next.status !== 'all') params.set('status', next.status);
-      else params.delete('status');
-
-      if (next.type !== 'all') params.set('type', next.type);
-      else params.delete('type');
-
-      if (next.dateFrom) params.set('dateFrom', next.dateFrom);
-      else params.delete('dateFrom');
-
-      if (next.dateTo) params.set('dateTo', next.dateTo);
-      else params.delete('dateTo');
-
-      if (next.hero !== 'all') params.set('hero', next.hero);
-      else params.delete('hero');
+      setOrDelete('q', next.q);
+      setOrDelete('category', next.category, 'all');
+      setOrDelete('storageId', next.storageId ? String(next.storageId) : null);
+      setOrDelete('status', next.status, 'all');
+      setOrDelete('type', next.type, 'all');
+      setOrDelete('dateFrom', next.dateFrom);
+      setOrDelete('dateTo', next.dateTo);
+      setOrDelete('hero', next.hero, 'all');
+      setOrDelete('orientation', next.orientation, 'all');
+      setOrDelete('camera', next.camera);
+      setOrDelete('lens', next.lens);
+      setOrDelete('hasGps', next.hasGps, 'all');
+      setOrDelete('sort', next.sort, 'dateShotDesc');
 
       params.delete('page');
 
+      const query = params.toString();
       startTransition(() => {
-        router.replace(`${pathname}?${params.toString()}`);
+        router.replace(query ? `${pathname}?${query}` : pathname);
       });
     },
     [filters, pathname, router, searchParams],
@@ -112,8 +146,9 @@ export function useMediaFilters() {
     FILTER_KEYS.forEach((key) => params.delete(key));
     params.delete('page');
 
+    const query = params.toString();
     startTransition(() => {
-      router.replace(`${pathname}?${params.toString()}`);
+      router.replace(query ? `${pathname}?${query}` : pathname);
     });
   }, [pathname, router, searchParams]);
 
@@ -128,6 +163,11 @@ export function useMediaFilters() {
         dateFrom: '',
         dateTo: '',
         hero: 'all',
+        orientation: 'all',
+        camera: '',
+        lens: '',
+        hasGps: 'all',
+        sort: 'dateShotDesc',
       };
 
       patchFilters({ [key]: resetMap[key] } as Partial<MediaFilters>);

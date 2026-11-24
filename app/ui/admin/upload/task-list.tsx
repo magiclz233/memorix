@@ -55,14 +55,20 @@ export function TaskList({
     });
   }, [keyword, status, tasks]);
 
-  // 获取所有已完成任务的文件 ID
+  // 获取所有已完成任务的服务端文件 ID（优先读取上传完成后回填的 serverFileId）
   const completedFileIds = useMemo(() => {
-    return tasks
+    const ids = tasks
       .filter((task) => task.status === 'completed')
-      .flatMap((task) => task.files.map((file) => file.id))
-      .filter((id): id is string => typeof id === 'string' && id.length > 0)
-      .map((id) => Number(id))
-      .filter((id) => Number.isFinite(id));
+      .flatMap((task) => task.files)
+      .map((file) => {
+        if (typeof file.serverFileId === 'number' && Number.isSafeInteger(file.serverFileId) && file.serverFileId > 0) {
+          return file.serverFileId;
+        }
+        const parsed = Number(file.id);
+        return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+      })
+      .filter((id): id is number => id !== null);
+    return Array.from(new Set(ids));
   }, [tasks]);
 
   const handlePublishAll = () => {

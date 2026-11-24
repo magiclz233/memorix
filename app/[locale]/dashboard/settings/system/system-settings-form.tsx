@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { showError, showSuccess } from '@/app/lib/toast-utils';
 import { MediaPicker } from '@/app/ui/dashboard/media-picker';
 import {
   Dialog,
@@ -84,6 +87,26 @@ export function SystemSettingsForm({ settings }: SystemSettingsFormProps) {
   const [newContactType, setNewContactType] = useState('email');
   const [newContactLabel, setNewContactLabel] = useState('Email');
   const [newContactValue, setNewContactValue] = useState('');
+  const [publicAccess, setPublicAccess] = useState<boolean>(settings?.publicAccess ?? false);
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    if (publicAccess) {
+      formData.set('publicAccess', 'on');
+    } else {
+      formData.delete('publicAccess');
+    }
+    startTransition(async () => {
+      try {
+        await saveSystemSettings(formData);
+        showSuccess(t('saveSuccess'));
+      } catch {
+        showError(t('saveFailed'));
+      }
+    });
+  };
 
   const handleAvatarSelect = (items: any[]) => {
     if (items.length > 0) {
@@ -117,10 +140,40 @@ export function SystemSettingsForm({ settings }: SystemSettingsFormProps) {
   };
 
   return (
-    <form action={saveSystemSettings} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {/* Hidden inputs */}
       <input type="hidden" name="aboutAvatar" value={avatarUrl} />
       <input type="hidden" name="aboutContactsJson" value={JSON.stringify(contacts)} />
+
+      {/* 站点与品牌配置（默认 Memorix，可自定义） */}
+      <div className="space-y-4 rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-4 dark:border-zinc-800/80 dark:bg-zinc-950/40">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="siteName" className="text-zinc-800 dark:text-zinc-100">
+              {t('siteName')}
+            </Label>
+            <Input
+              id="siteName"
+              name="siteName"
+              defaultValue={settings?.siteName ?? ''}
+              placeholder="Memorix"
+              className="border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-zinc-900/60"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="seoDescription" className="text-zinc-800 dark:text-zinc-100">
+              {t('seoDescription')}
+            </Label>
+            <Input
+              id="seoDescription"
+              name="seoDescription"
+              defaultValue={settings?.seoDescription ?? ''}
+              placeholder={t('seoPlaceholder')}
+              className="border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-zinc-900/60"
+            />
+          </div>
+        </div>
+      </div>
       
       {/* Avatar Selection */}
       <div className="space-y-4">
@@ -281,60 +334,46 @@ export function SystemSettingsForm({ settings }: SystemSettingsFormProps) {
 
       <div className="space-y-2">
         <Label className="text-zinc-800 dark:text-zinc-100">{tAbout('bio')}</Label>
-        <textarea
+        <Textarea
           name="aboutBio"
           rows={5}
           defaultValue={aboutSettings.bio ?? aboutSettings.description ?? ''}
-          placeholder="Personal introduction..."
-          className="w-full rounded-md border border-zinc-200 bg-white/70 px-3 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-950/60 dark:text-zinc-100"
+          placeholder={t('bioPlaceholder')}
+          className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
         />
       </div>
 
       <div className="space-y-2">
         <Label className="text-zinc-800 dark:text-zinc-100">{tAbout('commonEquipment')}</Label>
-        <textarea
+        <Textarea
           name="commonEquipment"
           rows={4}
           defaultValue={aboutSettings.commonEquipment ?? ''}
           placeholder="Sony A7R5, 24-70 GM II..."
-          className="w-full rounded-md border border-zinc-200 bg-white/70 px-3 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-950/60 dark:text-zinc-100"
+          className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
         />
         <p className="text-xs text-zinc-500">{t('equipmentHelp')}</p>
       </div>
 
-      {/* Legacy Fields (Hidden or Removed) */}
-       <div className="space-y-2 hidden">
-            <Label className="text-zinc-800 dark:text-zinc-100">{t('siteName')}</Label>
-            <Input
-                name="siteName"
-                defaultValue={settings?.siteName ?? ''}
-                className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
-            />
-        </div>
-         <div className="space-y-2 hidden">
-            <Label className="text-zinc-800 dark:text-zinc-100">{t('seoDescription')}</Label>
-            <Input
-                name="seoDescription"
-                defaultValue={settings?.seoDescription ?? ''}
-                className="border-zinc-200 bg-white/70 dark:border-zinc-800 dark:bg-zinc-950/60"
-            />
-        </div>
-
-      <div className="flex items-center gap-2">
-        <input
-            type="checkbox"
-            name="publicAccess"
-            id="publicAccess"
-            defaultChecked={settings?.publicAccess ?? false}
-            className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
-        />
-        <Label htmlFor="publicAccess" className="text-zinc-800 dark:text-zinc-100">
-            {t('publicAccess')}
+      <div className="flex items-center justify-between rounded-xl border border-zinc-200/80 px-4 py-3 dark:border-zinc-800/80">
+        <Label htmlFor="publicAccess" className="cursor-pointer text-zinc-800 dark:text-zinc-100">
+          {t('publicAccess')}
         </Label>
+        <Switch
+          id="publicAccess"
+          checked={publicAccess}
+          onCheckedChange={setPublicAccess}
+        />
       </div>
 
       <div className="flex justify-end">
-        <Button type="submit">{t('save')}</Button>
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+        >
+          {isPending ? t('saving') : t('save')}
+        </Button>
       </div>
 
       <Dialog open={isAvatarPickerOpen} onOpenChange={setIsAvatarPickerOpen}>
