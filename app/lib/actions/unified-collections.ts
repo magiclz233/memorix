@@ -2,12 +2,11 @@
 
 import { z } from 'zod';
 import { db } from '../drizzle';
-import { collectionMedia, collections, files } from '../schema';
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { collectionMedia, collections, files, photoMetadata, userStorages } from '../schema';
+import { and, asc, desc, eq, ilike, inArray, isNull, or } from 'drizzle-orm';
 import { revalidatePathForAllLocales } from '../revalidate';
 import { auth } from '@/auth';
 import { headers } from 'next/headers';
-import { fetchPublishedMediaForGallery } from '../data';
 import { cache } from '../cache';
 import { CacheKeys } from '../cache-keys';
 
@@ -106,7 +105,10 @@ export async function createCollection(formData: FormData) {
   revalidatePathForAllLocales('/dashboard/collections');
   revalidatePathForAllLocales('/collections');
   // 清除作品集相关缓存
-  await cache.del([CacheKeys.frontFeaturedCollections(), CacheKeys.dashboardOverview()]);
+  await Promise.all([
+    cache.delPattern('front:featured-collections*'),
+    cache.delPattern('dashboard:overview*'),
+  ]);
 }
 
 export async function updateCollection(id: number, formData: FormData) {
@@ -153,10 +155,9 @@ export async function updateCollection(id: number, formData: FormData) {
   revalidatePathForAllLocales(`/dashboard/collections/${id}`);
   revalidatePathForAllLocales('/collections');
   // 清除作品集相关缓存
-  await cache.del([
-    CacheKeys.collectionDetail(id),
-    CacheKeys.collectionMedia(id),
-    CacheKeys.frontFeaturedCollections(),
+  await Promise.all([
+    cache.del([CacheKeys.collectionDetail(id), CacheKeys.collectionMedia(id)]),
+    cache.delPattern('front:featured-collections*'),
   ]);
 }
 
@@ -182,6 +183,11 @@ export async function toggleCollectionStatus(
     revalidatePathForAllLocales('/dashboard/collections');
     revalidatePathForAllLocales(`/dashboard/collections/${id}`);
     revalidatePathForAllLocales('/collections');
+    await Promise.all([
+      cache.del([CacheKeys.collectionDetail(id), CacheKeys.collectionMedia(id)]),
+      cache.delPattern('front:featured-collections*'),
+      cache.delPattern('dashboard:overview*'),
+    ]);
 
     return {
       success: true,
@@ -214,11 +220,10 @@ export async function deleteCollection(id: number) {
   revalidatePathForAllLocales('/dashboard/collections');
   revalidatePathForAllLocales('/collections');
   // 清除作品集相关缓存
-  await cache.del([
-    CacheKeys.collectionDetail(id),
-    CacheKeys.collectionMedia(id),
-    CacheKeys.frontFeaturedCollections(),
-    CacheKeys.dashboardOverview(),
+  await Promise.all([
+    cache.del([CacheKeys.collectionDetail(id), CacheKeys.collectionMedia(id)]),
+    cache.delPattern('front:featured-collections*'),
+    cache.delPattern('dashboard:overview*'),
   ]);
 }
 
@@ -292,6 +297,10 @@ export async function addMediaToCollection(
 
   revalidatePathForAllLocales(`/dashboard/collections/${collectionId}`);
   revalidatePathForAllLocales(`/collections/${collectionId}`);
+  await Promise.all([
+    cache.del([CacheKeys.collectionDetail(collectionId), CacheKeys.collectionMedia(collectionId)]),
+    cache.delPattern('front:featured-collections*'),
+  ]);
 }
 
 export async function removeMediaFromCollection(
@@ -336,6 +345,10 @@ export async function removeMediaFromCollection(
 
   revalidatePathForAllLocales(`/dashboard/collections/${collectionId}`);
   revalidatePathForAllLocales(`/collections/${collectionId}`);
+  await Promise.all([
+    cache.del([CacheKeys.collectionDetail(collectionId), CacheKeys.collectionMedia(collectionId)]),
+    cache.delPattern('front:featured-collections*'),
+  ]);
 }
 
 export async function reorderMedia(
@@ -365,23 +378,75 @@ export async function reorderMedia(
 
   revalidatePathForAllLocales(`/dashboard/collections/${collectionId}`);
   revalidatePathForAllLocales(`/collections/${collectionId}`);
+  await cache.del([CacheKeys.collectionDetail(collectionId), CacheKeys.collectionMedia(collectionId)]);
 }
 
 export async function fetchMediaForPicker(
   page = 1,
   limit = 24,
   mediaTypes?: Array<'image' | 'video' | 'animated'>,
+  keyword?: string,
+  includeUnpublished = true,
 ) {
-  await requireAdmin();
+  const admin = await requireAdmin();
+  const adminId = Number(admin.id);
 
   const safePage = Number.isSafeInteger(page) && page > 0 ? page : 1;
   const safeLimit =
     Number.isSafeInteger(limit) && limit > 0 ? Math.min(limit, 100) : 24;
   const offset = (safePage - 1) * safeLimit;
-  return fetchPublishedMediaForGallery({
-    limit: safeLimit,
-    offset,
-    mediaTypes,
-  });
+  const allowedTypes =
+    mediaTypes && mediaTypes.length > 0 ? mediaTypes : (['image', 'video', 'animated'] as const);
+  const trimmedKeyword = keyword?.trim();
+
+  const conditions = [
+    isNull(files.deletedAt),
+    isNull(userStorages.deletedAt),
+    inArray(files.mediaType, [...allowedTypes]),
+  ];
+
+  if (Number.isSafeInteger(adminId) && adminId > 0) {
+    conditions.push(eq(userStorages.userId, adminId));
+  }
+
+  if (!includeUnpublished) {
+    conditions.push(eq(files.isPublished, true));
+  }
+
+  if (trimmedKeyword) {
+    const pattern = `%${trimmedKeyword}%`;
+    const keywordCondition = or(
+      ilike(files.title, pattern),
+      ilike(files.path, pattern),
+      ilike(photoMetadata.description, pattern),
+    );
+    if (keywordCondition) {
+      conditions.push(keywordCondition);
+    }
+  }
+
+  const rows = await db
+    .select({
+      id: files.id,
+      title: files.title,
+      url: files.url,
+      mediaType: files.mediaType,
+      isPublished: files.isPublished,
+      storageConfig: userStorages.config,
+    })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .where(and(...conditions))
+    .orderBy(desc(files.sortAt), desc(files.id))
+    .limit(safeLimit)
+    .offset(offset);
+
+  return rows
+    .filter((row) => !(row.storageConfig as { isDisabled?: boolean } | null)?.isDisabled)
+    .map(({ storageConfig: _storageConfig, ...row }) => ({
+      ...row,
+      thumbUrl: `/api/media/thumb/${row.id}`,
+    }));
 }
 

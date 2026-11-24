@@ -11,7 +11,7 @@ import { redirect } from '@/i18n/navigation';
 import { resolveSafeRedirectPath, stripLocalePrefix } from '@/i18n/paths';
 import { APIError } from 'better-auth/api';
 import { auth } from '@/auth';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, gte, ilike, inArray, isNotNull, isNull, lte, notInArray, or, sql } from 'drizzle-orm';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { db } from './drizzle'; // 引入 db
 import {
@@ -33,6 +33,12 @@ import {
 import { ApiError } from 'next/dist/server/api-utils';
 import { buildSystemSettingsKey, fetchPublicSystemSettings, type SystemSettings } from './data';
 import { cleanHeroReferences, cleanCollectionCoverReferences } from './data/reference-cleanup';
+import {
+  applyMediaTagsBatch,
+  normalizeMediaTags,
+  type MediaTagUpdateMode,
+} from './media-tags';
+import { parseSearchDSL } from './search-dsl';
 import type { ContactItem } from './data-legacy';
 import { getStorageCacheRoot } from './storage';
 import { resolveS3Client } from './s3-helper';
@@ -590,21 +596,28 @@ export async function deleteUserStorage(storageId: number) {
   return { success: true, message: t('deleted') };
 }
 
+const isStorageDisabled = (config: unknown): boolean =>
+  Boolean((config as { isDisabled?: boolean } | null | undefined)?.isDisabled);
+
 export async function setStoragePublished(storageId: number, isPublished: boolean) {
   const t = await getTranslations('actions.storage');
   const user = await requireAdminUser();
   const storage = await db.query.userStorages.findFirst({
-    where: and(eq(userStorages.id, storageId), eq(userStorages.userId, user.id)),
+    where: and(
+      eq(userStorages.id, storageId),
+      eq(userStorages.userId, user.id),
+      isNull(userStorages.deletedAt),
+    ),
   });
 
-  if (!storage) {
+  if (!storage || isStorageDisabled(storage.config)) {
     return { success: false, message: t('notFound') };
   }
 
   await db
     .update(files)
     .set({ isPublished, updatedAt: new Date() })
-    .where(eq(files.userStorageId, storageId));
+    .where(and(eq(files.userStorageId, storageId), isNull(files.deletedAt)));
 
   revalidatePathForAllLocales('/dashboard/media');
   revalidatePathForAllLocales('/gallery');
@@ -620,12 +633,14 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
   const t = await getTranslations('actions.files');
   const user = await requireAdminUser();
 
-  const storageIds = await db
-    .select({ id: userStorages.id })
+  const storages = await db
+    .select({ id: userStorages.id, config: userStorages.config })
     .from(userStorages)
-    .where(eq(userStorages.userId, user.id));
+    .where(and(eq(userStorages.userId, user.id), isNull(userStorages.deletedAt)));
 
-  const allowedStorageIds = storageIds.map((item) => item.id);
+  const allowedStorageIds = storages
+    .filter((item) => !isStorageDisabled(item.config))
+    .map((item) => item.id);
   if (allowedStorageIds.length === 0) {
     return { success: false, message: t('noStorage') };
   }
@@ -641,6 +656,7 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
       and(
         inArray(files.id, fileIds),
         inArray(files.userStorageId, allowedStorageIds),
+        isNull(files.deletedAt),
       ),
     );
 
@@ -650,19 +666,21 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
 }
 
 /**
- * 全库发布/取消发布：只动当前管理员自己存储源下未软删的文件。
+ * 全库发布/取消发布：只动当前管理员自己未禁用存储源下未软删的文件。
  * 与 setFilesPublished 的区别是不接收 fileIds，因此不受当前分页限制。
  */
 export async function setAllFilesPublished(isPublished: boolean) {
   const t = await getTranslations('actions.files');
   const user = await requireAdminUser();
 
-  const storageIds = await db
-    .select({ id: userStorages.id })
+  const storages = await db
+    .select({ id: userStorages.id, config: userStorages.config })
     .from(userStorages)
-    .where(eq(userStorages.userId, user.id));
+    .where(and(eq(userStorages.userId, user.id), isNull(userStorages.deletedAt)));
 
-  const allowedStorageIds = storageIds.map((item) => item.id);
+  const allowedStorageIds = storages
+    .filter((item) => !isStorageDisabled(item.config))
+    .map((item) => item.id);
   if (allowedStorageIds.length === 0) {
     return { success: false, message: t('noStorage') };
   }
@@ -676,6 +694,200 @@ export async function setAllFilesPublished(isPublished: boolean) {
         isNull(files.deletedAt),
       ),
     )
+    .returning({ id: files.id });
+
+  revalidatePathForAllLocales('/dashboard/media');
+  revalidatePathForAllLocales('/gallery');
+  return {
+    success: true,
+    count: updated.length,
+    message: isPublished
+      ? t('bulkPublished', { count: updated.length })
+      : t('bulkUnpublished', { count: updated.length }),
+  };
+}
+
+export type FilteredPublishInput = {
+  category?: string;
+  storageId?: number | null;
+  status?: 'all' | 'published' | 'unpublished';
+  type?: 'all' | 'image' | 'video' | 'animated';
+  q?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  hero?: 'all' | 'yes' | 'no';
+  orientation?: 'all' | 'landscape' | 'portrait' | 'square';
+  camera?: string;
+  lens?: string;
+  hasGps?: 'all' | 'yes' | 'no';
+};
+
+/**
+ * 按当前筛选条件批量发布/取消发布：
+ * 覆盖筛选命中的全部页（不受当前分页限制），严格限定当前管理员未禁用存储源下未软删文件。
+ */
+export async function setFilteredFilesPublished(
+  filters: FilteredPublishInput,
+  isPublished: boolean,
+) {
+  const t = await getTranslations('actions.files');
+  const user = await requireAdminUser();
+
+  const storages = await db
+    .select({ id: userStorages.id, type: userStorages.type, config: userStorages.config })
+    .from(userStorages)
+    .where(and(eq(userStorages.userId, user.id), isNull(userStorages.deletedAt)));
+
+  const activeStorages = storages.filter((item) => !isStorageDisabled(item.config));
+  if (activeStorages.length === 0) {
+    return { success: false, count: 0, message: t('noStorage') };
+  }
+
+  let targetStorageIds = activeStorages.map((item) => item.id);
+  if (typeof filters.storageId === 'number' && filters.storageId > 0) {
+    targetStorageIds = targetStorageIds.filter((id) => id === filters.storageId);
+  } else if (filters.category && filters.category !== 'all') {
+    targetStorageIds = activeStorages
+      .filter((item) => item.type === filters.category)
+      .map((item) => item.id);
+  }
+
+  if (targetStorageIds.length === 0) {
+    return {
+      success: true,
+      count: 0,
+      message: isPublished ? t('bulkPublished', { count: 0 }) : t('bulkUnpublished', { count: 0 }),
+    };
+  }
+
+  const conditions = [
+    inArray(files.userStorageId, targetStorageIds),
+    isNull(files.deletedAt),
+  ];
+
+  if (filters.type && filters.type !== 'all') {
+    conditions.push(eq(files.mediaType, filters.type));
+  } else {
+    conditions.push(inArray(files.mediaType, ['image', 'video', 'animated']));
+  }
+
+  if (filters.status === 'published') {
+    conditions.push(eq(files.isPublished, true));
+  } else if (filters.status === 'unpublished') {
+    conditions.push(eq(files.isPublished, false));
+  }
+
+  if (filters.dateFrom) {
+    const start = new Date(`${filters.dateFrom}T00:00:00`);
+    if (!Number.isNaN(start.getTime())) {
+      conditions.push(gte(files.sortAt, start));
+    }
+  }
+
+  if (filters.dateTo) {
+    const end = new Date(`${filters.dateTo}T23:59:59.999`);
+    if (!Number.isNaN(end.getTime())) {
+      conditions.push(lte(files.sortAt, end));
+    }
+  }
+
+  if (filters.hero === 'yes' || filters.hero === 'no') {
+    const heroRows = await db
+      .select({ value: userSettings.value })
+      .from(userSettings)
+      .where(and(eq(userSettings.userId, user.id), eq(userSettings.key, HERO_SETTING_KEY)))
+      .limit(1);
+    const heroIds = normalizeIdList(heroRows[0]?.value);
+    if (filters.hero === 'yes') {
+      if (heroIds.length === 0) {
+        return {
+          success: true,
+          count: 0,
+          message: isPublished ? t('bulkPublished', { count: 0 }) : t('bulkUnpublished', { count: 0 }),
+        };
+      }
+      conditions.push(inArray(files.id, heroIds));
+    } else if (heroIds.length > 0) {
+      conditions.push(notInArray(files.id, heroIds));
+    }
+  }
+
+  if (filters.camera?.trim()) {
+    conditions.push(ilike(photoMetadata.camera, `%${filters.camera.trim()}%`));
+  }
+
+  if (filters.lens?.trim()) {
+    conditions.push(ilike(photoMetadata.lens, `%${filters.lens.trim()}%`));
+  }
+
+  if (filters.hasGps === 'yes') {
+    conditions.push(and(isNotNull(photoMetadata.gpsLatitude), isNotNull(photoMetadata.gpsLongitude))!);
+  } else if (filters.hasGps === 'no') {
+    conditions.push(or(isNull(photoMetadata.gpsLatitude), isNull(photoMetadata.gpsLongitude))!);
+  }
+
+  if (filters.orientation && filters.orientation !== 'all') {
+    const widthExpr = sql<number>`coalesce(${photoMetadata.resolutionWidth}, ${videoMetadata.width})`;
+    const heightExpr = sql<number>`coalesce(${photoMetadata.resolutionHeight}, ${videoMetadata.height})`;
+    if (filters.orientation === 'landscape') {
+      conditions.push(sql`${widthExpr} > ${heightExpr}`);
+    } else if (filters.orientation === 'portrait') {
+      conditions.push(sql`${heightExpr} > ${widthExpr}`);
+    } else if (filters.orientation === 'square') {
+      conditions.push(sql`${widthExpr} = ${heightExpr} and ${widthExpr} > 0`);
+    }
+  }
+
+  if (filters.q?.trim()) {
+    const parsed = parseSearchDSL(filters.q.trim());
+    const { fields } = parsed;
+    if (fields.type) conditions.push(eq(files.mediaType, fields.type));
+    if (fields.camera) conditions.push(ilike(photoMetadata.camera, `%${fields.camera}%`));
+    if (fields.maker) conditions.push(ilike(photoMetadata.maker, `%${fields.maker}%`));
+    if (fields.lens) conditions.push(ilike(photoMetadata.lens, `%${fields.lens}%`));
+    if (fields.title) conditions.push(ilike(files.title, `%${fields.title}%`));
+    if (fields.description) conditions.push(ilike(photoMetadata.description, `%${fields.description}%`));
+    if (fields.location) conditions.push(ilike(photoMetadata.locationName, `%${fields.location}%`));
+    if (fields.author) conditions.push(ilike(files.author, `%${fields.author}%`));
+    if (fields.year) {
+      const yStart = new Date(Date.UTC(fields.year, 0, 1));
+      const yEnd = new Date(Date.UTC(fields.year + 1, 0, 1));
+      conditions.push(and(gte(files.sortAt, yStart), sql`${files.sortAt} < ${yEnd}`)!);
+    }
+    if (parsed.freeText) {
+      const pattern = `%${parsed.freeText}%`;
+      const freeCond = or(
+        ilike(files.title, pattern),
+        ilike(files.path, pattern),
+        ilike(files.author, pattern),
+        ilike(photoMetadata.description, pattern),
+        ilike(photoMetadata.locationName, pattern),
+        ilike(photoMetadata.camera, pattern),
+      );
+      if (freeCond) conditions.push(freeCond);
+    }
+  }
+
+  const matchedRows = await db
+    .select({ id: files.id })
+    .from(files)
+    .leftJoin(photoMetadata, eq(files.id, photoMetadata.fileId))
+    .leftJoin(videoMetadata, eq(files.id, videoMetadata.fileId))
+    .where(and(...conditions));
+
+  const matchedIds = matchedRows.map((row) => row.id);
+  if (matchedIds.length === 0) {
+    return {
+      success: true,
+      count: 0,
+      message: isPublished ? t('bulkPublished', { count: 0 }) : t('bulkUnpublished', { count: 0 }),
+    };
+  }
+
+  const updated = await db
+    .update(files)
+    .set({ isPublished, updatedAt: new Date() })
+    .where(inArray(files.id, matchedIds))
     .returning({ id: files.id });
 
   revalidatePathForAllLocales('/dashboard/media');
@@ -918,10 +1130,16 @@ export async function toggleUserBan(formData: FormData) {
     return { success: false, message: tCommon('userNotFound') };
   }
 
-  await db
-    .update(users)
-    .set({ banned, updatedAt: new Date() })
-    .where(eq(users.id, userId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({ banned, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+    // 封禁用户时立即吊销其全部活跃会话，防止已登录令牌继续访问
+    if (banned) {
+      await tx.delete(authSessions).where(eq(authSessions.userId, userId));
+    }
+  });
 
   revalidatePathForAllLocales('/dashboard/settings/users');
   return {
@@ -1074,12 +1292,17 @@ export async function updatePhotoDetails(formData: FormData) {
   const t = await getTranslations('actions.files');
   const admin = await requireAdminUser();
 
+  const hasTitle = formData.has('title');
+  const hasAuthor = formData.has('author');
+  const hasDateShot = formData.has('dateShot');
+  const hasTags = formData.has('tags');
+
   const parsed = UpdatePhotoSchema.safeParse({
     fileId: formData.get('fileId'),
-    title: formData.get('title'),
-    author: formData.get('author'),
-    dateShot: formData.get('dateShot'),
-    tags: formData.get('tags'),
+    title: hasTitle ? formData.get('title') : undefined,
+    author: hasAuthor ? formData.get('author') : undefined,
+    dateShot: hasDateShot ? formData.get('dateShot') : undefined,
+    tags: hasTags ? formData.get('tags') : undefined,
   });
 
   if (!parsed.success) {
@@ -1105,11 +1328,11 @@ export async function updatePhotoDetails(formData: FormData) {
       updatedAt: new Date(),
     };
 
-    if (title !== undefined) {
+    if (hasTitle && title !== undefined) {
       updates.title = title;
     }
 
-    if (author !== undefined) {
+    if (hasAuthor && author !== undefined) {
       updates.author = author && author.length > 0 ? author : null;
     }
 
@@ -1120,36 +1343,38 @@ export async function updatePhotoDetails(formData: FormData) {
         .where(eq(files.id, fileId));
     }
 
-    const nextDate =
-      dateShot && dateShot.length > 0
-        ? (() => {
-            const d = new Date(dateShot);
-            return Number.isNaN(d.getTime()) ? null : d;
-          })()
-        : null;
+    if (hasDateShot) {
+      const nextDate =
+        dateShot && dateShot.length > 0
+          ? (() => {
+              const d = new Date(dateShot);
+              return Number.isNaN(d.getTime()) ? null : d;
+            })()
+          : null;
 
-    // Ensure metadata row exists, then update fields
-    const existing = await db
-      .select({ fileId: photoMetadata.fileId })
-      .from(photoMetadata)
-      .where(eq(photoMetadata.fileId, fileId))
-      .limit(1);
+      // 仅在表单显式提交 dateShot 时更新，避免只编辑标题时误清空 EXIF 拍摄时间。
+      const existing = await db
+        .select({ fileId: photoMetadata.fileId })
+        .from(photoMetadata)
+        .where(eq(photoMetadata.fileId, fileId))
+        .limit(1);
 
-    if (existing.length === 0) {
-      await db.insert(photoMetadata).values({
-        fileId,
-        dateShot: nextDate,
-      });
-    } else {
-      await db
-        .update(photoMetadata)
-        .set({
-          dateShot: nextDate ?? null,
-        })
-        .where(eq(photoMetadata.fileId, fileId));
+      if (existing.length === 0) {
+        await db.insert(photoMetadata).values({
+          fileId,
+          dateShot: nextDate,
+        });
+      } else {
+        await db
+          .update(photoMetadata)
+          .set({
+            dateShot: nextDate ?? null,
+          })
+          .where(eq(photoMetadata.fileId, fileId));
+      }
     }
 
-    if (tags !== undefined) {
+    if (hasTags && tags !== undefined) {
       await saveMediaTagsForFile(admin.id, fileId, nextTags);
     }
 
@@ -1410,24 +1635,72 @@ export async function deleteMediaFiles(fileIds: number[]) {
 // cleanHeroReferences / cleanCollectionCoverReferences 已抽到 app/lib/data/reference-cleanup.ts，
 // 供回收站彻底删除（P2-2）与旧删除路径共用。
 
-export async function setMediaTags(fileIds: number[], tags: string[]) {
+export async function setMediaTags(
+  fileIds: number[],
+  tags: string[],
+  mode: MediaTagUpdateMode = 'replace',
+) {
   const t = await getTranslations('actions.files');
   const user = await requireAdminUser();
 
-  if (!fileIds || fileIds.length === 0) {
+  const uniqueIds = normalizeIdList(fileIds);
+  if (uniqueIds.length === 0) {
     return { success: false, message: t('noneSelected') };
   }
 
-  const normalizedTags = Array.from(
-    new Set(
-      tags
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0)
-        .map((tag) => tag.slice(0, 32)),
-    ),
-  ).slice(0, 12);
+  // 仅允许修改当前管理员存储源下未删除文件的标签（防止 IDOR 越权）
+  const ownedFiles = await db
+    .select({ id: files.id })
+    .from(files)
+    .innerJoin(userStorages, eq(files.userStorageId, userStorages.id))
+    .where(
+      and(
+        inArray(files.id, uniqueIds),
+        eq(userStorages.userId, user.id),
+        isNull(files.deletedAt),
+      ),
+    );
+  const authorizedIds = ownedFiles.map((row) => row.id);
+  if (authorizedIds.length === 0) {
+    return { success: false, message: t('noStorage') };
+  }
 
-  await Promise.all(fileIds.map((fileId) => saveMediaTagsForFile(user.id, fileId, normalizedTags)));
+  const normalizedTags = normalizeMediaTags(tags);
+
+  // 单次读-改-写整个 media_tags 映射，避免 Promise.all 并发覆写同一 JSONB 行
+  await db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ id: userSettings.id, value: userSettings.value })
+      .from(userSettings)
+      .where(and(eq(userSettings.userId, user.id), eq(userSettings.key, MEDIA_TAGS_KEY)))
+      .limit(1);
+
+    const currentMap = normalizeMediaTagsMapValue(existing[0]?.value);
+    const nextMap = applyMediaTagsBatch(currentMap, authorizedIds, normalizedTags, mode);
+    const entries = Object.entries(nextMap);
+
+    if (entries.length === 0) {
+      if (existing[0]?.id) {
+        await tx.delete(userSettings).where(eq(userSettings.id, existing[0].id));
+      }
+      return;
+    }
+
+    if (existing[0]?.id) {
+      await tx
+        .update(userSettings)
+        .set({ value: nextMap, updatedAt: new Date() })
+        .where(eq(userSettings.id, existing[0].id));
+      return;
+    }
+
+    await tx.insert(userSettings).values({
+      userId: user.id,
+      key: MEDIA_TAGS_KEY,
+      value: nextMap,
+      updatedAt: new Date(),
+    });
+  });
 
   revalidatePathForAllLocales('/dashboard/media');
   revalidatePathForAllLocales('/gallery');

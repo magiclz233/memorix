@@ -3,13 +3,16 @@
 import {
   setFilesPublished as legacySetFilesPublished,
   setAllFilesPublished as legacySetAllFilesPublished,
+  setFilteredFilesPublished as legacySetFilteredFilesPublished,
   setHeroPhotos as legacySetHeroPhotos,
   updatePhotoDetails as legacyUpdatePhotoDetails,
   deleteMediaFiles as legacyDeleteMediaFiles,
+  type FilteredPublishInput,
 } from '../actions-legacy';
 import { cache } from '../cache';
 import { CacheKeys } from '../cache-keys';
 import { recordAuditLogForCurrentUser } from '../audit-log';
+import type { MediaTagUpdateMode } from '../media-tags';
 
 export async function setFilesPublished(fileIds: number[], isPublished: boolean) {
   const result = await legacySetFilesPublished(fileIds, isPublished);
@@ -20,9 +23,13 @@ export async function setFilesPublished(fileIds: number[], isPublished: boolean)
       changes: { fileIds, isPublished },
     });
   }
-  // 清除画廊列表缓存和各文件详情缓存
-  await cache.delPattern('gallery:list:*');
-  await cache.del(fileIds.map((id) => CacheKeys.mediaDetail(id)));
+  // 清除画廊列表、详情与概览缓存
+  await Promise.all([
+    cache.delPattern('gallery:list:*'),
+    cache.del(fileIds.map((id) => CacheKeys.mediaDetail(id))),
+    cache.delPattern('dashboard:overview*'),
+    cache.delPattern('front:hero*'),
+  ]);
   return result;
 }
 
@@ -36,9 +43,33 @@ export async function setAllFilesPublished(isPublished: boolean) {
     });
   }
   // 全库操作无法预先知道受影响的 id，按 pattern 清理列表与详情缓存。
-  await cache.delPattern('gallery:list:*');
-  await cache.delPattern('media:detail:*');
-  await cache.del(CacheKeys.dashboardOverview());
+  await Promise.all([
+    cache.delPattern('gallery:list:*'),
+    cache.delPattern('media:detail:*'),
+    cache.delPattern('dashboard:overview*'),
+    cache.delPattern('front:hero*'),
+  ]);
+  return result;
+}
+
+export async function setFilteredFilesPublished(
+  filters: FilteredPublishInput,
+  isPublished: boolean,
+) {
+  const result = await legacySetFilteredFilesPublished(filters, isPublished);
+  if (result.success) {
+    await recordAuditLogForCurrentUser({
+      action: isPublished ? 'media.publish.filtered' : 'media.unpublish.filtered',
+      resource: 'media',
+      changes: { isPublished, count: result.count, filters },
+    });
+  }
+  await Promise.all([
+    cache.delPattern('gallery:list:*'),
+    cache.delPattern('media:detail:*'),
+    cache.delPattern('dashboard:overview*'),
+    cache.delPattern('front:hero*'),
+  ]);
   return result;
 }
 
@@ -51,15 +82,18 @@ export async function setHeroPhotos(fileIds: number[], isHero: boolean) {
       changes: { fileIds, isHero },
     });
   }
-  // 清除首页 Hero 缓存
-  await cache.del(CacheKeys.frontHero());
+  // 清除首页 Hero 缓存（含带 userId/limit 参数的所有变体）
+  await cache.delPattern('front:hero*');
   return result;
 }
 
 export async function updatePhotoDetails(formData: FormData) {
   const result = await legacyUpdatePhotoDetails(formData);
-  // 清除画廊列表缓存
-  await cache.delPattern('gallery:list:*');
+  // 清除画廊列表与标签映射缓存
+  await Promise.all([
+    cache.delPattern('gallery:list:*'),
+    cache.del(CacheKeys.mediaTagsMap()),
+  ]);
   return result;
 }
 
@@ -76,27 +110,33 @@ export async function deleteMediaFiles(fileIds: number[]) {
   await Promise.all([
     cache.delPattern('gallery:list:*'),
     cache.del(fileIds.map((id) => CacheKeys.mediaDetail(id))),
-    cache.del(CacheKeys.frontHero()),
-    cache.del(CacheKeys.frontFeaturedCollections()),
-    cache.del(CacheKeys.dashboardOverview()),
+    cache.del(CacheKeys.mediaTagsMap()),
+    cache.delPattern('front:hero*'),
+    cache.delPattern('front:featured-collections*'),
+    cache.delPattern('dashboard:overview*'),
   ]);
   return result;
 }
 
-export async function setMediaTags(fileIds: number[], tags: string[]) {
+export async function setMediaTags(
+  fileIds: number[],
+  tags: string[],
+  mode: MediaTagUpdateMode = 'replace',
+) {
   const { setMediaTags: legacySetMediaTags } = await import('../actions-legacy');
-  const result = await legacySetMediaTags(fileIds, tags);
+  const result = await legacySetMediaTags(fileIds, tags, mode);
   if (result.success) {
     await recordAuditLogForCurrentUser({
       action: 'media.tags.update',
       resource: 'media',
-      changes: { fileIds, tags },
+      changes: { fileIds, tags, mode },
     });
   }
-  // 标签影响列表展示与搜索
+  // 标签影响列表展示、详情与全局标签映射缓存
   await Promise.all([
     cache.delPattern('gallery:list:*'),
     cache.del(fileIds.map((id) => CacheKeys.mediaDetail(id))),
+    cache.del(CacheKeys.mediaTagsMap()),
   ]);
   return result;
 }

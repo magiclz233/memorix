@@ -31,6 +31,7 @@ import {
 import { unstable_cache } from 'next/cache';
 import { getCached } from './redis';
 import { cache } from './cache';
+import { CacheKeys } from './cache-keys';
 import { parseSearchDSL, type ParsedSearch } from './search-dsl';
 import { maskSecret } from './secret-box';
 
@@ -120,7 +121,7 @@ const normalizeMediaTagsMap = (value: unknown): MediaTagsMap => {
 const MEDIA_TAGS_CACHE_TTL = 300; // 5 分钟
 
 const fetchMediaTagsMap = async (): Promise<MediaTagsMap> => {
-  return getCached<MediaTagsMap>('media:tags:map', async () => {
+  return getCached<MediaTagsMap>(CacheKeys.mediaTagsMap(), async () => {
     const admin = await db
       .select({ id: users.id })
       .from(users)
@@ -227,7 +228,7 @@ export async function fetchPublicSystemSettings(locale: string) {
 }
 
 export async function fetchDashboardOverview(userId: number) {
-  return cache.wrap(`dashboard:overview:${userId}`, 60, async () => {
+  return cache.wrap(CacheKeys.dashboardOverview(userId), 60, async () => {
     const storageCountPromise = db
       .select({ count: count() })
       .from(userStorages)
@@ -398,6 +399,8 @@ export type MediaLibraryItem = {
   videoDuration: number | null;
   liveType: string | null;
   description: string | null;
+  author: string | null;
+  tags: string[];
   dateShot: Date | null;
   camera: string | null;
   maker: string | null;
@@ -448,6 +451,16 @@ export async function fetchMediaLibraryPage({
   const safePerPage =
     Number.isSafeInteger(perPage) && perPage > 0 ? Math.min(perPage, 200) : 24;
   const requestedPage = Number.isSafeInteger(page) && page > 0 ? page : 1;
+  // 若调用方显式传入空的 storageIds（例如选中了暂无实例的存储分类 Tab），
+  // 应直接返回空结果，而不是忽略筛选条件返回全库数据。
+  if (Array.isArray(filters.storageIds) && filters.storageIds.length === 0) {
+    return {
+      items: [] as MediaLibraryItem[],
+      totalCount: 0,
+      totalPages: 1,
+      page: 1,
+    };
+  }
   const storageIds = filters.storageIds?.filter((id) => id > 0) ?? [];
   const mediaType = filters.mediaType ?? 'all';
   const publishStatus = filters.publishStatus ?? 'all';
@@ -694,9 +707,10 @@ export async function fetchMediaLibraryPage({
   // count 与当前页数据互不依赖，并行查询减少一次往返；
   // 页码越界时再按收敛后的页码补查一次。
   const requestedSafePage = Math.max(requestedPage, 1);
-  const [countResult, initialRecords] = await Promise.all([
+  const [countResult, initialRecords, tagsMap] = await Promise.all([
     countQuery,
     buildRecordsQuery(requestedSafePage),
+    fetchMediaTagsMap(),
   ]);
 
   const totalCount = Number(countResult[0]?.count ?? 0);
@@ -732,6 +746,8 @@ export async function fetchMediaLibraryPage({
       videoDuration: record.videoDuration ?? null,
       liveType: record.liveType ?? null,
       description: record.description ?? null,
+      author: record.author ?? null,
+      tags: tagsMap[String(record.id)] ?? [],
       dateShot: record.dateShot ?? null,
       camera: record.camera ?? null,
       maker: record.maker ?? null,
@@ -1542,7 +1558,7 @@ export async function fetchPublishedPhotosForHome(limit = 12) {
  */
 export async function fetchHeroPhotosForHomeCached(options?: { userId?: number; limit?: number }) {
   return getCached(
-    `hero-photos:${options?.userId || 'default'}:${options?.limit || 12}`,
+    CacheKeys.frontHero(options?.userId || 'default', options?.limit || 12),
     () => fetchHeroPhotosForHome(options),
     300 // 5 分钟
   );
@@ -1553,7 +1569,10 @@ export async function fetchHeroPhotosForHomeCached(options?: { userId?: number; 
  * Redis 不可用时自动降级到 Next.js unstable_cache
  */
 export async function fetchCollectionsCached(options?: FetchCollectionsOptions) {
-  const cacheKey = `collections:${options?.status || 'published'}:${options?.limit || 'all'}`;
+  const cacheKey = CacheKeys.frontFeaturedCollections(
+    options?.status || 'published',
+    options?.limit || 'all',
+  );
   return getCached(
     cacheKey,
     () => fetchCollections(options),

@@ -42,10 +42,12 @@ export async function GET(request: Request) {
   const category = url.searchParams.get('category') || 'all';
   const storageId = parseStorageId(url.searchParams.get('storageId'));
 
-  const categoryStorageIds =
-    category === 'all' ? [] : storages.filter((s) => s.type === category).map((s) => s.id);
-
-  const storageIds = storageId > 0 ? [storageId] : categoryStorageIds;
+  const storageIds =
+    storageId > 0
+      ? [storageId]
+      : category === 'all'
+        ? undefined
+        : storages.filter((s) => s.type === category).map((s) => s.id);
 
   const mediaType =
     (url.searchParams.get('type') as 'all' | 'image' | 'video' | 'animated') || 'all';

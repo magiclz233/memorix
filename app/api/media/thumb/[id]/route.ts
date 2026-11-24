@@ -195,7 +195,7 @@ export async function GET(request: Request, { params }: Params) {
         if (!thumb) {
           const ext = path.extname(originalTemp).toLowerCase();
           if (ext === '.heic' || ext === '.heif') {
-            return respondPlaceholderWebp(item.isPublished);
+            return respondPlaceholderWebp(effectivePublished);
           }
           const originalResponse = await client.send(
             new GetObjectCommand({
@@ -207,7 +207,7 @@ export async function GET(request: Request, { params }: Params) {
           if (!originalStream) {
             return new NextResponse('File Not Found', { status: 404 });
           }
-          const headers = mediaCacheHeaders(item.isPublished, {
+          const headers = mediaCacheHeaders(effectivePublished, {
             'Content-Type': resolveContentType(item.path, item.mimeType),
           });
           if (typeof originalResponse.ContentLength === 'number') {
@@ -256,7 +256,7 @@ export async function GET(request: Request, { params }: Params) {
 
   const ext = path.extname(originalPath).toLowerCase();
   if (ext === '.heic' || ext === '.heif') {
-    return respondPlaceholderWebp(item.isPublished);
+    return respondPlaceholderWebp(effectivePublished);
   }
 
   try {
@@ -264,7 +264,7 @@ export async function GET(request: Request, { params }: Params) {
     const stream = createReadStream(originalPath);
     return new NextResponse(Readable.toWeb(stream) as BodyInit, {
       status: 200,
-      headers: mediaCacheHeaders(item.isPublished, {
+      headers: mediaCacheHeaders(effectivePublished, {
         'Content-Length': stat.size.toString(),
         'Content-Type': resolveContentType(originalPath, item.mimeType),
       }),

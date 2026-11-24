@@ -41,6 +41,7 @@ type MediaItem = {
   url: string | null;
   title: string | null;
   mediaType: 'image' | 'video' | 'animated';
+  isPublished?: boolean;
 };
 
 type MediaPickerProps = {
@@ -66,6 +67,7 @@ export function MediaPicker({
 }: MediaPickerProps) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>(initialSelectedIds);
+  const knownItemsRef = useRef<Map<number, MediaItem>>(new Map());
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,8 +91,14 @@ export function MediaPicker({
         24,
         filterType === 'all' 
           ? allowedMediaTypes 
-          : [filterType as any],
+          : [filterType as 'image' | 'video' | 'animated'],
+        debouncedSearch || undefined,
+        true,
       )) as unknown as MediaItem[];
+
+      newItems.forEach((item) => {
+        knownItemsRef.current.set(item.id, item);
+      });
 
       if (newItems.length < 24) {
         setHasMore(false);
@@ -111,10 +119,11 @@ export function MediaPicker({
     } finally {
       setIsLoading(false);
     }
-  }, [allowedMediaTypes, filterType, page]);
+  }, [allowedMediaTypes, debouncedSearch, filterType, page]);
 
   useEffect(() => {
-    loadMedia(true);
+    void loadMedia(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, filterType]);
 
   const toggleSelection = (id: number) => {
@@ -155,9 +164,9 @@ export function MediaPicker({
     startTransition(() => {
       onConfirm(selectedIds);
       if (onConfirmItems) {
-        const selectedItems = items.filter((item) =>
-          selectedIds.includes(item.id),
-        );
+        const selectedItems = selectedIds
+          .map((id) => knownItemsRef.current.get(id))
+          .filter((item): item is MediaItem => Boolean(item));
         onConfirmItems(selectedItems);
       }
     });
@@ -280,6 +289,7 @@ export function MediaPicker({
                         src={mediaSrc}
                         alt={item.title || ''}
                         fill
+                        unoptimized={mediaSrc.startsWith('/api/')}
                         sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 15vw"
                         className={cn(
                           "object-cover transition-all duration-500",

@@ -300,6 +300,10 @@ export class FileUploadQueue {
 
     const elapsed = Math.max(1, (Date.now() - startedAt) / 1000);
     const speed = file.totalSize / elapsed;
+    const serverFileId =
+      typeof result?.fileId === 'number' && Number.isSafeInteger(result.fileId)
+        ? result.fileId
+        : undefined;
 
     this.patch(file.id, {
       phase: 'completing',
@@ -309,6 +313,7 @@ export class FileUploadQueue {
       status: 'done',
       endTime: Date.now(),
       error: null,
+      serverFileId,
     });
 
     await saveProgress(file.taskId, {
@@ -320,6 +325,7 @@ export class FileUploadQueue {
       status: 'done',
       endTime: Date.now(),
       error: null,
+      serverFileId,
     });
   }
 
@@ -374,7 +380,11 @@ export class FileUploadQueue {
     const initData = await initResponse.json();
 
     if (initData.instantUpload) {
-      this.patch(file.id, {
+      const serverFileId =
+        typeof initData.fileId === 'number' && Number.isSafeInteger(initData.fileId)
+          ? initData.fileId
+          : undefined;
+      const instantPatch: Partial<UploadFile> = {
         phase: 'completing',
         progress: 100,
         uploadedSize: file.totalSize,
@@ -382,6 +392,12 @@ export class FileUploadQueue {
         status: 'done',
         endTime: Date.now(),
         error: null,
+        serverFileId,
+      };
+      this.patch(file.id, instantPatch);
+      await saveProgress(file.taskId, {
+        ...file,
+        ...instantPatch,
       });
       return;
     }
@@ -479,6 +495,12 @@ export class FileUploadQueue {
       throw new Error(await responseError(completeResponse));
     }
 
+    const completeData = await completeResponse.json().catch(() => null);
+    const serverFileId =
+      typeof completeData?.fileId === 'number' && Number.isSafeInteger(completeData.fileId)
+        ? completeData.fileId
+        : undefined;
+
     const endTime = Date.now();
     const finalPatch: Partial<UploadFile> = {
       phase: 'completing',
@@ -488,6 +510,7 @@ export class FileUploadQueue {
       status: 'done',
       endTime,
       error: null,
+      serverFileId,
     };
 
     this.patch(file.id, finalPatch);

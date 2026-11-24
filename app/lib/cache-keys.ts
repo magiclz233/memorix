@@ -39,14 +39,24 @@ export const CacheKeys = {
   // 文件秒传: upload:instant:{fileHash}
   instantUpload: (fileHash: string) => `upload:instant:${fileHash}`,
 
-  // 首页 Hero 照片: front:hero
-  frontHero: () => 'front:hero',
+  // 媒体标签映射: media:tags:map
+  mediaTagsMap: () => 'media:tags:map',
 
-  // 首页精选集合: front:featured-collections
-  frontFeaturedCollections: () => 'front:featured-collections',
+  // 首页 Hero 照片: front:hero:{userId}:{limit}
+  frontHero: (userId?: number | string, limit?: number) =>
+    userId !== undefined || limit !== undefined
+      ? `front:hero:${userId ?? 'default'}:${limit ?? 12}`
+      : 'front:hero',
 
-  // 系统概览统计: dashboard:overview
-  dashboardOverview: () => 'dashboard:overview',
+  // 首页/前台集合列表: front:featured-collections:{status}:{limit}
+  frontFeaturedCollections: (status?: string, limit?: number | string) =>
+    status !== undefined || limit !== undefined
+      ? `front:featured-collections:${status ?? 'published'}:${limit ?? 'all'}`
+      : 'front:featured-collections',
+
+  // 系统概览统计: dashboard:overview:{userId}
+  dashboardOverview: (userId?: number) =>
+    typeof userId === 'number' ? `dashboard:overview:${userId}` : 'dashboard:overview',
 } as const;
 
 /**

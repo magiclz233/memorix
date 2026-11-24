@@ -69,6 +69,8 @@ export type UploadFile = {
   startTime: number | null;
   endTime: number | null;
   phase: UploadPhase;
+  /** 上传成功后服务端回填的数据库文件 ID，供「一键发布全部」使用 */
+  serverFileId?: number;
 };
 
 export type UploadTask = {
