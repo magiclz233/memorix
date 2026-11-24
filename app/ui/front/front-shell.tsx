@@ -13,20 +13,25 @@ const FloatingNav = dynamic(
 type FrontShellProps = {
   children: ReactNode;
   minPasswordLength: number;
+  siteName: string;
 };
 
-export function FrontShell({ children, minPasswordLength }: FrontShellProps) {
+export function FrontShell({
+  children,
+  minPasswordLength,
+  siteName,
+}: FrontShellProps) {
   return (
-    <div className='relative min-h-screen overflow-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-white'>
+    <div className="relative min-h-screen overflow-x-clip bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-white">
       <FrontBackground />
-      <div className='relative z-10 flex min-h-screen flex-col'>
-        <FloatingNav minPasswordLength={minPasswordLength} />
-        <main className='flex-1'>
-          <div className='mx-auto w-[88vw] max-w-none px-0 pb-16 pt-24'>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <FloatingNav minPasswordLength={minPasswordLength} siteName={siteName} />
+        <main className="flex-1">
+          <div className="mx-auto w-[88vw] max-w-none px-0 pb-16 pt-24">
             {children}
           </div>
         </main>
-        <FrontFooter />
+        <FrontFooter siteName={siteName} />
       </div>
     </div>
   );

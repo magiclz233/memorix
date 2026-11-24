@@ -42,15 +42,7 @@ export function LoginFormFields({
         />
       </div>
       <div className='grid gap-2'>
-        <div className='flex items-center'>
-          <Label htmlFor='password'>{t('passwordLabel')}</Label>
-          <a
-            href='#'
-            className='ml-auto text-sm underline-offset-2 hover:underline'
-          >
-            {t('forgotPassword')}
-          </a>
-        </div>
+        <Label htmlFor='password'>{t('passwordLabel')}</Label>
         <div className='relative'>
           <Input
             id='password'

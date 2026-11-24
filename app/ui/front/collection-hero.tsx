@@ -1,20 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Heart,
-  ThumbsUp,
-} from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Link } from '@/i18n/navigation';
 
@@ -139,29 +127,6 @@ export function CollectionHero({
         </div>
       ) : null}
       <div className="absolute inset-0 flex items-end px-6 pb-10 pt-24 md:px-12 md:pb-14">
-        <TooltipProvider>
-          <div className="absolute right-6 top-6 z-20 flex items-center gap-3 md:right-12">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button className="h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white hover:text-black">
-                  <ThumbsUp className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{actions.like}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-12 w-12 rounded-full border-white/40 bg-white/10 text-white hover:bg-white hover:text-black"
-                >
-                  <Heart className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{actions.favorite}</TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
         <div className="mx-auto w-full max-w-[1600px] space-y-8 text-white">
           <div className="flex flex-wrap gap-2">
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur-md">

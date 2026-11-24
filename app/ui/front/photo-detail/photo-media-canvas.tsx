@@ -200,13 +200,16 @@ export function PhotoMediaCanvas({
                           onMouseLeave={() => setIsLivePreviewing(false)}
                           onFocus={() => setIsLivePreviewing(true)}
                           onBlur={() => setIsLivePreviewing(false)}
-                          onClick={(event) => event.stopPropagation()}
-                          className='absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60'
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setIsLivePreviewing(!isLivePreviewing);
+                          }}
+                          className='absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-950/65 text-white backdrop-blur-md transition hover:bg-zinc-950/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60'
                         >
                           <Sparkles className='h-4 w-4' />
                         </button>
                       ) : isAnimated ? (
-                        <div className='absolute right-3 top-3 z-10 flex h-5 items-center justify-center rounded-full bg-black/50 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md'>
+                        <div className='absolute right-3 top-3 z-10 flex h-5 items-center justify-center rounded-full bg-zinc-950/60 px-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md'>
                           {t('badges.animated')}
                         </div>
                       ) : null}
@@ -219,14 +222,14 @@ export function PhotoMediaCanvas({
                           onChange={setFootTitle}
                           onSave={handleInlineSave}
                           editable={isAdmin}
-                          className='font-[family-name:var(--font-serif-sc)] text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 break-words'
-                          inputClassName='text-sm md:text-base font-light tracking-[0.2em] text-slate-800 dark:text-slate-300 w-full max-w-[300px]'
+                          className='font-serif text-sm md:text-base font-light tracking-[0.2em] text-zinc-800 dark:text-zinc-300 break-words'
+                          inputClassName='text-sm md:text-base font-light tracking-[0.2em] text-zinc-800 dark:text-zinc-300 w-full max-w-[300px]'
                           placeholder={t('modal.untitled')}
                         />
                       </div>
 
                       <div className='flex items-center justify-center gap-2 mt-2 opacity-60 hover:opacity-100 transition-opacity duration-300'>
-                        <span className='font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300'>
+                        <span className='font-serif text-[10px] md:text-[11px] tracking-widest italic text-zinc-800 dark:text-zinc-300'>
                           {t('modal.authorPrefix')}
                         </span>
                         <div className='min-w-[72px] text-center'>
@@ -235,12 +238,12 @@ export function PhotoMediaCanvas({
                             onChange={setFootAuthor}
                             onSave={handleInlineSave}
                             editable={isAdmin}
-                            className='font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 block w-full'
-                            inputClassName='text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 w-24'
+                            className='font-serif text-[10px] md:text-[11px] tracking-widest italic text-zinc-800 dark:text-zinc-300 block w-full'
+                            inputClassName='text-[10px] md:text-[11px] tracking-widest italic text-zinc-800 dark:text-zinc-300 w-24'
                             placeholder={t('modal.authorFallback')}
                           />
                         </div>
-                        <span className='font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300'>
+                        <span className='font-serif text-[10px] md:text-[11px] tracking-widest italic text-zinc-800 dark:text-zinc-300'>
                           ·
                         </span>
                         <div className='min-w-[92px] text-center'>
@@ -250,8 +253,8 @@ export function PhotoMediaCanvas({
                             onSave={handleInlineSave}
                             editable={isAdmin}
                             type='date'
-                            className='font-[family-name:var(--font-serif-sc)] text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 block w-full'
-                            inputClassName='text-[10px] md:text-[11px] tracking-widest italic text-slate-800 dark:text-slate-300 w-32'
+                            className='font-serif text-[10px] md:text-[11px] tracking-widest italic text-zinc-800 dark:text-zinc-300 block w-full'
+                            inputClassName='text-[10px] md:text-[11px] tracking-widest italic text-zinc-800 dark:text-zinc-300 w-32'
                             placeholder={t('modal.dateFallback')}
                           />
                         </div>

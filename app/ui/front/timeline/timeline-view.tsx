@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
-import { CalendarDays, Loader2 } from 'lucide-react';
+import { CalendarDays, Film, Loader2 } from 'lucide-react';
 import type { GalleryItem } from '@/app/lib/gallery';
 import { groupTimelineByMonth } from '@/app/lib/timeline-group';
 import type { TimelineBucket } from '@/app/lib/data';
 import { BlurImage } from '@/app/ui/gallery/blur-image';
+import { Gallery25 } from '@/components/gallery25';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/app/ui/components/spinner';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,7 @@ export function TimelineView({
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
   const [isFiltering, startTransition] = useTransition();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -243,15 +245,16 @@ export function TimelineView({
                   {t('count', { count: group.items.length })}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
                 {group.items.map((item) => {
-                  const ratio =
-                    item.width && item.height && item.height > 0 ? item.width / item.height : 4 / 3;
+                  const isVideo = item.type === 'video';
+                  const isLive = item.liveType === 'embedded' || item.liveType === 'paired';
                   return (
-                    <div
+                    <button
                       key={item.id}
-                      className="relative overflow-hidden rounded-lg border border-zinc-200/70 bg-zinc-100 dark:border-zinc-800/70 dark:bg-zinc-900"
-                      style={{ aspectRatio: ratio }}
+                      type="button"
+                      onClick={() => setSelectedId(String(item.id))}
+                      className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-zinc-200/70 bg-zinc-100 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-zinc-800/70 dark:bg-zinc-900"
                     >
                       <BlurImage
                         src={item.src}
@@ -259,9 +262,18 @@ export function TimelineView({
                         blurHash={item.blurHash}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 20vw"
-                        className="object-cover transition duration-500 hover:scale-[1.05]"
+                        className="object-cover transition duration-500 group-hover:scale-[1.05]"
                       />
-                    </div>
+                      {isVideo ? (
+                        <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-zinc-950/75 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                          <Film className="h-3 w-3" />
+                        </span>
+                      ) : isLive ? (
+                        <span className="absolute right-2 top-2 rounded-full bg-amber-500/85 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+                          LIVE
+                        </span>
+                      ) : null}
+                    </button>
                   );
                 })}
               </div>
@@ -288,6 +300,14 @@ export function TimelineView({
         </div>
         <div ref={sentinelRef} className="h-4" />
       </div>
+
+      <Gallery25
+        items={items}
+        showGrid={false}
+        showChrome={false}
+        selectedId={selectedId}
+        onSelectedIdChange={setSelectedId}
+      />
     </div>
   );
 }

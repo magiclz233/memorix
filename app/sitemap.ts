@@ -11,7 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const locales = routing.locales;
 
   // 静态页面
-  const staticPages = ['', '/gallery', '/collections', '/about'];
+  const staticPages = ['', '/gallery', '/timeline', '/collections', '/about'];
 
   const entries: MetadataRoute.Sitemap = [];
 

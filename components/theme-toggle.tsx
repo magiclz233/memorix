@@ -22,7 +22,21 @@ export function ModeToggle({ className }: ThemeToggleProps) {
     setMounted(true);
   }, []);
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <Button
+        type='button'
+        variant='outline'
+        size='icon'
+        disabled
+        aria-hidden='true'
+        className={cn(
+          'h-9 w-9 rounded-full border-zinc-200 bg-white/70 opacity-0 dark:border-white/10 dark:bg-zinc-900/50',
+          className,
+        )}
+      />
+    );
+  }
 
   const resolvedTheme = theme === 'system' ? systemTheme : theme;
   const isDark = resolvedTheme === 'dark';

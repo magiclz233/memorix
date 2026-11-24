@@ -1,18 +1,19 @@
 import { fetchCollectionById, fetchCollectionMediaItems } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { CollectionHero } from '@/app/ui/front/collection-hero';
 import { CollectionMediaSection } from '@/app/ui/front/collection-media-section';
 
 export default async function Page({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ filter?: string }>;
 }) {
   const { id } = await params;
-  const t = await getTranslations('front.collections');
+  const [locale, t] = await Promise.all([
+    getLocale(),
+    getTranslations('front.collections'),
+  ]);
   const collection = await fetchCollectionById(Number(id));
 
   if (!collection) {
@@ -29,15 +30,9 @@ export default async function Page({
 
   const galleryItems = items.map(({ file, photoMetadata, videoMetadata }) => {
     const isVideo = file.mediaType === 'video';
-    const isHeic =
-      !isVideo &&
-      (file.path?.toLowerCase().endsWith('.heic') ||
-        file.path?.toLowerCase().endsWith('.heif'));
-    const src = isVideo
-      ? file.thumbUrl || `/api/media/thumb/${file.id}`
-      : file.thumbUrl ||
-        (isHeic ? `/api/media/thumb/${file.id}` : file.url) ||
-        `/api/media/thumb/${file.id}`;
+    const isAnimated = file.mediaType === 'animated';
+    const src = `/api/media/thumb/${file.id}`;
+    const fullSrc = isVideo ? undefined : `/api/local-files/${file.id}`;
     const width = isVideo
       ? videoMetadata?.width || 1920
       : photoMetadata?.resolutionWidth || 1920;
@@ -48,8 +43,12 @@ export default async function Page({
       id: String(file.id),
       type: isVideo ? ('video' as const) : ('photo' as const),
       src,
+      fullSrc,
+      isAnimated,
+      animatedUrl: isAnimated ? `/api/local-files/${file.id}` : undefined,
       title: file.title || '',
       description: photoMetadata?.description,
+      author: file.author,
       width,
       height,
       blurHash: file.blurHash,
@@ -58,14 +57,19 @@ export default async function Page({
       resolution:
         width && height ? `${width}×${height}` : undefined,
       camera: photoMetadata?.camera,
+      maker: photoMetadata?.maker,
       lens: photoMetadata?.lens,
       aperture: photoMetadata?.aperture,
       iso: photoMetadata?.iso,
       focalLength: photoMetadata?.focalLength,
       exposure: photoMetadata?.exposure,
+      whiteBalance: photoMetadata?.whiteBalance,
+      gpsLatitude: photoMetadata?.gpsLatitude,
+      gpsLongitude: photoMetadata?.gpsLongitude,
+      locationName: photoMetadata?.locationName,
       dateShot: photoMetadata?.dateShot?.toISOString(),
       size: file.size,
-      videoUrl: isVideo ? file.url : undefined,
+      videoUrl: isVideo ? `/api/media/stream/${file.id}` : undefined,
       liveType: (photoMetadata?.liveType as 'none' | 'embedded' | 'paired') || undefined,
       duration: isVideo ? videoMetadata?.duration : photoMetadata?.videoDuration,
     };
@@ -90,7 +94,7 @@ export default async function Page({
     galleryItems[0]?.src ||
     '';
   const heroImages = coverUrls.length > 0 ? coverUrls : fallbackHero ? [fallbackHero] : [];
-  const updatedAtValue = new Date(collection.updatedAt).toLocaleDateString();
+  const updatedAtValue = new Date(collection.updatedAt).toLocaleDateString(locale);
 
   return (
     <div className="relative min-h-screen pb-20">

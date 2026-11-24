@@ -2,13 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
-import { LogIn, ShieldCheck, UserCircle, KeyRound, LogOut, Search } from 'lucide-react';
+import { LogIn, ShieldCheck, UserCircle, KeyRound, LogOut, Search, Menu } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ModeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LocaleSwitcher } from '@/components/locale-switcher';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +42,13 @@ const navItems = [
   { key: 'about', href: '/about' },
 ];
 
-export function FloatingNav({ minPasswordLength }: { minPasswordLength: number }) {
+export function FloatingNav({
+  minPasswordLength,
+  siteName = 'Memorix',
+}: {
+  minPasswordLength: number;
+  siteName?: string;
+}) {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const router = useRouter();
@@ -46,6 +59,8 @@ export function FloatingNav({ minPasswordLength }: { minPasswordLength: number }
     ? `/login?callbackUrl=${encodeURIComponent(pathname)}`
     : '/login';
   const [accountOpen, setAccountOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -55,8 +70,11 @@ export function FloatingNav({ minPasswordLength }: { minPasswordLength: number }
   const { data: session, refetch: refetchSession } = authClient.useSession();
 
   useEffect(() => {
-    refetchSession();
-  }, [pathname, refetchSession]);
+    const onScroll = () => setScrolled(window.scrollY > 32);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const user = session?.user;
   const displayName = user?.name || user?.email || t('account.loggedIn');
@@ -152,25 +170,95 @@ export function FloatingNav({ minPasswordLength }: { minPasswordLength: number }
     return null;
   }
 
+  const useDarkOverlayText = isHome && !scrolled;
+
   return (
-    <div className='front-floating-nav fixed inset-x-0 top-0 z-50 pointer-events-none transition duration-200 ease-out'>
-      <div className='flex items-center justify-between px-6 pt-6'>
-        <Link href='/' className='pointer-events-auto flex items-center gap-3'>
-          <span
-            className={cn(
-              'font-serif',
-              'text-base font-semibold tracking-[0.35em] md:text-lg',
-              isHome ? 'text-white/80' : 'text-zinc-800/90 dark:text-white/85',
-            )}
-          >
-            LUMINA
-          </span>
-        </Link>
+    <div className='front-floating-nav fixed inset-x-0 top-0 z-50 pointer-events-none transition-all duration-200 ease-out'>
+      <div
+        className={cn(
+          'flex items-center justify-between px-4 py-3.5 transition-all duration-200 md:px-8',
+          scrolled || !isHome
+            ? 'pointer-events-auto border-b border-zinc-200/70 bg-white/75 backdrop-blur-xl dark:border-zinc-800/70 dark:bg-zinc-950/75'
+            : 'pt-5',
+        )}
+      >
+        <div className='pointer-events-auto flex items-center gap-2.5'>
+          {/* 移动端主导航抽屉 */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon'
+                className={cn(
+                  'h-8 w-8 rounded-full border shadow-sm backdrop-blur-md lg:hidden',
+                  useDarkOverlayText
+                    ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                    : 'border-input bg-background/80 text-foreground hover:bg-accent',
+                )}
+                aria-label='Menu'
+              >
+                <Menu className='h-4 w-4' />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side='left' className='w-72'>
+              <SheetHeader>
+                <SheetTitle className='font-serif tracking-[0.25em] uppercase'>
+                  {siteName}
+                </SheetTitle>
+              </SheetHeader>
+              <nav className='mt-6 flex flex-col gap-1.5'>
+                {navItems.map((item) => {
+                  const active =
+                    pathname === item.href ||
+                    (item.href !== '/' && pathname?.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        'rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors',
+                        active
+                          ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300'
+                          : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white',
+                      )}
+                    >
+                      {t(`items.${item.key}`)}
+                    </Link>
+                  );
+                })}
+                {isAdmin ? (
+                  <Link
+                    href='/dashboard'
+                    onClick={() => setMobileMenuOpen(false)}
+                    className='mt-2 flex items-center gap-2 rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-800'
+                  >
+                    <ShieldCheck className='h-4 w-4 text-indigo-500' />
+                    <span>{t('account.admin')}</span>
+                  </Link>
+                ) : null}
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          <Link href='/' className='flex items-center gap-3'>
+            <span
+              className={cn(
+                'font-serif',
+                'text-base font-semibold uppercase tracking-[0.3em] md:text-lg',
+                useDarkOverlayText ? 'text-white/90' : 'text-zinc-900 dark:text-white/90',
+              )}
+            >
+              {siteName}
+            </span>
+          </Link>
+        </div>
         <div className='pointer-events-auto flex items-center gap-2'>
           <nav
             className={cn(
-              'hidden items-center gap-4 text-xs uppercase tracking-[0.2em] lg:flex',
-              isHome ? 'text-white/60' : 'text-zinc-600/80 dark:text-white/60',
+              'hidden items-center gap-5 text-xs uppercase tracking-[0.2em] lg:flex',
+              useDarkOverlayText ? 'text-white/70' : 'text-zinc-600 dark:text-zinc-300',
             )}
           >
             {navItems.map((item) => {
@@ -183,12 +271,12 @@ export function FloatingNav({ minPasswordLength }: { minPasswordLength: number }
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'transition',
+                    'transition-colors',
                     active
-                      ? isHome
-                        ? 'text-white'
-                        : 'text-zinc-900 dark:text-white'
-                      : isHome
+                      ? useDarkOverlayText
+                        ? 'font-semibold text-white'
+                        : 'font-semibold text-indigo-600 dark:text-indigo-400'
+                      : useDarkOverlayText
                         ? 'hover:text-white'
                         : 'hover:text-zinc-900 dark:hover:text-white',
                   )}

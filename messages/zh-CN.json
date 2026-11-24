@@ -29,6 +29,18 @@
       "shareActive": "有效",
       "shareExpired": "已过期",
       "shareProtected": "带密码"
+    },
+    "notFound": {
+      "title": "页面未找到",
+      "description": "你访问的地址可能已失效、被移动或没有访问权限。",
+      "backHome": "返回首页",
+      "goGallery": "浏览画廊"
+    },
+    "errorPage": {
+      "title": "页面出现了一点小问题",
+      "description": "请稍后重试，或返回首页继续浏览。",
+      "retry": "重新加载",
+      "backHome": "返回首页"
     }
   },
   "nav": {
@@ -61,7 +73,8 @@
   "auth": {
     "loginPage": {
       "heroAlt": "登录页背景图",
-      "appName": "Memorix 画廊"
+      "appName": "Memorix 画廊",
+      "subtitle": "沉浸式光影与极简排版的私人视觉档案系统"
     },
     "signupPage": {
       "heroAlt": "注册页背景图",
@@ -116,7 +129,8 @@
         "home": "首页",
         "gallery": "画廊",
         "collections": "作品集",
-        "about": "关于"
+        "about": "关于",
+        "timeline": "时间轴"
       }
     },
     "home": {
@@ -708,7 +722,16 @@
       "backToFront": "前台",
       "shares": "分享链接",
       "trash": "回收站",
-      "dedup": "去重"
+      "dedup": "去重",
+      "monitoring": "监控与审计",
+      "profile": "个人资料",
+      "createTask": "创建上传任务",
+      "groups": {
+        "overview": "概览",
+        "content": "内容资产",
+        "organize": "分发与整理",
+        "system": "基础设施与系统"
+      }
     },
     "overview": {
       "title": "概览",
@@ -726,11 +749,30 @@
       "quickLinks": {
         "title": "快捷入口",
         "storage": "存储连接管理",
-        "gallery": "前台画廊预览"
+        "gallery": "前台画廊预览",
+        "unpublished": "待上线媒体",
+        "unpublishedDesc": "当前有 {count} 项未上线，点击前往筛选与发布",
+        "upload": "上传媒体",
+        "uploadDesc": "分片断点续传或直传照片与视频到存储源",
+        "storageDesc": "管理本地、NAS、S3 与七牛存储连接与扫描任务",
+        "shares": "外链分享",
+        "sharesDesc": "当前有 {count} 个有效外链分享",
+        "trash": "回收站",
+        "trashDesc": "当前有 {count} 项软删除文件（30 天后自动清理）",
+        "monitoring": "监控与审计",
+        "monitoringDesc": "查看性能指标、系统错误日志与操作审计记录"
       },
       "loginRequired": "请先登录后查看系统概览。",
       "goToLogin": "前往登录",
-      "userNotFound": "未找到用户信息。"
+      "userNotFound": "未找到用户信息。",
+      "health": {
+        "publishProgress": "媒体上线进度",
+        "publishProgressDesc": "已上线 {published} 项 · 未上线 {unpublished} 项（上线率 {rate}%）",
+        "attention": "运维关注",
+        "failedScans": "失败扫描任务",
+        "trashedItems": "回收站待清理",
+        "activeShares": "有效外链分享"
+      }
     },
     "data": {
       "collections": {
@@ -820,7 +862,8 @@
           "all": "全部",
           "yes": "是",
           "no": "否"
-        }
+        },
+        "advancedDesc": "组合筛选条件后点击「应用」一次性刷新结果。"
       },
       "sort": {
         "dateShotDesc": "拍摄时间（最新）",
@@ -916,7 +959,63 @@
         "bulkUpdating": "处理中...",
         "bulkPublishSuccess": "已发布全部 {count} 个文件。",
         "bulkUnpublishSuccess": "已取消发布全部 {count} 个文件。",
-        "bulkPublishFailed": "整库操作失败，请稍后重试。"
+        "bulkPublishFailed": "整库操作失败，请稍后重试。",
+        "uploadAction": "上传媒体",
+        "gridView": "网格视图",
+        "listView": "列表视图",
+        "selectMode": "多选模式",
+        "exitSelectMode": "退出多选",
+        "unselectPage": "取消全选",
+        "statusUpdated": "状态已更新",
+        "clickToPublish": "点击立即上线到前台画廊",
+        "clickToUnpublish": "点击立即从前台下线",
+        "publishFiltered": "上线当前筛选全部 ({count})",
+        "unpublishFiltered": "下线当前筛选全部 ({count})",
+        "publishFilteredTitle": "上线当前筛选的全部媒体",
+        "unpublishFilteredTitle": "下线当前筛选的全部媒体",
+        "publishFilteredDesc": "将对当前筛选条件命中的全部 {count} 项媒体执行上线操作（跨所有分页），确定继续吗？",
+        "unpublishFilteredDesc": "将对当前筛选条件命中的全部 {count} 项媒体执行下线操作（跨所有分页），确定继续吗？",
+        "pageSelectedBanner": "已选中本页全部 {pageCount} 项（当前筛选共 {totalCount} 项）",
+        "moveToTrashConfirm": "确定将选中的 {count} 项媒体移入回收站吗？30 天内可在回收站随时恢复。",
+        "addToCollection": "加入作品集",
+        "addToCollectionTitle": "将 {count} 项媒体加入作品集",
+        "addToCollectionDesc": "选择目标作品集，符合类型的媒体将被追加到末尾。",
+        "targetCollection": "目标作品集",
+        "selectCollectionPlaceholder": "请选择作品集",
+        "selectCollectionRequired": "请先选择一个目标作品集",
+        "noCollectionsAvailable": "暂无可用作品集，请先前往作品集管理创建。",
+        "confirmAddToCollection": "确认加入",
+        "addToCollectionSuccess": "已将 {count} 项媒体加入作品集",
+        "addToCollectionFailed": "加入作品集失败",
+        "createShare": "创建分享",
+        "quickShareTitle": "为选中的 {count} 项媒体创建外链分享",
+        "quickShareDesc": "私有媒体也可通过独立分享链接受控访问，不会进入公共画廊。",
+        "shareName": "分享名称（可选）",
+        "shareNamePlaceholder": "例如：周末旅行精选",
+        "shareExpires": "有效期",
+        "shareNeverExpire": "永不过期",
+        "sharePassword": "访问密码（可选）",
+        "sharePasswordPlaceholder": "留空则无需密码",
+        "shareAllowDownload": "允许访客下载原图/视频",
+        "createShareLink": "生成分享链接",
+        "shareLinkLabel": "分享链接（已自动复制）",
+        "shareCreatedCopied": "分享链接已生成并复制到剪贴板",
+        "shareFailed": "创建分享失败",
+        "linkCopied": "链接已复制",
+        "done": "完成",
+        "tagsMode": {
+          "add": "追加标签",
+          "replace": "替换全部",
+          "remove": "移除标签"
+        },
+        "table": {
+          "media": "媒体",
+          "status": "上线状态",
+          "specs": "规格",
+          "date": "拍摄日期",
+          "tags": "标签",
+          "actions": "操作"
+        }
       }
     },
     "collections": {
@@ -976,7 +1075,11 @@
         "addMedia": "添加媒体",
         "selectMedia": "选择要添加的媒体",
         "emptyTitle": "作品集中暂无内容",
-        "emptyDescription": "先添加一些照片或视频"
+        "emptyDescription": "先添加一些照片或视频",
+        "removed": "已从作品集移除",
+        "removeConfirmTitle": "从作品集移除媒体",
+        "removeConfirmDesc": "该操作仅将媒体从此作品集中移除，不会删除原文件。",
+        "removeConfirmAction": "确认移除"
       },
       "picker": {
         "selected": "已选 {count} 项",
@@ -1145,7 +1248,9 @@
           "cancel": "取消",
           "confirm": "确认继续",
           "processing": "处理中..."
-        }
+        },
+        "emptyTitle": "尚未配置任何存储源",
+        "emptyDesc": "添加本地目录、NAS 挂载或 S3/七牛云对象存储后即可开始扫描索引。"
       },
       "form": {
         "types": {
@@ -1455,7 +1560,11 @@
             "titleLabel": "设备标题",
             "description": "设备描述"
           }
-        }
+        },
+        "bioPlaceholder": "填写个人简介，将展示在前台「关于」页面...",
+        "saving": "保存中...",
+        "saveSuccess": "系统设置已保存",
+        "saveFailed": "保存系统设置失败，请重试"
       },
       "users": {
         "title": "用户管理",
@@ -1491,7 +1600,8 @@
           "confirm": "确定",
           "processing": "处理中...",
           "deleting": "删除中..."
-        }
+        },
+        "searchPlaceholder": "搜索姓名或邮箱..."
       }
     },
     "trash": {
@@ -1512,7 +1622,8 @@
       "purgeConfirmBody": "彻底删除会同时移除原始文件（NAS/S3/本地）、缩略图与全部元数据，此操作不可恢复。",
       "purgeConfirmCount": "即将彻底删除 {count} 项。",
       "cancel": "取消",
-      "purgeConfirmAction": "确认彻底删除"
+      "purgeConfirmAction": "确认彻底删除",
+      "retentionNotice": "回收站中的文件将在 30 天后由系统自动彻底清理，彻底删除后无法恢复。"
     },
     "dedup": {
       "title": "内容去重",
@@ -1526,7 +1637,38 @@
       "copyHash": "复制哈希",
       "groupCount": "{count} 个文件",
       "keepOldestTrashRest": "保留最早，其余移入回收站",
-      "keepBadge": "保留"
+      "keepBadge": "保留",
+      "keepSelectedTrashRest": "保留选中项，其余移入回收站",
+      "hashCopied": "文件 Hash 已复制",
+      "confirmTitle": "确认清理重复副本",
+      "confirmDesc": "将保留当前选中的 1 份，并将其余 {count} 份重复文件移入回收站（30 天内可恢复）。",
+      "confirmAction": "确认移入回收站",
+      "cancel": "取消"
+    },
+    "monitoring": {
+      "title": "监控与审计",
+      "description": "查看最近 24 小时性能指标、系统日志与管理员操作审计记录。",
+      "vitalsTitle": "Web Vitals（24h）",
+      "errorStatsTitle": "日志级别统计（24h）",
+      "noVitals": "暂无性能采样数据",
+      "noErrors": "暂无日志记录",
+      "samples": "{count} 次采样",
+      "refresh": "刷新",
+      "loading": "加载中...",
+      "tabs": {
+        "systemLogs": "系统日志",
+        "auditLogs": "操作审计日志"
+      },
+      "logs": {
+        "searchPlaceholder": "搜索日志消息关键词...",
+        "allLevels": "全部级别"
+      },
+      "audit": {
+        "actionPlaceholder": "按动作过滤（如 media.publish）...",
+        "allResources": "全部资源",
+        "empty": "暂无审计记录",
+        "loadMore": "加载更多"
+      }
     }
   },
   "actions": {

@@ -29,6 +29,18 @@
       "shareActive": "Active",
       "shareExpired": "Expired",
       "shareProtected": "Password"
+    },
+    "notFound": {
+      "title": "Page Not Found",
+      "description": "The page you are looking for may have been moved, removed, or is unavailable.",
+      "backHome": "Back Home",
+      "goGallery": "Explore Gallery"
+    },
+    "errorPage": {
+      "title": "Something went wrong",
+      "description": "Please try reloading the page or head back home.",
+      "retry": "Try Again",
+      "backHome": "Back Home"
     }
   },
   "nav": {
@@ -61,7 +73,8 @@
   "auth": {
     "loginPage": {
       "heroAlt": "Login background",
-      "appName": "Memorix Gallery"
+      "appName": "Memorix Gallery",
+      "subtitle": "Minimalist visual archive for photography and video"
     },
     "signupPage": {
       "heroAlt": "Signup background",
@@ -116,7 +129,8 @@
         "home": "Home",
         "gallery": "Gallery",
         "collections": "Portfolio",
-        "about": "About"
+        "about": "About",
+        "timeline": "Timeline"
       }
     },
     "home": {
@@ -708,7 +722,16 @@
       "backToFront": "Back",
       "shares": "Shares",
       "trash": "Trash",
-      "dedup": "Duplicates"
+      "dedup": "Duplicates",
+      "monitoring": "Monitoring & Audit",
+      "profile": "Profile",
+      "createTask": "Create Upload Task",
+      "groups": {
+        "overview": "Overview",
+        "content": "Content Assets",
+        "organize": "Share & Organize",
+        "system": "Infrastructure & System"
+      }
     },
     "overview": {
       "title": "Overview",
@@ -726,11 +749,30 @@
       "quickLinks": {
         "title": "Quick Links",
         "storage": "Storage Management",
-        "gallery": "Gallery Preview"
+        "gallery": "Gallery Preview",
+        "unpublished": "Unpublished Media",
+        "unpublishedDesc": "{count} unpublished items ready to review and publish",
+        "upload": "Upload Media",
+        "uploadDesc": "Chunked resumable or direct upload for photos and videos",
+        "storageDesc": "Manage local, NAS, S3, and Qiniu sources and scan jobs",
+        "shares": "External Shares",
+        "sharesDesc": "{count} active share links",
+        "trash": "Trash",
+        "trashDesc": "{count} soft-deleted items (auto-purged after 30 days)",
+        "monitoring": "Monitoring & Audit",
+        "monitoringDesc": "Inspect Web Vitals, system error logs, and audit trails"
       },
       "loginRequired": "Please sign in to view the dashboard.",
       "goToLogin": "Go to Login",
-      "userNotFound": "User info not found."
+      "userNotFound": "User info not found.",
+      "health": {
+        "publishProgress": "Publishing Progress",
+        "publishProgressDesc": "{published} published · {unpublished} unpublished ({rate}% live)",
+        "attention": "Operational Attention",
+        "failedScans": "Failed Scan Jobs",
+        "trashedItems": "Items in Trash",
+        "activeShares": "Active Share Links"
+      }
     },
     "data": {
       "collections": {
@@ -820,7 +862,8 @@
         "iso": "ISO",
         "focalLength": "Focal Length",
         "example": "e.g. {value}",
-        "sortLabel": "Sort"
+        "sortLabel": "Sort",
+        "advancedDesc": "Adjust filters below and click Apply to update results in one request."
       },
       "sort": {
         "dateShotDesc": "Date Shot (Newest)",
@@ -916,7 +959,63 @@
         "bulkUpdating": "Working...",
         "bulkPublishSuccess": "Published all {count} files.",
         "bulkUnpublishSuccess": "Unpublished all {count} files.",
-        "bulkPublishFailed": "Library-wide operation failed. Please try again."
+        "bulkPublishFailed": "Library-wide operation failed. Please try again.",
+        "uploadAction": "Upload Media",
+        "gridView": "Grid View",
+        "listView": "List View",
+        "selectMode": "Select Mode",
+        "exitSelectMode": "Exit Select",
+        "unselectPage": "Unselect Page",
+        "statusUpdated": "Status updated",
+        "clickToPublish": "Click to publish to public gallery",
+        "clickToUnpublish": "Click to unpublish from gallery",
+        "publishFiltered": "Publish all filtered ({count})",
+        "unpublishFiltered": "Unpublish all filtered ({count})",
+        "publishFilteredTitle": "Publish All Filtered Media",
+        "unpublishFilteredTitle": "Unpublish All Filtered Media",
+        "publishFilteredDesc": "This will publish all {count} items matching the current filters across all pages. Continue?",
+        "unpublishFilteredDesc": "This will unpublish all {count} items matching the current filters across all pages. Continue?",
+        "pageSelectedBanner": "All {pageCount} items on this page are selected ({totalCount} matching in total)",
+        "moveToTrashConfirm": "Move {count} selected item(s) to Trash? You can restore them within 30 days.",
+        "addToCollection": "Add to Collection",
+        "addToCollectionTitle": "Add {count} item(s) to Collection",
+        "addToCollectionDesc": "Choose a target collection to append matching media items.",
+        "targetCollection": "Target Collection",
+        "selectCollectionPlaceholder": "Select a collection",
+        "selectCollectionRequired": "Please select a collection first",
+        "noCollectionsAvailable": "No collections available. Create one in Portfolio first.",
+        "confirmAddToCollection": "Add",
+        "addToCollectionSuccess": "Added {count} item(s) to collection",
+        "addToCollectionFailed": "Failed to add media to collection",
+        "createShare": "Create Share",
+        "quickShareTitle": "Create Share Link for {count} Item(s)",
+        "quickShareDesc": "Private media can be shared via a dedicated link without entering the public gallery.",
+        "shareName": "Share Name (optional)",
+        "shareNamePlaceholder": "e.g. Weekend Trip Picks",
+        "shareExpires": "Expiration",
+        "shareNeverExpire": "Never expires",
+        "sharePassword": "Password (optional)",
+        "sharePasswordPlaceholder": "Leave empty for no password",
+        "shareAllowDownload": "Allow visitors to download originals",
+        "createShareLink": "Create Link",
+        "shareLinkLabel": "Share Link (copied)",
+        "shareCreatedCopied": "Share link created and copied to clipboard",
+        "shareFailed": "Failed to create share link",
+        "linkCopied": "Link copied",
+        "done": "Done",
+        "tagsMode": {
+          "add": "Append",
+          "replace": "Replace All",
+          "remove": "Remove"
+        },
+        "table": {
+          "media": "Media",
+          "status": "Status",
+          "specs": "Specs",
+          "date": "Date Shot",
+          "tags": "Tags",
+          "actions": "Actions"
+        }
       }
     },
     "collections": {
@@ -976,7 +1075,11 @@
         "addMedia": "Add Media",
         "selectMedia": "Select Media to Add",
         "emptyTitle": "No items in this collection",
-        "emptyDescription": "Start by adding some photos or videos"
+        "emptyDescription": "Start by adding some photos or videos",
+        "removed": "Removed from collection",
+        "removeConfirmTitle": "Remove Media from Collection",
+        "removeConfirmDesc": "This only removes the item from this collection and keeps the original file.",
+        "removeConfirmAction": "Remove"
       },
       "picker": {
         "selected": "{count} selected",
@@ -1145,7 +1248,9 @@
           "cancel": "Cancel",
           "confirm": "Confirm",
           "processing": "Processing..."
-        }
+        },
+        "emptyTitle": "No storage sources configured",
+        "emptyDesc": "Add a local folder, NAS mount, or S3/Qiniu bucket to start indexing."
       },
       "form": {
         "types": {
@@ -1455,7 +1560,11 @@
             "titleLabel": "Equipment Title",
             "description": "Equipment Description"
           }
-        }
+        },
+        "bioPlaceholder": "Write a short bio shown on the public About page...",
+        "saving": "Saving...",
+        "saveSuccess": "System settings saved",
+        "saveFailed": "Failed to save system settings"
       },
       "users": {
         "title": "User Management",
@@ -1491,7 +1600,8 @@
           "confirm": "Confirm",
           "processing": "Processing...",
           "deleting": "Deleting..."
-        }
+        },
+        "searchPlaceholder": "Search by name or email..."
       }
     },
     "trash": {
@@ -1512,7 +1622,8 @@
       "purgeConfirmBody": "Permanent deletion removes the original files (NAS/S3/local), thumbnails and all metadata. This cannot be undone.",
       "purgeConfirmCount": "About to permanently delete {count} items.",
       "cancel": "Cancel",
-      "purgeConfirmAction": "Delete permanently"
+      "purgeConfirmAction": "Delete permanently",
+      "retentionNotice": "Items in Trash are automatically and permanently purged after 30 days."
     },
     "dedup": {
       "title": "Deduplication",
@@ -1526,7 +1637,38 @@
       "copyHash": "Copy hash",
       "groupCount": "{count} files",
       "keepOldestTrashRest": "Keep oldest, trash the rest",
-      "keepBadge": "Keep"
+      "keepBadge": "Keep",
+      "keepSelectedTrashRest": "Keep Selected & Trash Rest",
+      "hashCopied": "File hash copied",
+      "confirmTitle": "Move Duplicate Copies to Trash",
+      "confirmDesc": "Keep the selected copy and move the remaining {count} duplicate(s) to Trash (recoverable for 30 days).",
+      "confirmAction": "Move to Trash",
+      "cancel": "Cancel"
+    },
+    "monitoring": {
+      "title": "Monitoring & Audit",
+      "description": "Inspect 24h Web Vitals, system logs, and administrator audit logs.",
+      "vitalsTitle": "Web Vitals (24h)",
+      "errorStatsTitle": "Log Levels (24h)",
+      "noVitals": "No performance samples yet",
+      "noErrors": "No log entries found",
+      "samples": "{count} samples",
+      "refresh": "Refresh",
+      "loading": "Loading...",
+      "tabs": {
+        "systemLogs": "System Logs",
+        "auditLogs": "Audit Logs"
+      },
+      "logs": {
+        "searchPlaceholder": "Search log messages...",
+        "allLevels": "All Levels"
+      },
+      "audit": {
+        "actionPlaceholder": "Filter by action (e.g. media.publish)...",
+        "allResources": "All Resources",
+        "empty": "No audit records found",
+        "loadMore": "Load More"
+      }
     }
   },
   "actions": {

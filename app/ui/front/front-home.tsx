@@ -149,13 +149,11 @@ export function FrontHome({ heroPhotos, featuredCollections }: FrontHomeProps) {
   const [heroTone, setHeroTone] = useState<HeroTone>('light');
   const [activeIndex, setActiveIndex] = useState(0);
   
-  // 使用真实 Hero 照片数据，如果没有则降级到默认图片
+  // 使用真实 Hero 照片高清原图路径，避免全屏拉伸缩略图模糊
   const heroImages = useMemo(() => {
     if (heroPhotos.length > 0) {
-      // 使用真实照片的缩略图 URL
-      return heroPhotos.map(photo => `/api/media/thumb/${photo.id}`);
+      return heroPhotos.map((photo) => `/api/local-files/${photo.id}`);
     }
-    // 降级方案：使用默认图片
     if (viewportSize.width > 0 && viewportSize.width < 640) {
       return HERO_IMAGES.mobile;
     }
@@ -275,7 +273,7 @@ export function FrontHome({ heroPhotos, featuredCollections }: FrontHomeProps) {
         </div>
         <div
           ref={heroTextRef}
-          className='relative z-20 flex h-full flex-col justify-end gap-6 px-8 pb-12 pt-28 md:px-16 md:pb-16'
+          className='relative z-20 flex min-h-[calc(100svh+6rem)] flex-col justify-end gap-6 px-8 pb-14 pt-28 md:px-16 md:pb-16'
         >
           <p className={cn('text-xs uppercase tracking-[0.4em]', heroLabelClass)}>
             {t('hero.eyebrow')}
@@ -283,7 +281,7 @@ export function FrontHome({ heroPhotos, featuredCollections }: FrontHomeProps) {
           <h1
             className={cn(
               'font-serif',
-              'text-4xl font-semibold md:text-6xl lg:text-7xl',
+              'text-4xl font-semibold tracking-tight md:text-6xl lg:text-7xl',
               heroTitleClass,
             )}
           >
@@ -292,78 +290,101 @@ export function FrontHome({ heroPhotos, featuredCollections }: FrontHomeProps) {
           <p className={cn('max-w-xl text-sm md:text-base', heroBodyClass)}>
             {t('hero.description')}
           </p>
-          <div className='flex flex-wrap gap-3'>
-            <Button
-              asChild
-              variant='ghost'
-              className={heroPrimaryButtonClass}
-            >
-              <Link href='/gallery'>{t('hero.primaryCta')}</Link>
-            </Button>
-            <Button
-              asChild
-              variant='ghost'
-              className={heroSecondaryButtonClass}
-            >
-              <Link href='/collections'>{t('hero.secondaryCta')}</Link>
-            </Button>
+          <div className='flex flex-wrap items-center justify-between gap-4'>
+            <div className='flex flex-wrap gap-3'>
+              <Button
+                asChild
+                variant='ghost'
+                className={heroPrimaryButtonClass}
+              >
+                <Link href='/gallery'>{t('hero.primaryCta')}</Link>
+              </Button>
+              <Button
+                asChild
+                variant='ghost'
+                className={heroSecondaryButtonClass}
+              >
+                <Link href='/collections'>{t('hero.secondaryCta')}</Link>
+              </Button>
+            </div>
+            {heroImages.length > 1 ? (
+              <div className='flex items-center gap-2'>
+                {heroImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type='button'
+                    onClick={() => setActiveIndex(idx)}
+                    aria-label={`Slide ${idx + 1}`}
+                    className={cn(
+                      'h-1.5 rounded-full transition-all',
+                      idx === safeIndex
+                        ? 'w-7 bg-white'
+                        : 'w-2 bg-white/40 hover:bg-white/70',
+                    )}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
 
-      <section className='front-fade-up space-y-8'>
-        <SectionHeader
-          title={t('sections.featuredCollections.title')}
-          description={t('sections.featuredCollections.description')}
-          actionLabel={t('sections.featuredCollections.action')}
-          actionHref='/collections'
-        />
-        <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
-          {featuredCollections.map((collection) => {
-            // 使用集合封面图片，如果没有则使用默认渐变
-            const hasCover = collection.covers && collection.covers.length > 0;
-            const coverImageUrl = hasCover ? collection.covers![0].thumbUrl : null;
-            
-            return (
-              <Link
-                key={collection.id}
-                href={`/collections/${collection.id}`}
-                className='block'
-              >
-                <SpotlightCard className='h-full min-h-[280px]'>
-                  <div className='relative flex h-full flex-col justify-between gap-6 p-6'>
-                    {coverImageUrl ? (
-                      <div
-                        className='absolute inset-0 bg-cover bg-center opacity-20 dark:opacity-30'
-                        style={{ backgroundImage: `url(${coverImageUrl})` }}
-                      />
-                    ) : (
-                      <div className='absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 opacity-30 dark:opacity-70' />
-                    )}
-                    <div className='relative z-10 space-y-4'>
-                      <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
-                        {collection.type === 'photo'
-                          ? t('sections.featuredCollections.badgePhoto')
-                          : collection.type === 'video'
-                            ? t('sections.featuredCollections.badgeVideo')
-                            : t('sections.featuredCollections.badgeMixed')}
-                      </span>
-                      <h3 className='text-2xl font-semibold text-zinc-900 dark:text-white'>
-                        {collection.title}
-                      </h3>
-                      {collection.description && (
-                        <p className='text-sm text-zinc-600/80 dark:text-white/60'>
-                          {collection.description}
-                        </p>
+      {featuredCollections.length > 0 ? (
+        <section className='front-fade-up space-y-8'>
+          <SectionHeader
+            title={t('sections.featuredCollections.title')}
+            description={t('sections.featuredCollections.description')}
+            actionLabel={t('sections.featuredCollections.action')}
+            actionHref='/collections'
+          />
+          <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
+            {featuredCollections.map((collection) => {
+              const firstCover = collection.covers?.[0] ?? collection.cover;
+              const coverImageUrl = firstCover?.id
+                ? `/api/media/thumb/${firstCover.id}`
+                : firstCover?.thumbUrl || null;
+
+              return (
+                <Link
+                  key={collection.id}
+                  href={`/collections/${collection.id}`}
+                  className='block'
+                >
+                  <SpotlightCard className='h-full min-h-[280px]'>
+                    <div className='relative flex h-full flex-col justify-between gap-6 p-6'>
+                      {coverImageUrl ? (
+                        <div
+                          className='absolute inset-0 bg-cover bg-center opacity-20 dark:opacity-30'
+                          style={{ backgroundImage: `url(${coverImageUrl})` }}
+                        />
+                      ) : (
+                        <div className='absolute inset-0 bg-gradient-to-br from-indigo-500 to-violet-600 opacity-30 dark:opacity-60' />
                       )}
+                      <div className='relative z-10 space-y-4'>
+                        <span className='text-[11px] uppercase tracking-[0.3em] text-zinc-600/80 dark:text-white/60'>
+                          {collection.type === 'photo'
+                            ? t('sections.featuredCollections.badgePhoto')
+                            : collection.type === 'video'
+                              ? t('sections.featuredCollections.badgeVideo')
+                              : t('sections.featuredCollections.badgeMixed')}
+                        </span>
+                        <h3 className='text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white'>
+                          {collection.title}
+                        </h3>
+                        {collection.description && (
+                          <p className='text-sm text-zinc-600/80 dark:text-white/60'>
+                            {collection.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </SpotlightCard>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+                  </SpotlightCard>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

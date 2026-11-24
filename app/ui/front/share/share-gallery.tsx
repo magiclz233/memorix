@@ -172,7 +172,7 @@ export function ShareGallery({ items, allowDownload, shareToken }: Props) {
                 ) : (
                   <div className="relative max-h-full max-w-full">
                     <Image
-                      src={selected.src}
+                      src={selected.fullSrc || selected.src}
                       alt={selected.title}
                       width={selected.width || 1600}
                       height={selected.height || 1067}
